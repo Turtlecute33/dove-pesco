@@ -1,0 +1,11 @@
+# generato da tools/aggiorna-dati.py a ogni pubblicazione
+assets/dati/previsioni.json
+
+# roba di macOS
+.DS_Store
+
+# cache di lavoro degli script: si rigenera da Overpass, non serve nel repo
+tools/.cache-locale.json
+tools/.cache-snap.json
+tools/.cache-geocodifica.json
+__pycache__/

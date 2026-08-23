@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Dove Pesco — Emilia-Romagna</title>
+<meta name="description" content="Dove andare a pescare oggi in Emilia-Romagna. 222 spot su fiumi, torrenti, laghi, canali e mare, ordinati incrociando portata dei fiumi, temperatura dell'acqua, meteo e stagionalità delle specie.">
+<meta name="color-scheme" content="light">
+<meta name="referrer" content="no-referrer">
+<meta name="theme-color" content="#EFE9DD">
+<link rel="stylesheet" href="assets/css/style.css">
+<!-- Caratteri incorporati come data URI: così il sito funziona anche aperto
+     con un doppio clic, dove il browser bloccherebbe i font esterni. -->
+<link rel="stylesheet" href="assets/css/caratteri.css" media="print" onload="this.media='all';this.onload=null">
+<noscript><link rel="stylesheet" href="assets/css/caratteri.css"></noscript>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23FAF7F1'/%3E%3Cg fill='none' stroke='%231B5E63' stroke-width='1.7' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M5 16c3.4-4.6 7.4-6.9 12-6.9 3.6 0 6.4 1.6 8.6 4.9-2.2 4.7-5 6.4-8.6 6.4-4.6 0-8.6-2.3-12-4.4Z'/%3E%3Cpath d='m5 16 3.1-2.5M5 16l3.1 2.5'/%3E%3Ccircle cx='20.4' cy='14.4' r='1' fill='%231B5E63' stroke='none'/%3E%3C/g%3E%3C/svg%3E">
+</head>
+<body>
+
+<header class="top">
+ <div class="col largo">
+  <div class="top-in">
+    <a class="logo" href="#oggi" data-vai="oggi">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"
+           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M2.6 12c3.2-4.4 7-6.6 11.4-6.6 3.4 0 6.1 1.6 8.2 4.7-2.1 4.5-4.8 6.1-8.2 6.1-4.4 0-8.2-2.2-11.4-4.2Z"/>
+        <path d="m2.6 12 2.9-2.4M2.6 12l2.9 2.4"/>
+        <circle cx="17.2" cy="10.6" r=".9" fill="currentColor" stroke="none"/>
+      </svg>
+      Dove Pesco
+    </a>
+    <nav class="men" aria-label="Sezioni">
+      <button type="button" data-v="oggi">Oggi</button>
+      <button type="button" data-v="specie">Specie</button>
+      <button type="button" data-v="regole">Regole</button>
+      <button type="button" data-v="metodo">Metodo</button>
+    </nav>
+  </div>
+ </div>
+</header>
+
+<!-- ═══════════════════════════════════════════════════════════════ OGGI ═══ -->
+<section class="sez" data-v="oggi" style="padding:0">
+
+  <div class="col">
+    <div class="risposta">
+      <div class="data-riga">
+        <span class="occhio" id="data-oggi">—</span>
+        <span class="occhio tenue" id="data-luna">—</span>
+        <span class="occhio tenue" id="data-fonte" hidden>—</span>
+      </div>
+      <div class="corpo-risposta" id="risposta"></div>
+    </div>
+  </div>
+
+  <div class="col largo">
+    <div class="mappa-sez">
+      <div class="mappa-testa">
+        <h2>Tutti gli spot</h2>
+        <span class="micro tenue">Tocca un punto per la scheda rapida · il colore dice com'è la giornata</span>
+      </div>
+      <div id="mappa"></div>
+    </div>
+  </div>
+
+  <div class="col">
+    <div class="giorni" id="giorni" role="group" aria-label="Scegli il giorno"></div>
+
+    <details class="pieghe">
+      <summary>Filtra gli spot</summary>
+      <div class="dentro">
+        <div class="setacci">
+          <div class="campo"><label class="occhio" for="f-testo">Cerca</label>
+            <input type="search" id="f-testo" placeholder="fiume, paese, specie…" autocomplete="off"></div>
+          <div class="campo"><label class="occhio" for="f-prov">Provincia</label><select id="f-prov"></select></div>
+          <div class="campo"><label class="occhio" for="f-tipo">Ambiente</label><select id="f-tipo"></select></div>
+          <div class="campo"><label class="occhio" for="f-cat">Acque</label><select id="f-cat"></select></div>
+          <div class="campo"><label class="occhio" for="f-specie">Specie</label><select id="f-specie"></select></div>
+        </div>
+        <div class="spunte">
+          <button type="button" class="spunta" data-f="noKill" aria-pressed="false">Solo no kill</button>
+          <button type="button" class="spunta" data-f="bimbi" aria-pressed="false">Con i bambini</button>
+          <button type="button" class="spunta" data-f="disabili" aria-pressed="false">Postazioni accessibili</button>
+          <button type="button" class="spunta" id="azzera" style="margin-left:auto">Azzera</button>
+          <button type="button" class="spunta" id="aggiorna">Aggiorna dati</button>
+        </div>
+      </div>
+    </details>
+
+    <div class="altri" id="altri" style="padding-top:clamp(30px,4vw,44px)"></div>
+    <div class="tutti" id="tutti" style="padding:0"></div>
+
+    <p class="micro tenue" style="max-width:72ch;padding-bottom:clamp(30px,5vw,54px)">
+      L'indice è un ordinamento, non una promessa. Prima di uscire controlla il calendario ittico
+      della tua provincia e la cartellonistica sul posto.
+    </p>
+  </div>
+</section>
+
+<!-- ═════════════════════════════════════════════════════════════ SPECIE ═══ -->
+<section class="sez" data-v="specie" hidden>
+  <div class="col">
+    <h1>Le specie</h1>
+    <p class="intro">Cosa nuota nelle acque della regione, quando è attivo, a che profondità sta,
+      con cosa si insidia e cosa dice la legge. Le figure sono disegni a linea: servono a
+      riconoscere la sagoma.</p>
+    <div id="specie-corpo"></div>
+  </div>
+</section>
+
+<!-- ═════════════════════════════════════════════════════════════ REGOLE ═══ -->
+<section class="sez" data-v="regole" hidden>
+  <div class="col">
+    <h1>Le regole</h1>
+    <p class="intro">Licenze, attrezzi, limiti di prelievo, zone delle acque, divieti in vigore e
+      sicurezza. Sintesi delle fonti regionali, con i link ai testi ufficiali.</p>
+    <div id="regole-corpo"></div>
+  </div>
+</section>
+
+<!-- ═════════════════════════════════════════════════════════════ METODO ═══ -->
+<section class="sez" data-v="metodo" hidden>
+  <div class="col">
+    <h1>Come nasce l'indice</h1>
+    <p class="intro">Sei fattori misurabili, pesati e moltiplicati fra loro, specie per specie.
+      Qui c'è tutto, comprese le cose che il modello <em>non</em> sa.</p>
+
+    <p class="nota">L'indice è una misura locale, non un voto. Dice come si presenta
+      quel punto in quel giorno, non se è un bel posto.</p>
+
+    <div class="voci">
+      <div class="voce"><h3>Stagione</h3><div>
+        <p>Ogni specie ha una curva di attività mensile costruita sulla sua biologia e sui periodi
+        indicati dalla guida regionale. Un cavedano a settembre e un cavedano a gennaio non sono
+        lo stesso pesce.</p></div></div>
+
+      <div class="voce"><h3>Temperatura dell'acqua</h3><div>
+        <p>È il fattore che pesa di più, e nessuno la misura su 222 punti. La stimiamo con un
+        modello a inerzia termica: l'acqua segue la media dell'aria degli ultimi giorni, smorzata
+        verso la temperatura media annua alla quota dello spot — che è, in pratica, la temperatura
+        di falda.</p>
+        <p>Finestra e smorzamento cambiano con l'ambiente: tre giorni e forte smorzamento per un
+        torrente sorgivo, sette e quasi nessuno per un canale di pianura, quattordici per un bacino
+        profondo. Ogni tipo ha un tetto: il rio Ospitale non arriva a 28 °C nemmeno ad agosto.
+        <b>È una stima dichiarata, non una misura.</b></p></div></div>
+
+      <div class="voce"><h3>Portata</h3><div>
+        <p>Dato reale: portata giornaliera in metri cubi al secondo dal modello idrologico GloFAS,
+        confrontata con la mediana delle settimane precedenti nello stesso punto. Un rialzo del
+        15–40% è la condizione che accende barbi e siluri; oltre il 260% l'indice crolla e compare
+        l'avviso di piena; sotto il 45% è magra.</p>
+        <p>Su laghi, cave, mare e canali di bonifica non viene usata. GloFAS lavora su celle:
+        vicino a una confluenza il valore assoluto può riferirsi a un ramo diverso, per questo
+        mostriamo sempre lo scarto sulla mediana e i m³/s solo quando sono coerenti.</p></div></div>
+
+      <div class="voce"><h3>Pioggia e torbidità</h3><div>
+        <p>Pioggia delle 72 ore precedenti, quella prevista e lo scarto di portata, per stimare
+        quanto è velata l'acqua. Poi il confronto con la preferenza di ogni specie: il barbo la ama,
+        il temolo la detesta.</p></div></div>
+
+      <div class="voce"><h3>Pressione, luce, luna</h3><div>
+        <p>La variazione barometrica sul giorno prima premia le specie che si attivano con la
+        pressione in calo, ma un crollo oltre gli 8 hPa penalizza tutti. Il cielo coperto premia i
+        crepuscolari. La luna conta solo per i predatori notturni.</p></div></div>
+
+      <div class="voce"><h3>Divieti e presenza reale</h3><div>
+        <p>Una specie in divieto o protetta non viene esclusa — resta pescabile in catch and
+        release — ma pesa il 34% e la scheda lo dichiara. Dove la guida regionale scrive «rari»,
+        la specie pesa il 42%.</p></div></div>
+
+      <div class="voce"><h3>La somma</h3><div>
+        <p>62% della specie migliore più 38% della media delle prime tre, poi i modificatori
+        d'ambiente — piena, magra, temporali, vento, mare mosso, acqua fresca in giornata torrida,
+        stagione consigliata — e una compressione esponenziale su 100. <b>Il 100 non è
+        raggiungibile</b>: nessun giorno è perfetto.</p></div></div>
+    </div>
+
+    <details class="pieghe" style="margin-top:34px">
+      <summary>Le mappe: come sono fatte</summary>
+      <div class="dentro">
+        <p class="mini">Nessun tile, nessuna libreria di mappe. Confini, 68 corsi d'acqua reali,
+        95 specchi d'acqua, strade, sentieri e parcheggi sono stati scaricati una volta sola da
+        OpenStreetMap, semplificati e incorporati nel sito come percorsi SVG. Funziona offline e
+        non mostra il tuo indirizzo IP a nessun server di mappe.</p>
+        <p class="mini" style="margin-top:10px">La mappa regionale si trascina, si ingrandisce
+        con il pizzico o con i tasti + e −, e toccando un punto apre la scheda rapida dello spot:
+        indice, acqua, portata e pesce del giorno. Punti e nomi restano della stessa misura a
+        ogni ingrandimento.</p>
+        <p class="mini" style="margin-top:10px">Nella mappa dello spot i punti numerati sono i
+        tratti in cui una strada o un sentiero arriva a meno di 70 metri dall'acqua: calcolati,
+        non disegnati a mano. È lì che conviene fermarsi.</p>
+        <p class="mini" style="margin-top:10px">Le coordinate degli spot sono state ricalibrate
+        agganciandole al corso d'acqua che ogni scheda dichiara: 143 su 151 cadono entro 260 metri
+        dall'acqua, le altre entro 810.</p>
+      </div>
+    </details>
+
+    <details class="pieghe">
+      <summary>Cosa il modello non sa</summary>
+      <div class="dentro"><ul class="mini" style="padding-left:1.1em;color:var(--ink-2)">
+        <li>La pressione di pesca: un no-kill famoso di domenica è un altro posto.</li>
+        <li>Gli orari puntuali dei rilasci delle dighe: gli avvisi ci sono, gli orari no.</li>
+        <li>La torbidità reale, le schiuse di insetti, le chiusure decise ieri.</li>
+        <li>Lo stato delle strade di crinale e dei sentieri in inverno.</li>
+        <li>I regolamenti provinciali aggiornati: cambiano ogni anno e vanno letti.</li>
+      </ul></div>
+    </details>
+
+    <details class="pieghe">
+      <summary>Privacy e dati</summary>
+      <div class="dentro">
+        <p class="mini">Nessun account, cookie, tracciamento, font o script di terze parti: i
+        caratteri sono serviti dalla cartella del sito. Meteo e portata arrivano da un file
+        preparato a monte e servito insieme alla pagina, aggiornato ogni due ore: il tuo browser
+        non parla con nessun servizio esterno e il tuo indirizzo IP non esce di qui. Sotto la data
+        c'è l'ora del rilevamento. La tua posizione non viene mai richiesta.</p>
+        <p class="mini" style="margin-top:10px">Se quel file manca o ha più di cinque ore — per
+        esempio aprendo il sito da una cartella, senza server — si torna a chiamare Open-Meteo
+        direttamente dal browser, a poche richieste per volta e con i dati tenuti in cache 45
+        minuti. Anche in quel caso l'unica destinazione è Open-Meteo.</p>
+        <p class="mini" style="margin-top:10px">Le schede degli spot derivano da
+        <b>«Itinerari di pesca sportiva in Emilia-Romagna»</b> della Regione Emilia-Romagna,
+        espansa per località. Misure minime, divieti e limiti dall'Allegato 2 del Regolamento
+        regionale 1/2018 come modificato dal 1/2020. Meteo e portata:
+        <a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo</a>
+        (CC BY 4.0). Cartografia:
+        <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>, ODbL.</p>
+      </div>
+    </details>
+
+    <h2 style="margin:clamp(36px,5vw,52px) 0 0">Il patto</h2>
+    <div class="voci">
+      <div class="voce"><h3>Documenti</h3><div><p>Licenza di tipo B o C sempre con te e, nelle
+        zone D, il tesserino segnacatture dei salmonidi.</p></div></div>
+      <div class="voce"><h3>Verifiche</h3><div><p>Calendario ittico della provincia e
+        <a href="https://agricoltura.regione.emilia-romagna.it/pesca/pesca-sportiva-professionale-acque-interne/calendari-ittici/carta-interattiva" target="_blank" rel="noopener noreferrer">carta interattiva regionale</a>:
+        zone, divieti e categorie cambiano.</p></div></div>
+      <div class="voce"><h3>Sul posto</h3><div><p>La cartellonistica vince su qualsiasi cosa
+        leggi qui.</p></div></div>
+      <div class="voce"><h3>Rilascio</h3><div><p>Slamatura in acqua, mani bagnate, mai per le
+        branchie, il minor tempo possibile fuori.</p></div></div>
+      <div class="voce"><h3>Prima di andartene</h3><div><p>Riporta a casa la lenza vecchia.
+        Il nylon in acqua uccide per anni.</p></div></div>
+    </div>
+  </div>
+</section>
+
+<footer class="piede">
+  <div class="col largo">
+   <div class="piede-in">
+    <div class="piede-g">
+      <div>
+        <span class="occhio">Dove Pesco</span>
+        <p class="mini tenue" style="margin-top:9px">222 spot in Emilia-Romagna, ordinati ogni
+          mattina sui dati del giorno. Dati aperti, nessun tracciamento.</p>
+      </div>
+      <div>
+        <span class="occhio">Fonti</span>
+        <ul>
+          <li><a href="https://agricoltura.regione.emilia-romagna.it/pesca/pesca-sportiva-professionale-acque-interne" target="_blank" rel="noopener noreferrer">Pesca sportiva — Regione E-R</a></li>
+          <li><a href="https://agricoltura.regione.emilia-romagna.it/pesca/pesca-sportiva-professionale-acque-interne/calendari-ittici/carta-interattiva" target="_blank" rel="noopener noreferrer">Carta interattiva delle acque</a></li>
+          <li><a href="https://demetra.regione.emilia-romagna.it/al/articolo?urn=er%3Aassemblealegislativa%3Aregolamento%3A2018%3B1" target="_blank" rel="noopener noreferrer">Regolamento regionale 1/2018</a></li>
+        </ul>
+      </div>
+      <div>
+        <span class="occhio">Dati</span>
+        <ul>
+          <li><a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo</a> — meteo e portata</li>
+          <li><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> — mappe</li>
+          <li><a href="#metodo" data-vai="metodo">Come nasce l'indice</a></li>
+        </ul>
+      </div>
+    </div>
+    <p class="fine">Strumento di orientamento, non un'autorizzazione. Fa fede solo il Regolamento
+      regionale vigente e il calendario ittico della provincia. Rispetta misure minime, periodi di
+      divieto e cartellonistica in loco. Cartografia © OpenStreetMap contributors, ODbL.</p>
+   </div>
+  </div>
+</footer>
+
+<script src="assets/js/tavole.js"></script>
+<script src="assets/js/data-species.js"></script>
+<script src="assets/js/data-spots-emilia.js"></script>
+<script src="assets/js/data-spots-romagna.js"></script>
+<script src="assets/js/data-spots-extra.js"></script>
+<script src="assets/js/data-spots-centro.js"></script>
+<script src="assets/js/data-index.js"></script>
+<script src="assets/js/data-rules.js"></script>
+<script src="assets/js/geo-regione.js"></script>
+<!-- geo-locale.js (1,6 MB) non è qui: lo carica mappa.js alla prima scheda aperta -->
+<script src="assets/js/api.js"></script>
+<script src="assets/js/engine.js"></script>
+<script src="assets/js/mappa.js"></script>
+<script src="assets/js/ui.js"></script>
+</body>
+</html>
