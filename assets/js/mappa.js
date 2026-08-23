@@ -45,11 +45,16 @@ const MAPPA = (() => {
      si deforma, cresce l'acqua intorno — e i punti tornano toccabili. */
   const PROPORZIONE_STRETTA = 1.2;
 
+  /* La soglia è la stessa che in style.css fa scendere la leggenda sotto la
+     mappa, ed è la stessa su cui style.css riserva l'altezza del riquadro prima
+     che la mappa esista: se qui e là non coincidono, la pagina si sposta. */
+  const STRETTO = '(max-width:620px)';
+
   function disegnaRegione(host, classifica, opz) {
     const [x0, y0, x1, y1] = GEO_BBOX;
     const larg = (x1 - x0) + MARGINE * 2;
     const nat = (y1 - y0) + MARGINE * 2;
-    stretta = host.clientWidth > 0 && host.clientWidth < 620;
+    stretta = matchMedia(STRETTO).matches;
     const alt = stretta ? Math.max(nat, larg / PROPORZIONE_STRETTA) : nat;
     const base = [x0 - MARGINE, y0 - MARGINE - (alt - nat) / 2, larg, alt];
 
@@ -268,7 +273,7 @@ const MAPPA = (() => {
   /* dopo una rotazione la proporzione può non essere più quella giusta: qui non
      basta adattare, la mappa va ridisegnata */
   const daRidisegnare = (host) => !!vista && host.clientWidth > 0 &&
-    (host.clientWidth < 620) !== stretta;
+    matchMedia(STRETTO).matches !== stretta;
   const centraSu = (lat, lon, k) => { if (vista) vista.centraSu(lat, lon, k); };
   const tuttaLaRegione = () => { if (vista) vista.tutta(); };
 

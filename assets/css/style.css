@@ -24,7 +24,10 @@
   /* inchiostri */
   --ink:   #16201E;
   --ink-2: #4B5551;
-  --ink-3: #7B837D;
+  /* il grigio di servizio: sta almeno a 4,5:1 su tutte le superfici della casa,
+     compreso il fondo della mappa e i riquadri d'accento, che sono i piu' chiari */
+  --ink-3: #616962;
+  /* solo per cose che non sono testo: punti, tracce, frecce, segni di elenco */
   --ink-4: #A9ACA3;
   --linea:   rgba(22,32,30,.08);
   --linea-2: rgba(22,32,30,.15);
@@ -99,8 +102,19 @@ h4{ font-size:1rem; font-weight:600; letter-spacing:-.015em }
 
 p{ margin:0 0 .75em }
 p:last-child{ margin-bottom:0 }
-a{ color:var(--acc); text-decoration:none; transition:color .15s }
-a:hover{ color:var(--acc-2) }
+/* Un link in mezzo alle parole deve distinguersi anche senza colore: l'accento
+   sul nero del corpo sta a 2,66:1, sotto la soglia di 3:1, quindi la riga sotto
+   non e' un ornamento. Sottile e staccata, non pesa sulla lettura.
+   Restano puliti solo i link che non stanno dentro un testo: il marchio, il
+   menu, le briciole, i bottoni e gli elenchi di schede. */
+a{
+  color:var(--acc); transition:color .15s;
+  text-decoration:underline; text-decoration-thickness:1px;
+  text-decoration-color:color-mix(in srgb, currentColor 40%, transparent);
+  text-underline-offset:.16em;
+}
+a:hover{ color:var(--acc-2); text-decoration-color:currentColor }
+.logo,.men a,.men-link a,.briciole a,.btn,.btn-link,.elenco-link a,.riga{ text-decoration:none }
 
 .occhio{
   font-size:.7rem; font-weight:600; letter-spacing:.1em; text-transform:uppercase;
@@ -194,6 +208,16 @@ nav.men button[aria-current]{
   font-size:.72rem;
 }
 
+/* La risposta del giorno la scrive JavaScript, ma il posto glielo tiene il CSS:
+   senza, il riquadro nasceva vuoto e, riempiendosi, spingeva in basso mappa,
+   giorni ed elenco di quasi tutto lo schermo. Le misure sono quelle che il
+   riquadro prende davvero, arrotondate per eccesso: meglio un dito di carta in
+   piu' in fondo alla scheda che la pagina che salta sotto le mani. */
+#risposta{ min-height:540px }
+@media (max-width:900px){ #risposta{ min-height:580px } }
+@media (max-width:620px){ #risposta{ min-height:620px } }
+@media (max-width:450px){ #risposta{ min-height:800px } }
+
 .corpo-risposta{
   padding:clamp(26px,4vw,46px) clamp(22px,4vw,44px) clamp(24px,3.4vw,38px);
   background:
@@ -252,15 +276,23 @@ nav.men button[aria-current]{
   line-height:1; letter-spacing:-.05em; font-variant-numeric:tabular-nums;
   font-variation-settings:'opsz' 96,'SOFT' 0,'WONK' 0;
 }
-.indice s{ text-decoration:none; font-size:.7rem; color:var(--ink-4); font-weight:600 }
+.indice s{ text-decoration:none; font-size:.7rem; color:var(--ink-3); font-weight:600 }
 .indice.buono b{ color:var(--buono) }
 .indice.medio b{ color:var(--medio-scuro) }
-.indice.scarso b{ color:var(--ink-4) }
+.indice.scarso b{ color:var(--ink-3) }
 
 /* ==========================================================================
    MAPPA REGIONALE
    ========================================================================== */
-.mappa-sez{ padding:clamp(22px,3.4vw,38px) 0 clamp(16px,2.4vw,24px) }
+/* Anche la mappa arriva dopo, e anche a lei il posto lo tiene il CSS. Qui la
+   misura si calcola invece di indovinarla: la larghezza del contenitore diviso
+   la proporzione con cui mappa.js disegna il riquadro (1,765 la regione intera,
+   1,2 sullo schermo stretto, come PROPORZIONE_STRETTA), piu' il piede della
+   scheda e — sotto i 620px, dove smette di stare sopra la mappa — la leggenda. */
+.mappa-sez{ padding:clamp(22px,3.4vw,38px) 0 clamp(16px,2.4vw,24px); container-type:inline-size }
+#mappa{ min-height:calc(100cqw / 1.765 + 42px) }
+@media (max-width:620px){ #mappa{ min-height:calc(100cqw / 1.2 + 102px) } }
+@media (max-width:416px){ #mappa{ min-height:calc(100cqw / 1.2 + 124px) } }
 .mappa-testa{
   display:flex; align-items:center; justify-content:space-between; gap:14px;
   flex-wrap:wrap; margin:0 4px 12px;
@@ -526,7 +558,7 @@ details.pieghe .dentro{ padding:2px 18px 18px }
 }
 .riga.buono .n{ color:var(--buono) }
 .riga.medio .n{ color:var(--medio-scuro) }
-.riga.scarso .n{ color:var(--ink-4) }
+.riga.scarso .n{ color:var(--ink-3) }
 .riga .tit{ font-size:1rem; font-weight:600; letter-spacing:-.018em; min-width:0; display:block }
 .riga .sub{ font-size:.82rem; color:var(--ink-3); margin-top:2px; display:block }
 .riga .dx{ font-size:.8rem; color:var(--ink-3); white-space:nowrap; text-align:right;
@@ -689,7 +721,7 @@ table.dati td{ padding:11px 14px 11px 0; border-bottom:1px solid var(--linea); v
   color:var(--ink-2) }
 table.dati tr:last-child td{ border-bottom:0 }
 table.dati td:first-child{ color:var(--ink) }
-table.dati .sci{ font-family:var(--sans); font-style:italic; color:var(--ink-4); font-size:.78rem;
+table.dati .sci{ font-family:var(--sans); font-style:italic; color:var(--ink-3); font-size:.78rem;
   display:block; margin:0 }
 
 .nota{

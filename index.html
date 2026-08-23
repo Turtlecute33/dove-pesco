@@ -39,6 +39,8 @@
  </div>
 </header>
 
+<main>
+
 <!-- ═══════════════════════════════════════════════════════════════ OGGI ═══ -->
 <section class="sez" data-v="oggi" style="padding:0">
 
@@ -53,7 +55,14 @@
         <span class="occhio tenue" id="data-luna">—</span>
         <span class="occhio tenue" id="data-fonte" hidden>—</span>
       </div>
-      <div class="corpo-risposta" id="risposta"></div>
+      <!-- Il riquadro parte già con la sua misura (min-height in style.css) e con
+           la riga di attesa scritta qui dentro: la prima schermata dice qualcosa
+           di sensato prima ancora che gli script arrivino, e quando la risposta
+           del giorno prende il loro posto la pagina non si sposta. -->
+      <div class="corpo-risposta" id="risposta">
+        <div class="stato"><p class="mini">Rilevo meteo, portata dei fiumi e stagionalità
+          sui 222 spot…</p></div>
+      </div>
     </div>
   </div>
 
@@ -238,6 +247,8 @@
   </div>
 </section>
 
+</main>
+
 <footer class="piede">
   <div class="col largo">
    <div class="piede-in">
@@ -271,19 +282,24 @@
   </div>
 </footer>
 
-<script src="assets/js/tavole.js"></script>
-<script src="assets/js/data-species.js"></script>
-<script src="assets/js/data-spots-emilia.js"></script>
-<script src="assets/js/data-spots-romagna.js"></script>
-<script src="assets/js/data-spots-extra.js"></script>
-<script src="assets/js/data-spots-centro.js"></script>
-<script src="assets/js/data-index.js"></script>
-<script src="assets/js/data-rules.js"></script>
-<script src="assets/js/geo-regione.js"></script>
+<!-- Tutti con defer: mezzo mega di elenchi in fondo al corpo ferma comunque il
+     lettore del documento finché non è sceso, e la prima schermata aspettava
+     l'ultimo byte. Con defer la pagina si disegna subito, gli script scendono in
+     parallelo, restano nell'ordine scritto e girano prima di DOMContentLoaded,
+     che è quello che ui.js aspetta. -->
+<script defer src="assets/js/tavole.js"></script>
+<script defer src="assets/js/data-species.js"></script>
+<script defer src="assets/js/data-spots-emilia.js"></script>
+<script defer src="assets/js/data-spots-romagna.js"></script>
+<script defer src="assets/js/data-spots-extra.js"></script>
+<script defer src="assets/js/data-spots-centro.js"></script>
+<script defer src="assets/js/data-index.js"></script>
+<script defer src="assets/js/data-rules.js"></script>
+<script defer src="assets/js/geo-regione.js"></script>
 <!-- geo-locale.js (1,6 MB) non è qui: lo carica mappa.js alla prima scheda aperta -->
-<script src="assets/js/api.js"></script>
-<script src="assets/js/engine.js"></script>
-<script src="assets/js/mappa.js"></script>
-<script src="assets/js/ui.js"></script>
+<script defer src="assets/js/api.js"></script>
+<script defer src="assets/js/engine.js"></script>
+<script defer src="assets/js/mappa.js"></script>
+<script defer src="assets/js/ui.js"></script>
 </body>
 </html>

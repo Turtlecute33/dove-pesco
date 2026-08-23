@@ -19,7 +19,7 @@
   display:flex; flex-wrap:wrap; align-items:center; gap:7px;
   font-size:.78rem; color:var(--ink-3); margin-bottom:clamp(14px,2vw,20px);
 }
-.briciole i{ color:var(--ink-4); font-style:normal }
+.briciole i{ color:var(--ink-3); font-style:normal }
 .briciole span[aria-current]{ color:var(--ink-2) }
 
 /* riga di etichette sotto il titolo */
