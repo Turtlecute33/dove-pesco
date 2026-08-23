@@ -1,20 +1,23 @@
 name: Dati e pubblicazione
 
 # Il sito è statico: l'unica cosa che invecchia sono le previsioni.
-# Questo flusso le riscarica ogni due ore e ripubblica la pagina, così i
-# visitatori leggono un file già pronto invece di chiamare Open-Meteo dal
-# proprio browser: nessun limite di richieste da superare, prima schermata
-# immediata, e nessun indirizzo IP di chi pesca mostrato a servizi terzi.
+# Questo flusso le riscarica e ripubblica la pagina, così i visitatori leggono
+# un file già pronto invece di chiamare Open-Meteo dal proprio browser: nessun
+# limite di richieste da superare, prima schermata immediata, e nessun
+# indirizzo IP di chi pesca mostrato a servizi terzi.
 #
-# Perché due ore: un giro costa circa 350 chiamate pesate sul conto gratuito
-# di Open-Meteo (10.000 al giorno per indirizzo IP). Dodici giri al giorno
-# stanno larghi; ogni ora sarebbero 8.400, troppo vicini al tetto.
+# Perché quattro ore. I dati sono giornalieri: fra un giro e il successivo i
+# numeri sono gli stessi, cambia solo l'ora del rilevamento. Prima erano due
+# ore, dodici giri al giorno; sei bastano, e ogni giro in meno è una
+# connessione in meno che può incagliarsi verso Open-Meteo (vedi la nota in
+# tools/aggiorna-dati.py). Il tetto di 5 ore oltre il quale il browser va in
+# rete da solo sta in assets/js/api.js: se cambi il cron, cambia anche quello.
 
 on:
   push:
     branches: [main]
   schedule:
-    - cron: '7 */2 * * *'      # ogni due ore, al minuto 7 (ora UTC)
+    - cron: '7 */4 * * *'      # ogni quattro ore, al minuto 7 (ora UTC)
   workflow_dispatch:            # e quando lo lanci a mano
 
 permissions:
@@ -46,9 +49,17 @@ jobs:
         id: pages
         uses: actions/configure-pages@v6
 
+      # Due richieste, tetto di 25 secondi, tre ritentativi: in condizioni
+      # normali dura cinque secondi, nel caso peggiore cinque minuti e mezzo.
+      # Il limite di 7 minuti è la rete di sicurezza: se Open-Meteo non risponde
+      # affatto, il passo viene interrotto, continue-on-error lascia proseguire e
+      # il passo dopo riprende il file già pubblicato. Senza questo limite un
+      # giro incagliato teneva occupato il gruppo "pages" per venti minuti e
+      # ritardava le pubblicazioni.
       - name: Scarica meteo e portata
         id: dati
         continue-on-error: true
+        timeout-minutes: 7
         run: python3 tools/aggiorna-dati.py
 
       - name: Se la rete ha detto no, tengo le previsioni già pubblicate

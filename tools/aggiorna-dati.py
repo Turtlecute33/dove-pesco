@@ -9,8 +9,19 @@ funziona. Ma il primo caricamento resta lento, e chi ricarica spesso o sta
 dietro a un IP condiviso incassa un 429. Con questo file il sito non chiama
 piu' nessuno: legge un JSON gia' pronto, servito insieme alla pagina.
 
-Lo lancia GitHub Actions ogni due ore (.github/workflows/dati.yml). Il costo
-per Open-Meteo e' di una dozzina di giri al giorno invece che uno per utente.
+Lo lancia GitHub Actions ogni quattro ore (.github/workflows/dati.yml). I dati
+sono giornalieri: piu' spesso di cosi' non cambierebbe niente, e ogni giro in
+meno e' una connessione in meno che puo' incagliarsi.
+
+Due connessioni in tutto, una per servizio. Prima erano dieci, a lotti di 40
+spot: ogni lotto dopo il primo si incagliava al primo tentativo e riusciva solo
+al secondo, e con un tetto di 180 secondi un giro arrivava a venti minuti. La
+causa non e' un rifiuto di Open-Meteo — non arriva mai un 429, arriva sempre un
+URLError esattamente allo scadere del tetto — ma una connessione che si apre e
+non risponde piu'. Gli indirizzi di uscita di GitHub Actions sono condivisi fra
+molti, e connessioni ravvicinate dallo stesso indirizzo vengono lasciate cadere
+senza risposta. Meno connessioni, meno occasioni di incagliarsi; e un tetto
+basso fa costare poco quelle che si incagliano comunque.
 
     python3 tools/aggiorna-dati.py            # scrive il file
     python3 tools/aggiorna-dati.py --prova    # solo i primi 12 spot
@@ -29,9 +40,19 @@ METEO_URL = 'https://api.open-meteo.com/v1/forecast'
 FLOOD_URL = 'https://flood-api.open-meteo.com/v1/flood'
 UA = {'User-Agent': 'dove-pesco-static-site/1.0 (aggiornamento periodico dei dati)'}
 
-LOTTO = 40          # spot per richiesta: Open-Meteo accetta piu' coordinate insieme
-PAUSA = 6           # secondi fra un lotto e l'altro, per stare lontani dal limite al minuto
-RIPROVE = [20, 60, 120, 240]
+LOTTO = 250         # tutti gli spot in una richiesta sola: Open-Meteo li accetta
+                    # insieme (222 coordinate = 3,8 KB di indirizzo, risposta in
+                    # mezzo secondo). Il taglio a lotti resta per sicurezza, se un
+                    # giorno gli spot diventassero troppi per un solo indirizzo.
+PAUSA = 4           # secondi fra una richiesta e l'altra: non e' il limite al
+                    # minuto a dare problemi, sono le connessioni ravvicinate
+TETTO = 25          # secondi di attesa per una risposta. Open-Meteo risponde in
+                    # meno di un secondo: oltre il mezzo minuto non arrivera' piu'
+RIPROVE = [0, 15, 45]   # il primo ritentativo subito: serve una connessione
+                        # nuova, non un'attesa. Storicamente il primo bastava
+                        # sempre. Nel caso peggiore: 4 tentativi x 25s + 60s di
+                        # attese = 160s per servizio, 325s in tutto, che stanno
+                        # dentro il tetto di 7 minuti del passo nel workflow.
 PASSATI = 10        # giorni indietro (servono alla temperatura dell'acqua)
 AVANTI = 7          # giorni di previsione
 PORT_PASSATI = 45   # giorni indietro per la mediana della portata
@@ -64,14 +85,16 @@ def leggi_spot():
 
 
 def chiedi(url, etichetta):
-    """Una richiesta, con pause crescenti se Open-Meteo dice di aspettare."""
+    """Una richiesta, con qualche ritentativo se la connessione si incaglia."""
     for giro, pausa in enumerate([0] + RIPROVE):
-        if pausa:
-            sys.stderr.write('    attendo %ds e riprovo\n' % pausa)
+        if giro:
+            sys.stderr.write('    riprovo (%d di %d)%s\n'
+                             % (giro, len(RIPROVE), ', dopo %ds' % pausa if pausa else ' subito'))
             time.sleep(pausa)
+        avvio = time.time()
         try:
             req = urllib.request.Request(url, headers=UA)
-            with urllib.request.urlopen(req, timeout=180) as r:
+            with urllib.request.urlopen(req, timeout=TETTO) as r:
                 return json.load(r)
         except urllib.error.HTTPError as e:
             corpo = ''
@@ -83,7 +106,10 @@ def chiedi(url, etichetta):
             if e.code not in (429, 500, 502, 503, 504):
                 return None
         except Exception as e:
-            sys.stderr.write('    %s: %s\n' % (etichetta, type(e).__name__))
+            # quanto e' durata dice cosa e' successo: al secondo e' un rifiuto,
+            # al tetto e' una connessione aperta e mai risposta
+            sys.stderr.write('    %s: %s dopo %.0fs\n'
+                             % (etichetta, type(e).__name__, time.time() - avvio))
     return None
 
 
@@ -160,7 +186,8 @@ def main():
             'giorni': [], 'giorniPortata': [], 'spot': {}}
 
     scarica_meteo(spot, dati)
-    scarica_portata(spot, dati)
+    time.sleep(PAUSA)      # i due servizi sono su due macchine diverse, ma una
+    scarica_portata(spot, dati)   # connessione appena dopo l'altra costa poco evitarla
 
     con_meteo = sum(1 for v in dati['spot'].values() if v.get('tmax'))
     con_portata = sum(1 for v in dati['spot'].values() if v.get('por'))

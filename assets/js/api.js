@@ -2,7 +2,7 @@
    DATI DEL GIORNO — file statico, con Open-Meteo come rete di sicurezza
    -----------------------------------------------------------------------------
    Prima strada: assets/dati/previsioni.json, un file da una quarantina di KB
-   compressi che GitHub Actions rigenera ogni due ore. Se c'è ed è fresco, il
+   compressi che GitHub Actions rigenera ogni quattro ore. Se c'è ed è fresco, il
    browser non chiama nessun servizio esterno: nessun 429, nessuna attesa,
    niente indirizzo IP dell'utente mostrato a terzi.
 
@@ -28,7 +28,12 @@
 const API = (() => {
 
   const FILE_STATICO = 'assets/dati/previsioni.json';
-  const ETA_MAX = 5 * 60 * 60 * 1000;   // oltre le 5 ore il file è vecchio: si va in rete
+  /* Il flusso rigenera il file ogni 4 ore. Nove ore vogliono dire che due giri
+     di fila non sono arrivati: allora è meglio la rete. Un margine più stretto
+     manderebbe in rete tutti i visitatori per un semplice ritardo della coda di
+     GitHub, che è quello che vogliamo evitare. I dati sono giornalieri, quindi
+     un file di nove ore contiene comunque i valori di oggi. */
+  const ETA_MAX = 9 * 60 * 60 * 1000;
   const METEO_URL = 'https://api.open-meteo.com/v1/forecast';
   const FLOOD_URL = 'https://flood-api.open-meteo.com/v1/flood';
   const CHUNK = 40;              // spot per richiesta

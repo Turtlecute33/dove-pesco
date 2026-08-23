@@ -49,7 +49,7 @@ sitemap.xml  robots.txt  404.html
 ```
 
 Dentro ci vanno **solo i fatti che non cambiano**. L'indice del giorno no: cambia ogni
-due ore, e su una pagina statica sarebbe vecchio. C'è invece un link che apre lo spot
+quattro ore, e su una pagina statica sarebbe vecchio. C'è invece un link che apre lo spot
 nell'applicazione — `/#spot/<id>`, che l'applicazione riconosce all'avvio — così un
 indirizzo condiviso porta dritto alla scheda giusta.
 
@@ -112,7 +112,7 @@ stato verificato a ritroso, perché sui fiumi di confine la sponda cambia provin
 
 ```
 index.html                     4 viste: Oggi · Specie · Regole · Metodo
-.github/workflows/dati.yml     riscarica le previsioni ogni 2 ore e pubblica su Pages
+.github/workflows/dati.yml     riscarica le previsioni ogni 4 ore e pubblica su Pages
 assets/dati/previsioni.json    le previsioni pronte (generate, non versionate)
 assets/og.png                  l'anteprima per chi condivide un link
 assets/css/
@@ -134,7 +134,7 @@ assets/js/
   ui.js                        interfaccia
 tools/
   aggiorna-dati.py             scarica meteo e portata e scrive previsioni.json
-  genera-pagine.py            prepara _sito/: applicazione + 277 pagine + sitemap
+  genera-pagine.py             prepara _sito/: applicazione + 277 pagine + sitemap
   og-immagine.py               ridisegna assets/og.png (solo se cambia il marchio)
 ```
 
@@ -199,23 +199,34 @@ mobile), si prenderebbe un 429.
 Perciò le previsioni le scarica una volta sola GitHub Actions:
 
 ```
-ogni 2 ore   tools/aggiorna-dati.py  →  assets/dati/previsioni.json  (280 KB, 39 KB compressi)
+ogni 4 ore   tools/aggiorna-dati.py  →  assets/dati/previsioni.json  (280 KB, 39 KB compressi)
              il workflow ripubblica il sito con dentro il file fresco
 ```
+
+Due richieste in tutto, una per servizio: Open-Meteo accetta tutte le coordinate insieme,
+e un giro dura cinque secondi. Prima erano dieci richieste a lotti di 40 spot, e ogni
+lotto dopo il primo si incagliava al primo tentativo per poi riuscire al secondo: con un
+tetto di attesa di 180 secondi un giro arrivava a venti minuti, tenendo occupata la coda
+di pubblicazione. Non era un rifiuto di Open-Meteo — non arriva mai un 429 — ma una
+connessione che si apre e non risponde: gli indirizzi di uscita di GitHub Actions sono
+condivisi fra molti, e connessioni ravvicinate dallo stesso indirizzo cadono nel vuoto.
+Ora il tetto è di 25 secondi, il primo ritentativo è immediato e il passo si interrompe da
+solo dopo 7 minuti.
 
 Il browser legge quel file e **non chiama nessun servizio esterno**: prima schermata
 immediata, nessun limite da superare, nessun indirizzo IP di chi pesca mostrato a terzi.
 Sotto la data compare l'ora del rilevamento.
 
-Se il file manca o ha più di 5 ore — sito aperto con un doppio clic, pubblicazione senza
-workflow, aggiornamento fermo — `api.js` torna da solo a chiamare Open-Meteo dal browser,
+Se il file manca o ha più di 9 ore — due giri di fila non arrivati, sito aperto con un
+doppio clic, pubblicazione senza il workflow — `api.js` torna da solo a chiamare Open-Meteo
+dal browser,
 come faceva prima: a tre richieste per volta, con ritenta automatica sui 429 e con quello
 che arriva mostrato comunque.
 
 ### Metterlo in piedi su GitHub Pages
 
 1. carica la cartella in un repo e vai su **Settings → Pages → Source: GitHub Actions**;
-2. il workflow parte al primo push, poi ogni due ore e quando lo lanci a mano da Actions;
+2. il workflow parte al primo push, poi ogni quattro ore e quando lo lanci a mano da Actions;
 3. se un giro fallisce, il sito resta pubblicato con le previsioni precedenti.
 
 Per un dominio tuo: punta il DNS a GitHub (record `A` verso 185.199.108–111.153 per il
