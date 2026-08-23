@@ -79,12 +79,17 @@ Nessuna libreria di mappe e nessun server di tile. La geometria è stata scarica
 volta sola da OpenStreetMap, semplificata e incorporata nel sito come percorsi SVG.
 
 **Regionale** — confini, 68 corsi d'acqua reali, 95 specchi d'acqua, nove città per
-orientarsi. Gli spot sono punti: il colore dice come si presenta la giornata, il nome
-compare al passaggio. Nessun numero stampato sulla mappa, altrimenti diventa un
-tabellone. Si trascina, si ingrandisce con il pizzico del trackpad, con due dita o con i
-tasti in alto a destra; punti e nomi si contro-scalano e restano della stessa misura a
-ogni ingrandimento. Toccando un punto si apre la **scheda rapida** — indice, acqua,
-portata, pesce del giorno — e da lì si apre la scheda intera.
+orientarsi. Gli spot sono punti: il colore dice come si presenta la giornata. Nessun
+numero stampato sulla mappa, altrimenti diventa un tabellone. Si trascina, si ingrandisce
+con il pizzico del trackpad, con due dita o con i tasti in alto a destra; punti e nomi si
+contro-scalano e restano della stessa misura a ogni ingrandimento.
+
+La mappa è un comando, non un'illustrazione. Con il mouse il passaggio apre la **scheda
+rapida** — indice, acqua, portata, pesce del giorno — e il clic porta dritto alla scheda
+dello spot. Al tocco, dove il passaggio non esiste, il primo tocco ferma la scheda rapida
+e il secondo apre lo spot; da tastiera il punto si raggiunge con il tabulatore e si apre
+con Invio. Il punto sulla mappa e la riga nell'elenco sono lo stesso spot visto da due
+parti: accendendo l'uno si accende anche l'altra.
 
 **Locale** — per ogni spot un riquadro di 3,6 km con il tratto d'acqua, le strade, le
 sterrate, i sentieri, i parcheggi e i **punti di accesso**: i tratti in cui una strada o

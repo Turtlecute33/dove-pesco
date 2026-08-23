@@ -5,10 +5,10 @@
    nessun server di tile, nessuna libreria, nessuna chiamata di rete.
 
    1. Regionale — dove sono tutti gli spot. Solo punti: il colore dice come si
-      presenta la giornata, il nome compare al passaggio. Nessun numero addosso
-      alla mappa, altrimenti diventa un tabellone. Si trascina, si ingrandisce
-      con le dita o con i tasti: punti e nomi si contro-scalano e restano
-      leggibili a ogni ingrandimento.
+      presenta la giornata, la scheda rapida compare al passaggio e il clic apre
+      lo spot. Nessun numero addosso alla mappa, altrimenti diventa un
+      tabellone. Si trascina, si ingrandisce con le dita o con i tasti: punti e
+      nomi si contro-scalano e restano leggibili a ogni ingrandimento.
    2. Locale — il tratto d'acqua, le strade, i parcheggi e i punti in cui una
       strada arriva a toccare l'acqua. Serve a decidere dove fermarsi.
    ========================================================================== */
@@ -36,11 +36,22 @@ const MAPPA = (() => {
     tutta: `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4.2H4.2V9M15 4.2h4.8V9M9 19.8H4.2V15M15 19.8h4.8V15"/></svg>`
   };
 
-  let vista = null;   /* lo stato della mappa regionale che sta in pagina */
+  let vista = null;      /* lo stato della mappa regionale che sta in pagina */
+  let stretta = false;   /* proporzione con cui è stata disegnata l'ultima volta */
+
+  /* La regione è larga il doppio di quanto è alta. Su un telefono diventerebbe
+     una striscia alta due dita: i punti si accavallano e non se ne centra uno.
+     Sotto i 620 px allarghiamo il riquadro soltanto in verticale — la mappa non
+     si deforma, cresce l'acqua intorno — e i punti tornano toccabili. */
+  const PROPORZIONE_STRETTA = 1.2;
 
   function disegnaRegione(host, classifica, opz) {
     const [x0, y0, x1, y1] = GEO_BBOX;
-    const base = [x0 - MARGINE, y0 - MARGINE, (x1 - x0) + MARGINE * 2, (y1 - y0) + MARGINE * 2];
+    const larg = (x1 - x0) + MARGINE * 2;
+    const nat = (y1 - y0) + MARGINE * 2;
+    stretta = host.clientWidth > 0 && host.clientWidth < 620;
+    const alt = stretta ? Math.max(nat, larg / PROPORZIONE_STRETTA) : nat;
+    const base = [x0 - MARGINE, y0 - MARGINE - (alt - nat) / 2, larg, alt];
 
     const banda = (p) => p >= 62 ? 'buono' : p >= 30 ? 'medio' : 'scarso';
 
@@ -89,12 +100,10 @@ const MAPPA = (() => {
             <span class="lg"><i class="medio"></i>30 – 61 <em>discrete</em></span>
             <span class="lg"><i class="scarso"></i>0 – 29 <em>scarse</em></span>
           </div>
-          <div class="etichetta" hidden></div>
           <div class="pop" hidden></div>
         </div>
         <div class="mappa-piede">
           <span class="chiave">${classifica.length} spot in mappa</span>
-          <span class="chiave" style="margin-left:auto">Trascina per spostarti · pizzica o usa + e − per ingrandire</span>
         </div>
       </div>`;
 
@@ -113,6 +122,7 @@ const MAPPA = (() => {
     const st = { x: b[0], y: b[1], w: b[2], h: b[3] };
     const MIN = b[2] / 14;
     const puntatori = new Map();
+    const preso = new Set();          /* puntatori catturati dal riquadro */
     let spostato = false, ultima = null;
 
     /* su schermo stretto la mappa rimpicciolisce: punti e nomi vanno ingranditi */
@@ -171,12 +181,20 @@ const MAPPA = (() => {
       t.onclick = () => t.dataset.z === 'tutta' ? tutta() : zoom(t.dataset.z === 'piu' ? 1.7 : 1 / 1.7);
     });
 
+    /* Il puntatore si prende solo quando il trascinamento comincia davvero:
+       prenderlo subito sposterebbe il clic finale dal punto al riquadro, e i
+       punti della mappa non si aprirebbero piu'. */
+    const prendi = (e) => {
+      if (preso.has(e.pointerId)) return;
+      preso.add(e.pointerId);
+      try { corpo.setPointerCapture(e.pointerId); } catch (_) { /* puntatore gia' finito */ }
+    };
+
     corpo.addEventListener('pointerdown', e => {
       if (e.target.closest('.mappa-strumenti, .pop')) return;
-      puntatori.set(e.pointerId, { x: e.clientX, y: e.clientY });
-      if (puntatori.size === 2) { corpo.style.touchAction = 'none'; ultima = distanza(); }
+      puntatori.set(e.pointerId, { x: e.clientX, y: e.clientY, x0: e.clientX, y0: e.clientY });
+      if (puntatori.size === 2) { corpo.style.touchAction = 'none'; ultima = distanza(); prendi(e); }
       if (puntatori.size === 1) { spostato = false; corpo.classList.add('trascina'); }
-      corpo.setPointerCapture(e.pointerId);
     });
 
     corpo.addEventListener('pointermove', e => {
@@ -188,10 +206,16 @@ const MAPPA = (() => {
       if (puntatori.size >= 2) {                       /* pizzico: ingrandisce */
         const d = distanza(), c = centro();
         if (ultima && d) zoom(d / ultima, c.x, c.y);
-        ultima = d; spostato = true;
+        ultima = d; spostato = true; prendi(e);
         return;
       }
-      if (Math.abs(dx) > 2 || Math.abs(dy) > 2) spostato = true;
+      /* Trascinamento o tocco? Si guarda quanto ci si è allontanati dal punto di
+         partenza, non quanto si è mosso l'ultimo passo: altrimenti uno
+         spostamento lento resterebbe un tocco. Il dito è meno preciso del
+         mouse e ha diritto a un margine più largo. */
+      if (Math.hypot(e.clientX - p.x0, e.clientY - p.y0) > (e.pointerType === 'mouse' ? 3 : 9)) {
+        spostato = true; prendi(e);
+      }
       const r = svg.getBoundingClientRect();
       st.x -= dx * st.w / r.width;
       st.y -= dy * st.h / r.height;
@@ -199,12 +223,15 @@ const MAPPA = (() => {
     });
 
     const fine = (e) => {
-      puntatori.delete(e.pointerId);
+      puntatori.delete(e.pointerId); preso.delete(e.pointerId);
       if (puntatori.size < 2) { ultima = null; corpo.style.touchAction = ''; }
       if (!puntatori.size) corpo.classList.remove('trascina');
     };
     corpo.addEventListener('pointerup', fine);
     corpo.addEventListener('pointercancel', fine);
+    /* senza cattura i movimenti finiscono appena si esce: il gesto si abbandona
+       qui, altrimenti resterebbe un puntatore fantasma nel conto */
+    corpo.addEventListener('pointerleave', e => { if (!preso.has(e.pointerId)) fine(e); });
 
     /* il clic che chiude un trascinamento non deve aprire nulla */
     corpo.addEventListener('click', e => {
@@ -238,6 +265,10 @@ const MAPPA = (() => {
   }
 
   const adatta = () => { if (vista) vista.applica(); };
+  /* dopo una rotazione la proporzione può non essere più quella giusta: qui non
+     basta adattare, la mappa va ridisegnata */
+  const daRidisegnare = (host) => !!vista && host.clientWidth > 0 &&
+    (host.clientWidth < 620) !== stretta;
   const centraSu = (lat, lon, k) => { if (vista) vista.centraSu(lat, lon, k); };
   const tuttaLaRegione = () => { if (vista) vista.tutta(); };
 
@@ -320,5 +351,5 @@ const MAPPA = (() => {
   };
 
   return { disegnaRegione, disegnaLocale, caricaLocale, attesaLocale, proietta, contaAccessi,
-           adatta, centraSu, tuttaLaRegione };
+           adatta, daRidisegnare, centraSu, tuttaLaRegione };
 })();

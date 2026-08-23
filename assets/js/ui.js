@@ -34,6 +34,7 @@ const APP = (() => {
   let lista = [];
   let svgMappa = null;
   let popId = null;         // spot con la scheda rapida aperta sulla mappa
+  let popFissa = false;     // aperta con un tocco: resta finché non la chiudi
 
   /* ======================================================= avvio */
   async function init() {
@@ -474,7 +475,14 @@ const APP = (() => {
     </button>`;
   }
 
-  const collegaRighe = (r) => $$('.riga[data-apri]', r).forEach(b => b.onclick = () => apri(b.dataset.apri));
+  const collegaRighe = (r) => $$('.riga[data-apri]', r).forEach(b => {
+    const id = b.dataset.apri;
+    b.onclick     = () => apri(id);
+    b.onmouseenter = () => accendi(id, true);
+    b.onmouseleave = () => accendi(id, false);
+    b.onfocus     = () => accendi(id, true);
+    b.onblur      = () => accendi(id, false);
+  });
 
   function collegaRisposta() {
     const r = $('#risposta');
@@ -517,36 +525,46 @@ const APP = (() => {
   }
 
   /* ---------------------------------------------- mappa regionale
-     Al passaggio il punto dice solo come si chiama. Toccandolo si apre la
-     scheda rapida: quel poco che serve per decidere se aprire tutto. */
+     Con il mouse il punto si racconta al passaggio e il clic porta dritto alla
+     scheda dello spot. Al tocco, dove il passaggio non esiste, il primo tocco
+     apre la scheda rapida e il secondo apre la scheda intera. */
   function collegaMappa() {
     if (!svgMappa) return;
-    const corpo = $('.mappa-corpo', $('#mappa'));
-    const eti = $('.etichetta', corpo);
     const conMouse = window.matchMedia('(hover:hover) and (pointer:fine)').matches;
 
     $$('.pt', svgMappa).forEach(g => {
-      const v = lista.find(x => x.spot.id === g.dataset.id);
-      if (!v) return;
-      const mostra = () => {
-        if (popId) return;
-        g.parentNode.appendChild(g);
-        const p = ancora(g, corpo);
-        eti.innerHTML = `<b>${esc(v.spot.nome)}</b><u>${esc(PROVINCE[v.spot.prov])} · indice ${v.punteggio}</u>`;
-        eti.hidden = false;
-        eti.style.left = p.x + 'px';
-        eti.style.top = p.y + 'px';
-        requestAnimationFrame(() => eti.classList.add('vista'));
-      };
-      const via = () => eti.classList.remove('vista');
-      if (conMouse) { g.addEventListener('mouseenter', mostra); g.addEventListener('mouseleave', via); }
-      g.addEventListener('focus', mostra);
-      g.addEventListener('blur', via);
-      g.addEventListener('click', e => { e.stopPropagation(); via(); apriPop(g.dataset.id); });
+      const id = g.dataset.id;
+      if (!lista.some(x => x.spot.id === id)) return;
+
+      if (conMouse) {
+        g.addEventListener('mouseenter', () => { accendi(id, true); if (!popFissa) mostraPop(id, false); });
+        g.addEventListener('mouseleave', () => { accendi(id, false); if (!popFissa) chiudiPop(); });
+        g.addEventListener('click', e => { e.stopPropagation(); chiudiPop(true); apri(id); });
+        /* con la tastiera il fuoco fa le veci del passaggio. Al tocco no: il
+           fuoco arriva insieme al tocco e la scheda comparirebbe due volte */
+        g.addEventListener('focus', () => { accendi(id, true); mostraPop(id, false); });
+        g.addEventListener('blur',  () => { accendi(id, false); if (!popFissa) chiudiPop(); });
+      } else {
+        g.addEventListener('click', e => {
+          e.stopPropagation();
+          if (popId === id && popFissa) { chiudiPop(true); apri(id); }
+          else mostraPop(id, true);
+        });
+      }
       g.addEventListener('keydown', e => {
-        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); apriPop(g.dataset.id); }
+        if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); chiudiPop(true); apri(id); }
       });
     });
+  }
+
+  /* Il punto sulla mappa e la riga nell'elenco sono lo stesso spot visto da due
+     parti: accendendo l'uno si accende anche l'altra. */
+  function accendi(id, on) {
+    if (svgMappa) {
+      const g = $(`.pt[data-id="${CSS.escape(id)}"]`, svgMappa);
+      if (g) g.classList.toggle('punta', on);
+    }
+    $$(`.riga[data-apri="${CSS.escape(id)}"]`).forEach(b => b.classList.toggle('punta', on));
   }
 
   /* posizione del punto dentro il riquadro della mappa */
@@ -556,7 +574,9 @@ const APP = (() => {
              w: c.width, h: c.height };
   }
 
-  function apriPop(id) {
+  /* La stessa scheda rapida in due modi: al passaggio si legge soltanto, al
+     tocco resta ferma e porta i suoi comandi. */
+  function mostraPop(id, fissa) {
     const v = lista.find(x => x.spot.id === id);
     const corpo = $('.mappa-corpo', $('#mappa'));
     if (!v || !corpo) return;
@@ -569,9 +589,10 @@ const APP = (() => {
     if (pesce) dati.push(pesce.nome.toLowerCase());
     if (s.noKill) dati.push('no kill');
 
-    popId = id;
+    popId = id; popFissa = !!fissa;
+    pop.classList.toggle('ferma', popFissa);
     pop.innerHTML = `
-      <button class="pop-x" type="button" aria-label="Chiudi la scheda rapida">×</button>
+      ${popFissa ? '<button class="pop-x" type="button" aria-label="Chiudi la scheda rapida">×</button>' : ''}
       <div class="p-testa">
         <span class="p-pun ${banda(v.punteggio)}">${v.punteggio}</span>
         <span class="micro tenue">${esc(ENGINE.etichetta(v.punteggio).t.toLowerCase())}</span>
@@ -579,10 +600,12 @@ const APP = (() => {
       <b class="p-nome">${esc(s.nome)}</b>
       <span class="p-sub">${esc(s.comune)}, ${esc(PROVINCE[s.prov])} · ${esc(s.acqua)}</span>
       <div class="p-dati">${dati.map(d => `<span>${esc(d)}</span>`).join('')}</div>
-      <div class="p-az"><button class="btn piccolo" type="button">Apri la scheda</button></div>`;
+      ${popFissa ? '<div class="p-az"><button class="btn piccolo" type="button">Apri la scheda</button></div>' : ''}`;
     pop.hidden = false;
-    $('.pop-x', pop).onclick = () => chiudiPop();
-    $('.p-az .btn', pop).onclick = () => { chiudiPop(true); apri(id); };
+    if (popFissa) {
+      $('.pop-x', pop).onclick = () => chiudiPop();
+      $('.p-az .btn', pop).onclick = () => { chiudiPop(true); apri(id); };
+    }
     evidenzia(id);
     riposizionaPop();
     requestAnimationFrame(() => pop.classList.add('vista'));
@@ -600,18 +623,28 @@ const APP = (() => {
     pop.style.visibility = '';
 
     const larg = pop.offsetWidth, alt = pop.offsetHeight;
-    const sotto = p.y - alt - 24 < 0;
-    pop.classList.toggle('sotto', sotto);
+    /* sopra al punto se ci sta, altrimenti sotto. Se il riquadro è troppo basso
+       per tutte e due — sul telefono la regione è una striscia larga e bassa —
+       la scheda si appoggia dentro il riquadro e rinuncia alla punta: meglio
+       senza punta che tagliata a metà, con il pulsante fuori dal bordo. */
+    const staSopra = p.y - alt - 16 >= 0;
+    const staSotto = p.giu + alt + 16 <= p.h;
+    const libera = !staSopra && !staSotto;
+    pop.classList.toggle('sotto', !staSopra && staSotto);
+    pop.classList.toggle('libera', libera);
+
     const lim = Math.max(larg / 2 + 10, Math.min(p.x, p.w - larg / 2 - 10));
     pop.style.left = lim + 'px';
-    pop.style.top = (sotto ? p.giu : p.y) + 'px';
+    pop.style.top = libera
+      ? Math.max(8, Math.min(p.y + 12, p.h - alt - 8)) + 'px'
+      : (staSopra ? p.y : p.giu) + 'px';
     pop.style.setProperty('--dx', (p.x - lim).toFixed(1) + 'px');
   }
 
   function chiudiPop(subito) {
     if (!popId && !subito) return;
     const corpo = $('.mappa-corpo', $('#mappa'));
-    popId = null;
+    popId = null; popFissa = false;
     if (!corpo) return;
     const pop = $('.pop', corpo);
     if (!pop) return;
@@ -621,7 +654,11 @@ const APP = (() => {
     evidenzia(scelto);
   }
 
-  function adattaMappa() { MAPPA.adatta(); riposizionaPop(); }
+  function adattaMappa() {
+    const host = $('#mappa');
+    if (dati && host && MAPPA.daRidisegnare(host)) { render(); return; }
+    MAPPA.adatta(); riposizionaPop();
+  }
 
   function evidenzia(id) {
     if (!svgMappa) return;

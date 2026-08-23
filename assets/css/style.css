@@ -311,6 +311,9 @@ svg.mappa{ display:block; width:100%; height:auto }
 .pt.primo .anello{ opacity:.45 }
 .pt:focus-visible{ outline:none }
 .pt:focus-visible .anello{ opacity:1 }
+/* acceso dalla riga corrispondente nell'elenco, e viceversa */
+.pt.punta .dot{ r:9.5 }
+.pt.punta .anello{ opacity:.9 }
 
 /* comandi dello zoom, in vetro, sull'angolo */
 .mappa-strumenti{
@@ -328,18 +331,7 @@ svg.mappa{ display:block; width:100%; height:auto }
 .mappa-strumenti button:disabled{ opacity:.32; cursor:default; background:none }
 .mappa-strumenti svg{ width:16px; height:16px }
 
-/* etichetta al passaggio */
-.etichetta{
-  position:absolute; z-index:4; pointer-events:none; opacity:0;
-  transition:opacity .14s; transform:translate(-50%,-100%) translateY(-12px);
-  background:rgba(22,32,30,.9); color:#fff; padding:6px 11px 7px; border-radius:var(--r-sm);
-  -webkit-backdrop-filter:blur(10px); backdrop-filter:blur(10px); box-shadow:var(--sh-2);
-}
-.etichetta.vista{ opacity:1 }
-.etichetta b{ display:block; font-size:.85rem; font-weight:600; letter-spacing:-.015em }
-.etichetta u{ text-decoration:none; font-size:.72rem; opacity:.7 }
-
-/* la scheda rapida che si apre toccando un punto */
+/* la scheda rapida: al passaggio si legge, al tocco resta ferma (.ferma) */
 .pop{
   position:absolute; z-index:6; width:min(290px, calc(100% - 24px));
   transform:translate(-50%,-100%) translateY(-16px) scale(.96);
@@ -349,7 +341,9 @@ svg.mappa{ display:block; width:100%; height:auto }
   box-shadow:var(--sh-3), var(--bordo-luce);
   -webkit-backdrop-filter:blur(26px) saturate(180%); backdrop-filter:blur(26px) saturate(180%);
 }
-.pop.vista{ opacity:1; pointer-events:auto; transform:translate(-50%,-100%) translateY(-16px) scale(1) }
+.pop.vista{ opacity:1; transform:translate(-50%,-100%) translateY(-16px) scale(1) }
+/* solo la scheda ferma si può toccare: quella al passaggio non deve rubare i punti sotto */
+.pop.ferma.vista{ pointer-events:auto }
 .pop.sotto{ transform:translate(-50%,0) translateY(16px) scale(.96); transform-origin:50% 0 }
 .pop.sotto.vista{ transform:translate(-50%,0) translateY(16px) scale(1) }
 .pop::after{
@@ -358,6 +352,10 @@ svg.mappa{ display:block; width:100%; height:auto }
   box-shadow:3px 3px 6px -3px rgba(72,56,32,.2);
 }
 .pop.sotto::after{ bottom:auto; top:-6px; box-shadow:-3px -3px 6px -3px rgba(72,56,32,.2) }
+/* riquadro troppo basso per la punta: la scheda si appoggia e basta */
+.pop.libera{ transform:translate(-50%,0) scale(.96); transform-origin:50% 50% }
+.pop.libera.vista{ transform:translate(-50%,0) scale(1) }
+.pop.libera::after{ display:none }
 .pop-x{
   position:absolute; top:9px; right:9px; width:26px; height:26px; border:0; cursor:pointer;
   border-radius:50%; background:rgba(22,32,30,.06); color:var(--ink-2); display:grid;
@@ -373,7 +371,8 @@ svg.mappa{ display:block; width:100%; height:auto }
 .pop .p-pun.medio{ background:var(--medio-bg); color:var(--medio-scuro) }
 .pop .p-pun.scarso{ background:rgba(22,32,30,.05); color:var(--ink-3) }
 .pop b.p-nome{ display:block; font-size:1.02rem; font-weight:600; letter-spacing:-.02em;
-  line-height:1.25; padding-right:24px }
+  line-height:1.25 }
+.pop.ferma b.p-nome{ padding-right:24px }
 .pop .p-sub{ display:block; font-size:.8rem; color:var(--ink-3); margin-top:3px }
 .pop .p-dati{ display:flex; flex-wrap:wrap; gap:6px; margin-top:11px }
 .pop .p-dati span{
@@ -422,6 +421,12 @@ svg.mappa{ display:block; width:100%; height:auto }
   }
   .mappa-legenda .lg-tit{ margin:0; width:100% }
   .mappa-legenda .lg{ font-size:.74rem }
+  /* la scheda rapida deve stare dentro un riquadro basso: si stringe */
+  .pop{ padding:12px 13px 12px }
+  .pop .p-testa{ margin-bottom:5px }
+  .pop b.p-nome{ font-size:.96rem }
+  .pop .p-dati{ margin-top:8px; gap:5px }
+  .pop .p-az{ margin-top:9px }
 }
 
 /* ==========================================================================
@@ -510,10 +515,10 @@ details.pieghe .dentro{ padding:2px 18px 18px }
   font:inherit; color:inherit; text-align:left; cursor:pointer; width:100%;
   transition:background .16s, transform .16s var(--molla);
 }
-.riga:hover{ background:var(--carta-2) }
+.riga:hover,.riga.punta{ background:var(--carta-2) }
 .riga:active{ transform:scale(.995) }
 .riga + .riga{ box-shadow:0 -1px 0 var(--linea) }
-.riga:hover,.riga:hover + .riga{ box-shadow:none }
+.riga:hover,.riga:hover + .riga,.riga.punta,.riga.punta + .riga{ box-shadow:none }
 .riga .n{
   font-family:var(--serif); font-size:1.32rem; font-weight:500; line-height:1;
   font-variant-numeric:tabular-nums; letter-spacing:-.04em; text-align:center;
