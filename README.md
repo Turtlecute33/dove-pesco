@@ -172,6 +172,12 @@ che arriva mostrato comunque.
 2. il workflow parte al primo push, poi ogni due ore e quando lo lanci a mano da Actions;
 3. se un giro fallisce, il sito resta pubblicato con le previsioni precedenti.
 
+Per un dominio tuo: punta il DNS a GitHub (record `A` verso 185.199.108–111.153 per il
+dominio nudo, oppure un `CNAME` verso `<utente>.github.io.` per un sottodominio), scrivilo
+in **Settings → Pages → Custom domain** e aggiungi la variabile `DOMINIO` in
+**Settings → Secrets and variables → Actions → Variables**: il workflow mette il file
+`CNAME` in ogni pubblicazione, così il dominio non si perde a ogni deploy.
+
 Due avvertenze: i workflow programmati vengono sospesi da GitHub dopo 60 giorni senza
 commit nel repo (basta un commit per riattivarli), e il cron è a discrezione della coda,
 quindi può partire con qualche minuto di ritardo. Il file si può anche generare a mano con

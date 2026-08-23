@@ -59,6 +59,12 @@ jobs:
           cp index.html _sito/
           cp -r assets _sito/
           touch _sito/.nojekyll
+          # dominio personalizzato: imposta la variabile DOMINIO nel repo
+          # (Settings → Secrets and variables → Actions → Variables → New variable)
+          if [ -n "${{ vars.DOMINIO }}" ]; then
+            echo "${{ vars.DOMINIO }}" > _sito/CNAME
+            echo "dominio: ${{ vars.DOMINIO }}"
+          fi
           du -sh _sito
 
       - uses: actions/upload-pages-artifact@v5
