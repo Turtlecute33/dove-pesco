@@ -1,6 +1,9 @@
 # generato da tools/aggiorna-dati.py a ogni pubblicazione
 assets/dati/previsioni.json
 
+# la cartella da pubblicare, scritta da tools/genera-pagine.py: si rifà sempre
+_sito/
+
 # roba di macOS
 .DS_Store
 

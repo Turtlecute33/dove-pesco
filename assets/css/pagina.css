@@ -1,0 +1,68 @@
+/* =============================================================================
+   PAGINE STATICHE — solo le poche regole che style.css non ha gia'.
+   Le schede degli spot, delle specie e delle province sono pagine normali:
+   riusano l'impaginato dell'applicazione e aggiungono le briciole, gli elenchi
+   di collegamenti e il richiamo all'indice del giorno.
+   ========================================================================== */
+
+/* voci di menu: nelle pagine sono link, non bottoni */
+.men-link a{
+  display:inline-flex; align-items:center; padding:7px 11px; border-radius:9px;
+  font-size:.88rem; font-weight:500; color:var(--ink-3); letter-spacing:-.01em;
+  transition:color .15s, background .15s;
+}
+.men-link a:hover{ color:var(--ink); background:var(--carta-2) }
+.men-link a[aria-current]{ color:var(--acc); background:var(--acc-bg) }
+
+/* briciole di pane */
+.briciole{
+  display:flex; flex-wrap:wrap; align-items:center; gap:7px;
+  font-size:.78rem; color:var(--ink-3); margin-bottom:clamp(14px,2vw,20px);
+}
+.briciole i{ color:var(--ink-4); font-style:normal }
+.briciole span[aria-current]{ color:var(--ink-2) }
+
+/* riga di etichette sotto il titolo */
+.segni{ display:flex; flex-wrap:wrap; gap:6px; margin-top:14px }
+
+.sci-tit{ font-family:var(--serif); font-style:italic }
+
+/* richiamo all'applicazione */
+.cta-app{ margin:clamp(22px,3vw,30px) 0 0 }
+.btn-link{
+  display:inline-flex; align-items:center; gap:9px; padding:12px 18px;
+  border-radius:12px; background:var(--acc); color:#fff; font-weight:600;
+  font-size:.94rem; letter-spacing:-.01em; box-shadow:var(--sh-1);
+  transition:background .15s, transform .15s;
+}
+.btn-link::after{ content:'→'; font-weight:400 }
+.btn-link:hover{ background:var(--acc-2); color:#fff; transform:translateY(-1px) }
+
+/* elenchi di collegamenti fra pagine */
+.elenco-link{ list-style:none; margin:16px 0 0; padding:0; display:grid; gap:1px }
+.elenco-link a{
+  display:flex; flex-wrap:wrap; align-items:baseline; gap:4px 12px;
+  padding:11px 12px; border-radius:10px; color:var(--ink);
+  border-bottom:1px solid var(--linea); transition:background .15s;
+}
+.elenco-link li:last-child a{ border-bottom:0 }
+.elenco-link a:hover{ background:var(--carta-2); color:var(--acc) }
+.elenco-link b{ font-weight:600; font-size:.97rem; letter-spacing:-.015em }
+.elenco-link span{ font-size:.83rem; color:var(--ink-3) }
+
+.sotto-tit{ margin:clamp(28px,4vw,40px) 0 0 }
+.sotto-tit .tenue{ font-weight:400; font-size:.8rem; letter-spacing:0 }
+
+main.sez h2{ margin:clamp(34px,4vw,48px) 0 0 }
+main.sez h2.sotto-tit{ font-size:clamp(1.2rem,2vw,1.45rem) }
+
+.lista-limiti{ margin:14px 0 0; padding-left:1.1em; color:var(--ink-2) }
+.lista-limiti li{ margin:.35em 0 }
+
+.fonti-elenco{ list-style:none; margin:16px 0 0; padding:0; display:grid; gap:10px }
+.fonti-elenco li{ font-size:.9rem }
+
+/* rifugio senza JavaScript, in fondo all'applicazione */
+.senza-js{ padding-block:clamp(30px,5vw,54px) }
+.senza-js h3{ margin:22px 0 4px; font-size:.95rem }
+.senza-js p{ margin:0; font-size:.86rem; line-height:1.9; color:var(--ink-2) }

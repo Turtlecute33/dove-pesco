@@ -1,6 +1,6 @@
 # Dove Pesco — Emilia-Romagna
 
-**[turtlecute33.github.io/dove-pesco](https://turtlecute33.github.io/dove-pesco/)**
+**[dovepescare.com](https://dovepescare.com/)**
 
 Sito statico che risponde a una domanda sola: **stamattina, dove vado a pescare?**
 
@@ -30,6 +30,48 @@ pesce del giorno, acqua, portata, prima luce e una frase sul perché. Sotto, la 
 tutti gli spot. Sotto ancora, sei righe con le alternative e un «vedi tutti i 222».
 Nient'altro: filtri, rilevamenti completi, specie secondarie e regole stanno dietro un
 tocco.
+
+## Le pagine: un indirizzo per ogni spot
+
+L'applicazione vive a un solo indirizzo e calcola tutto nel browser. Comodo da usare,
+invisibile a un motore di ricerca: 222 spot e 40 specie senza un indirizzo proprio non si
+possono indicizzare, e chi cerca «dove pescare sul Panaro» non arriva.
+
+Per questo `tools/genera-pagine.py` scrive **277 pagine statiche** a ogni pubblicazione:
+
+```
+/spot/<nome>/          222 schede: come arrivare, accessi, fondale, specie, esche, note
+/specie/<nome>/         40 schede: misura minima, divieto, temperatura, esche, dove si trova
+/provincia/<nome>/       9 elenchi per corso d'acqua, con le specie più diffuse
+/spot/  /specie/         i due indici completi
+/regole/ /metodo/ /privacy/
+sitemap.xml  robots.txt  404.html
+```
+
+Dentro ci vanno **solo i fatti che non cambiano**. L'indice del giorno no: cambia ogni
+due ore, e su una pagina statica sarebbe vecchio. C'è invece un link che apre lo spot
+nell'applicazione — `/#spot/<id>`, che l'applicazione riconosce all'avvio — così un
+indirizzo condiviso porta dritto alla scheda giusta.
+
+Le pagine riusano `assets/css/style.css`: stessa impaginazione, stesse schede, stessi
+colori. `assets/css/pagina.css` aggiunge solo le briciole di pane, gli elenchi di
+collegamenti e il richiamo all'applicazione.
+
+Il titolo di primo livello della pagina è fisso («Dove pescare oggi in Emilia-Romagna»):
+il nome dello spot, che cambia ogni mattina, è il titolo di secondo livello dentro la
+scheda. Prima erano quattro `h1` sulla stessa pagina, e quello visibile cambiava ogni
+giorno.
+
+```bash
+python3 tools/genera-pagine.py                          # scrive _sito/, pronto da servire
+python3 tools/genera-pagine.py --base https://tuo.it    # per un altro dominio
+cd _sito && python3 -m http.server                      # per guardarlo
+```
+
+Il generatore legge gli elenchi in `assets/js` con node, quindi i dati stanno in un posto
+solo: si aggiunge uno spot a `data-spots-*.js` e la sua pagina compare al deploy
+successivo. Se il sito non sta alla radice del dominio (per esempio
+`<utente>.github.io/<repo>/`), i link interni prendono da soli il prefisso giusto.
 
 ## Le due mappe
 
@@ -69,11 +111,13 @@ stato verificato a ritroso, perché sui fiumi di confine la sponda cambia provin
 ## Struttura
 
 ```
-index.html                     4 pagine: Oggi · Specie · Regole · Metodo
+index.html                     4 viste: Oggi · Specie · Regole · Metodo
 .github/workflows/dati.yml     riscarica le previsioni ogni 2 ore e pubblica su Pages
 assets/dati/previsioni.json    le previsioni pronte (generate, non versionate)
+assets/og.png                  l'anteprima per chi condivide un link
 assets/css/
   style.css                    panna, angoli tondi, ombre morbide, un solo accento
+  pagina.css                   il poco in più che serve alle pagine statiche
   caratteri.css                Fraunces e Archivo, incorporati come data URI
 assets/fonts/                  i woff2 originali (per rigenerare caratteri.css)
 assets/js/
@@ -88,8 +132,10 @@ assets/js/
   engine.js                    modello dell'indice
   mappa.js                     disegno delle due mappe
   ui.js                        interfaccia
-tools/                         script da rilanciare solo per rigenerare i dati
+tools/
   aggiorna-dati.py             scarica meteo e portata e scrive previsioni.json
+  genera-pagine.py            prepara _sito/: applicazione + 277 pagine + sitemap
+  og-immagine.py               ridisegna assets/og.png (solo se cambia il marchio)
 ```
 
 ## Copertura
@@ -173,10 +219,16 @@ che arriva mostrato comunque.
 3. se un giro fallisce, il sito resta pubblicato con le previsioni precedenti.
 
 Per un dominio tuo: punta il DNS a GitHub (record `A` verso 185.199.108–111.153 per il
-dominio nudo, oppure un `CNAME` verso `<utente>.github.io.` per un sottodominio), scrivilo
-in **Settings → Pages → Custom domain** e aggiungi la variabile `DOMINIO` in
-**Settings → Secrets and variables → Actions → Variables**: il workflow mette il file
-`CNAME` in ogni pubblicazione, così il dominio non si perde a ogni deploy.
+dominio nudo, più un `CNAME` da `www` verso `<utente>.github.io.` perché anche chi scrive
+`www.` arrivi), scrivilo in **Settings → Pages → Custom domain**, spunta **Enforce HTTPS**
+e aggiungi la variabile `DOMINIO` in **Settings → Secrets and variables → Actions →
+Variables**. `genera-pagine.py` scrive il file `CNAME` in ogni pubblicazione, così il
+dominio non si perde a ogni deploy, e usa lo stesso valore per gli indirizzi canonici,
+per la sitemap e per il `robots.txt`.
+
+Alla prima pubblicazione con un dominio nuovo, dichiara il sito in
+[Google Search Console](https://search.google.com/search-console) e manda la sitemap:
+`https://<dominio>/sitemap.xml`.
 
 Due avvertenze: i workflow programmati vengono sospesi da GitHub dopo 60 giorni senza
 commit nel repo (basta un commit per riattivarli), e il cron è a discrezione della coda,
@@ -209,6 +261,8 @@ python3 tools/verifica-coordinate.py # controlla che ogni spot sia sull'acqua
 python3 tools/ricalibra.py --correggi # aggancia gli spot al corso d'acqua dichiarato
 python3 tools/inline-font.py         # rigenera caratteri.css dai woff2
 python3 tools/aggiorna-dati.py       # previsioni pronte in assets/dati/previsioni.json
+python3 tools/genera-pagine.py       # la cartella da pubblicare, in _sito/
+python3 tools/og-immagine.py         # ridisegna assets/og.png (serve cairosvg)
 ```
 
 `tools/.cache-locale.json` conserva le mappe locali già scaricate: cancellalo solo se

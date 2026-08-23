@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Dove Pesco — Emilia-Romagna</title>
-<meta name="description" content="Dove andare a pescare oggi in Emilia-Romagna. 222 spot su fiumi, torrenti, laghi, canali e mare, ordinati incrociando portata dei fiumi, temperatura dell'acqua, meteo e stagionalità delle specie.">
+<title>Dove pescare oggi in Emilia-Romagna — 222 spot | Dove Pesco</title>
+<meta name="description" content="Ogni mattina l'indice del giorno per 222 spot su fiumi, torrenti, laghi, canali e mare, da portata dei fiumi, temperatura dell'acqua, meteo e stagione delle specie.">
 <meta name="color-scheme" content="light">
 <meta name="referrer" content="no-referrer">
 <meta name="theme-color" content="#EFE9DD">
@@ -44,6 +44,10 @@
 
   <div class="col">
     <div class="risposta">
+      <!-- Titolo stabile della pagina: dice di cosa si tratta a chi arriva la
+           prima volta e resta lo stesso ogni giorno. Il nome dello spot, che
+           cambia ogni mattina, è il titolo di secondo livello dentro la scheda. -->
+      <h1 class="titolo-oggi">Dove pescare oggi in Emilia-Romagna</h1>
       <div class="data-riga">
         <span class="occhio" id="data-oggi">—</span>
         <span class="occhio tenue" id="data-luna">—</span>
@@ -100,7 +104,7 @@
 <!-- ═════════════════════════════════════════════════════════════ SPECIE ═══ -->
 <section class="sez" data-v="specie" hidden>
   <div class="col">
-    <h1>Le specie</h1>
+    <h2 class="titolone">Le specie</h2>
     <p class="intro">Cosa nuota nelle acque della regione, quando è attivo, a che profondità sta,
       con cosa si insidia e cosa dice la legge. Le figure sono disegni a linea: servono a
       riconoscere la sagoma.</p>
@@ -111,7 +115,7 @@
 <!-- ═════════════════════════════════════════════════════════════ REGOLE ═══ -->
 <section class="sez" data-v="regole" hidden>
   <div class="col">
-    <h1>Le regole</h1>
+    <h2 class="titolone">Le regole</h2>
     <p class="intro">Licenze, attrezzi, limiti di prelievo, zone delle acque, divieti in vigore e
       sicurezza. Sintesi delle fonti regionali, con i link ai testi ufficiali.</p>
     <div id="regole-corpo"></div>
@@ -121,7 +125,7 @@
 <!-- ═════════════════════════════════════════════════════════════ METODO ═══ -->
 <section class="sez" data-v="metodo" hidden>
   <div class="col">
-    <h1>Come nasce l'indice</h1>
+    <h2 class="titolone">Come nasce l'indice</h2>
     <p class="intro">Sei fattori misurabili, pesati e moltiplicati fra loro, specie per specie.
       Qui c'è tutto, comprese le cose che il modello <em>non</em> sa.</p>
 

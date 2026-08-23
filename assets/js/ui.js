@@ -38,11 +38,27 @@ const APP = (() => {
   /* ======================================================= avvio */
   async function init() {
     montaGiorni(); montaFiltri(); montaSpecie(); montaRegole(); collegaMenu();
-    vai(location.hash.replace('#', '') || 'oggi', false);
+    dallIndirizzo();
+    window.addEventListener('hashchange', dallIndirizzo);
     window.addEventListener('resize', adattaMappa);
     window.addEventListener('keydown', e => { if (e.key === 'Escape') chiudiPop(); });
     document.addEventListener('click', e => { if (!e.target.closest('.pt,.pop')) chiudiPop(); });
     await carica();
+  }
+
+  /* Le pagine degli spot rimandano qui con #spot/<id>: cosi' un link porta
+     dritto alla scheda giusta invece che alla risposta del giorno. */
+  function dallIndirizzo() {
+    const h = location.hash.replace('#', '');
+    const s = h.startsWith('spot/') ? h.slice(5) : null;
+    if (s && SPOT.some(x => x.id === s)) {
+      scelto = s;
+      vai('oggi', false, false);
+    } else {
+      if (scelto) scelto = null;
+      vai(h || 'oggi', false, false);
+    }
+    if (dati) render();
   }
 
   async function carica(forza = false) {
@@ -134,13 +150,17 @@ const APP = (() => {
     $$('[data-vai]').forEach(a => a.onclick = e => { e.preventDefault(); vai(a.dataset.vai); });
   }
 
-  function vai(v, su = true) {
+  function vai(v, su = true, scrivi = true) {
     if (!$(`section[data-v="${v}"]`)) v = 'oggi';
+    if (scrivi && scelto) scelto = null;
     $$('section[data-v]').forEach(s => s.hidden = s.dataset.v !== v);
     $$('nav.men button[data-v]').forEach(b => {
       if (b.dataset.v === v) b.setAttribute('aria-current', 'page'); else b.removeAttribute('aria-current');
     });
-    history.replaceState(null, '', '#' + v);
+    if (scrivi) {
+      history.replaceState(null, '', '#' + v);
+      if (dati) render();
+    }
     if (su) window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
@@ -228,7 +248,7 @@ const APP = (() => {
 
     return `
       <span class="occhio acc">Oggi vai qui</span>
-      <h1>${esc(s.nome)}</h1>
+      <h2 class="titolone">${esc(s.nome)}</h2>
       <div class="luogo">${esc(s.comune)}, ${esc(PROVINCE[s.prov])}</div>
       <div class="fatti">${fatti.join('')}</div>
       <p class="perche">${esc(v.spiegazione.slice(0, 2).join(' '))}</p>
@@ -251,7 +271,7 @@ const APP = (() => {
       <div class="torna"><button class="link" data-chiudi>${seg('indietro')} Torna a oggi</button></div>
 
       <span class="occhio acc">indice ${v.punteggio}/100 · ${esc(ENGINE.etichetta(v.punteggio).t.toLowerCase())}</span>
-      <h1>${esc(s.nome)}</h1>
+      <h2 class="titolone">${esc(s.nome)}</h2>
       <div class="luogo">${esc(s.comune)}, ${esc(PROVINCE[s.prov])} — ${esc(s.acqua)}</div>
 
       ${avvisiHTML(v)}
@@ -459,13 +479,24 @@ const APP = (() => {
   function collegaRisposta() {
     const r = $('#risposta');
     $$('[data-apri]', r).forEach(b => b.onclick = () => apri(b.dataset.apri));
-    const ch = $('[data-chiudi]', r); if (ch) ch.onclick = () => { scelto = null; render(); portaSu(); };
+    const ch = $('[data-chiudi]', r);
+    if (ch) ch.onclick = () => {
+      scelto = null;
+      history.replaceState(null, '', '#oggi');
+      render(); portaSu();
+    };
     const g = $('[data-giu]', r);
     if (g) g.onclick = () => $('#altri').scrollIntoView({ behavior: 'smooth', block: 'start' });
     caricaMappaLocale();
   }
 
-  function apri(id) { scelto = id; render(); portaSu(); }
+  /* l'indirizzo segue la scheda aperta: si puo' condividere e si puo' tornare
+     indietro, e combacia con la pagina statica /spot/<nome>/ */
+  function apri(id) {
+    scelto = id;
+    history.replaceState(null, '', '#spot/' + id);
+    render(); portaSu();
+  }
 
   /* la mappa locale arriva a parte, alla prima scheda aperta */
   function caricaMappaLocale() {

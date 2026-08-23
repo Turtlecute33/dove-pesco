@@ -36,6 +36,12 @@ jobs:
         with:
           python-version: '3.12'
 
+      # genera-pagine.py legge gli elenchi in assets/js con node, cosi' i dati
+      # degli spot stanno in un posto solo e non vanno ricopiati in Python
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '24'
+
       - name: Configura Pages
         id: pages
         uses: actions/configure-pages@v6
@@ -54,18 +60,17 @@ jobs:
             || echo "Nessun file precedente: il sito chiamerà Open-Meteo dal browser."
 
       - name: Prepara la cartella da pubblicare
+        # genera-pagine.py copia l'applicazione, scrive le 277 pagine statiche
+        # (222 spot, 40 specie, 9 province e le pagine fisse), la sitemap, il
+        # robots.txt, la 404 e — se la variabile DOMINIO c'è — il file CNAME.
+        # Dominio personalizzato: Settings → Secrets and variables → Actions →
+        # Variables → New variable → DOMINIO.
+        env:
+          DOMINIO: ${{ vars.DOMINIO }}
         run: |
-          mkdir -p _sito
-          cp index.html _sito/
-          cp -r assets _sito/
-          touch _sito/.nojekyll
-          # dominio personalizzato: imposta la variabile DOMINIO nel repo
-          # (Settings → Secrets and variables → Actions → Variables → New variable)
-          if [ -n "${{ vars.DOMINIO }}" ]; then
-            echo "${{ vars.DOMINIO }}" > _sito/CNAME
-            echo "dominio: ${{ vars.DOMINIO }}"
-          fi
+          python3 tools/genera-pagine.py --base "${DOMINIO:-${{ steps.pages.outputs.base_url }}}"
           du -sh _sito
+          echo "pagine: $(find _sito -name index.html | wc -l)"
 
       - uses: actions/upload-pages-artifact@v5
         with:
