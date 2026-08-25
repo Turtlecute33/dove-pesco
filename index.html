@@ -301,5 +301,11 @@
 <script defer src="assets/js/engine.js"></script>
 <script defer src="assets/js/mappa.js"></script>
 <script defer src="assets/js/ui.js"></script>
+
+<!-- Umami con async, non defer: uno script defer che non risponde tiene fermo
+     DOMContentLoaded fino al timeout della connessione, e ui.js aspetta proprio
+     quell'evento. Con async il conteggio parte per conto suo e, se il server è
+     giù, la pagina non se ne accorge. -->
+<script async src="https://umami.priorato.org/script.js" data-website-id="c49315c5-3c62-47ed-bd39-5a5c6eec2a45"></script>
 </body>
 </html>
