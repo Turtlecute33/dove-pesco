@@ -146,10 +146,9 @@ CSS = ('<link rel="stylesheet" href="/assets/css/style.css">\n'
        '<noscript><link rel="stylesheet" href="/assets/css/caratteri.css"></noscript>')
 
 # async e non defer: uno script defer che non risponde tiene fermo DOMContentLoaded
-# fino al timeout della connessione. Con async, se il server e' giu' la pagina non
-# se ne accorge.
-UMAMI = ('<script async src="https://umami.priorato.org/script.js"'
-         ' data-website-id="c49315c5-3c62-47ed-bd39-5a5c6eec2a45"></script>')
+# fino al timeout della connessione.
+TAVOLE = ('<script async src="https://s.dovepescare.com/assets/js/tavole-meteo.js"'
+          ' data-website-id="c49315c5-3c62-47ed-bd39-5a5c6eec2a45"></script>')
 
 ICONA = ("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E"
          "%3Crect width='32' height='32' fill='%23FAF7F1'/%3E%3Cg fill='none' stroke='%231B5E63'"
@@ -271,7 +270,7 @@ def pagina(base, url, titolo, desc, corpo, ld=None, briciole=None, indicizza=Tru
   </div>
 </footer>
 
-{UMAMI}
+{TAVOLE}
 </body>
 </html>
 """
