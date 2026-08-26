@@ -33,7 +33,12 @@ jobs:
   costruisci:
     runs-on: ubuntu-latest
     steps:
+      # fetch-depth: 0 serve alla sitemap. Il <lastmod> di ogni sezione e' la
+      # data dell'ultimo commit che ne ha toccato i dati: con il clone shallow
+      # predefinito la cronologia non c'e' e il campo verrebbe omesso.
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
 
       - uses: actions/setup-python@v7
         with:

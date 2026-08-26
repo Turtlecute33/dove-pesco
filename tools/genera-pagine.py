@@ -65,6 +65,64 @@ def leggi_dati():
     return json.loads(raw)
 
 
+# ---------------------------------------------------------------- date
+
+# Le fonti da cui ogni sezione del sito dipende davvero. Servono al <lastmod>
+# della sitemap: e' l'unico dei tre campi facoltativi che Google legge, mentre
+# <changefreq> e <priority> li dichiara ignorati da anni.
+FONTI = {
+    'spot': ['assets/js/data-spots-emilia.js', 'assets/js/data-spots-romagna.js',
+             'assets/js/data-spots-extra.js', 'assets/js/data-spots-centro.js',
+             'assets/js/data-index.js'],
+    'specie': ['assets/js/data-species.js'],
+    'regole': ['assets/js/data-rules.js'],
+    'fisse': ['tools/genera-pagine.py'],
+    'app': ['index.html', 'assets/js/engine.js', 'assets/js/ui.js'],
+}
+
+
+def data_commit(rel):
+    """Data dell'ultimo commit che ha toccato il file, come AAAA-MM-GG."""
+    try:
+        r = subprocess.run(['git', 'log', '-1', '--format=%cs', '--', rel],
+                           cwd=BASE, capture_output=True, text=True, timeout=20)
+    except (OSError, subprocess.SubprocessError):
+        return None
+    d = r.stdout.strip()
+    return d if re.fullmatch(r'\d{4}-\d{2}-\d{2}', d) else None
+
+
+def date_sezioni():
+    """Per ogni sezione, la data dell'ultima modifica vera del suo contenuto.
+
+    Senza cronologia (clone shallow, cartella non in git) si torna None e il
+    <lastmod> si omette. E' voluto: una data inventata — la data di build, che
+    cambierebbe a ogni giro di cron senza che nulla sia cambiato — insegna al
+    crawler che il campo mente, e da quel momento lo ignora.
+    """
+    gen = FONTI['fisse']
+    date = {}
+    for sez, file in FONTI.items():
+        v = [d for d in (data_commit(f) for f in file + gen) if d]
+        date[sez] = max(v) if v else None
+    v = [d for d in date.values() if d]
+    date['home'] = max(v) if v else None
+    return date
+
+
+def lastmod(u, date):
+    """La data da mettere in sitemap per questo indirizzo."""
+    if u == '/':
+        return date['home']
+    if u.startswith('/specie'):
+        return date['specie']
+    if u.startswith('/spot') or u.startswith('/provincia'):
+        return date['spot']
+    if u.startswith('/regole'):
+        return date['regole']
+    return date['fisse']
+
+
 # ---------------------------------------------------------------- utilita'
 
 def e(t):
@@ -523,6 +581,28 @@ def pagina_specie(d, sp, base):
                      '<p class="mini tenue" style="margin-top:8px">%d spot dichiarano la presenza '
                      'di questa specie.</p>%s' % (len(dove), ''.join(blocchi)))
 
+    # Collegamenti fra specie: prima quelle dello stesso gruppo, poi si completa
+    # scorrendo l'elenco alfabetico in cerchio. Serve a garantire un minimo di
+    # collegamenti in entrata anche alle specie che quasi nessuno spot dichiara:
+    # bosega, pigo, sanguinerola, savetta e triotto ne avevano due in tutto, ed
+    # erano le ultime della coda del crawler.
+    tutte = sorted(d['SPECIE'].values(), key=lambda o: o['nome'])
+    simili = [o for o in tutte if o['id'] != sp['id'] and o['gruppo'] == sp['gruppo']][:8]
+    if len(simili) < 6:
+        i = next(k for k, o in enumerate(tutte) if o['id'] == sp['id'])
+        visti = {sp['id']} | {o['id'] for o in simili}
+        for k in range(1, len(tutte)):
+            o = tutte[(i + k) % len(tutte)]
+            if o['id'] not in visti:
+                simili.append(o)
+                visti.add(o['id'])
+            if len(simili) >= 6:
+                break
+    sim_html = ('<h2>Altre specie</h2>'
+                '<p class="mini" style="margin-top:10px;max-width:72ch">%s</p>'
+                % ' · '.join('<a href="/specie/%s/">%s</a>' % (o['slug'], e(o['nome']))
+                             for o in simili)) if simili else ''
+
     corpo = f"""<span class="occhio acc">{e(sp['gruppo'])}</span>
 <h1>{e(sp['nome'])}</h1>
 <div class="luogo sci-tit">{e(sp['sci'])}</div>
@@ -534,6 +614,7 @@ def pagina_specie(d, sp, base):
 {modo_html}
 {dritte_html}
 {dove_html}
+{sim_html}
 <p class="mini tenue" style="margin-top:26px;max-width:72ch">Misure minime, limiti e periodi di
   divieto dall'Allegato 2 del <a href="/regole/">Regolamento regionale 1/2018</a>, come modificato
   dal 1/2020. I calendari ittici provinciali possono essere più restrittivi.</p>"""
@@ -898,13 +979,24 @@ def pagina_privacy(d, base):
 
 def ritocca_indice(testo, d, base):
     """Mette nell'applicazione il canonico, le schede social e il rifugio senza JS."""
+    # Il titolo di ogni provincia porta alla sua pagina, non e' piu' testo morto:
+    # da qui passa l'unico collegamento che le pagine /provincia/ ricevono dalla
+    # home, che e' la pagina con piu' autorita' del sito.
     voci = []
     for sig, nome in d['PROVINCE'].items():
         v = sorted((s for s in d['SPOT'] if s['prov'] == sig), key=lambda s: s['nome'])
         if not v:
             continue
-        voci.append('<h3>%s</h3><p>%s</p>' % (e(nome), ' · '.join(
-            '<a href="spot/%s/">%s</a>' % (s['slug'], e(s['nome'])) for s in v)))
+        voci.append('<h3><a href="provincia/%s/">%s</a></h3><p>%s</p>' % (
+            slug(nome), e(nome), ' · '.join(
+                '<a href="spot/%s/">%s</a>' % (s['slug'], e(s['nome'])) for s in v)))
+
+    # e le specie: prima erano raggiungibili solo dagli spot che le dichiarano,
+    # cosi' le piu' rare restavano in fondo alla coda del crawler
+    specie = ' · '.join('<a href="specie/%s/">%s</a>' % (sp['slug'], e(sp['nome']))
+                        for sp in sorted(d['SPECIE'].values(), key=lambda s: s['nome']))
+    voci.append('<h3><a href="specie/">Le specie</a></h3><p>%s</p>' % specie)
+
     rifugio = ("""<noscript>
   <div class="col senza-js">
     <h2>Serve JavaScript per l'indice del giorno</h2>
@@ -1050,14 +1142,21 @@ def main():
             indicizza=False), pre))
 
     # sitemap e robots
+    date = date_sezioni()
+    if not any(date.values()):
+        sys.stderr.write('nessuna data dai commit: sitemap senza <lastmod>. '
+                         'In CI serve actions/checkout con fetch-depth: 0\n')
     with open(os.path.join(out, 'sitemap.xml'), 'w', encoding='utf-8') as f:
         f.write('<?xml version="1.0" encoding="UTF-8"?>\n'
                 '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n')
         for u in urls:
             pr = '1.0' if u == '/' else ('0.8' if u.count('/') == 2 else '0.6')
             fr = 'daily' if u == '/' else 'monthly'
-            f.write('<url><loc>%s%s</loc><changefreq>%s</changefreq>'
-                    '<priority>%s</priority></url>\n' % (base, u, fr, pr))
+            lm = lastmod(u, date)
+            # l'ordine degli elementi lo impone lo schema: loc, lastmod, changefreq, priority
+            f.write('<url><loc>%s%s</loc>%s<changefreq>%s</changefreq>'
+                    '<priority>%s</priority></url>\n'
+                    % (base, u, '<lastmod>%s</lastmod>' % lm if lm else '', fr, pr))
         f.write('</urlset>\n')
 
     with open(os.path.join(out, 'robots.txt'), 'w', encoding='utf-8') as f:
