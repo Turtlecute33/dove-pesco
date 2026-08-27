@@ -169,7 +169,7 @@ const SPOT_EXTRA = [
 {
   id: 're-po-luzzara', nome: 'Po a Luzzara',
   comune: 'Luzzara', prov: 'RE', acqua: 'Fiume Po',
-  tipo: 'fiume', categoria: 'A', lat: 44.9238, lon: 10.7429,
+  tipo: 'fiume', categoria: 'A', lat: 44.9650, lon: 10.6685,
   specie: ['siluro', 'lucioperca', 'aspio', 'carpa', 'alborella', 'breme'],
   tecniche: ['pesca a fondo con vivo', 'ledgering', 'spinning'],
   fondale: 'Golena destra con pioppeti artificiali, lembi di bosco ripariale, lanche ed ex cave inondate.',
@@ -383,7 +383,7 @@ const SPOT_EXTRA = [
 {
   id: 'bo-limentra-molino-casio', nome: 'Limentra a Molino di Casio',
   comune: 'Castel di Casio', prov: 'BO', acqua: 'Torrente Limentra di Treppio',
-  tipo: 'torrente', categoria: 'D', lat: 44.1520, lon: 11.0100,
+  tipo: 'torrente', categoria: 'D', lat: 44.1608, lon: 11.0489,
   specie: ['trotaFario', 'trotaIridea', 'barbo', 'cavedano', 'vairone'],
   tecniche: ['pesca a mosca', 'spinning', 'passata con bolognese'],
   fondale: 'Lunghi raschi, correntine, briglie e buche di buona profondità. Acqua sempre fresca perché alimentata dalle acque di profondità del bacino di Suviana.',
@@ -397,7 +397,7 @@ const SPOT_EXTRA = [
 {
   id: 'bo-limentra-bagnana', nome: 'Limentra a Ponte di Bagnana',
   comune: 'Camugnano', prov: 'BO', acqua: 'Torrente Limentra di Treppio',
-  tipo: 'torrente', categoria: 'D', lat: 44.1600, lon: 11.0350,
+  tipo: 'torrente', categoria: 'D', lat: 44.1596, lon: 11.0471,
   specie: ['trotaFario', 'trotaIridea', 'barbo', 'cavedano'],
   tecniche: ['pesca a mosca', 'spinning'],
   fondale: 'Buche profonde a valle delle briglie, ambiente vario tra raschi e correntine.',
@@ -483,7 +483,7 @@ const SPOT_EXTRA = [
 {
   id: 'fe-sacca-goro', nome: 'Sacca di Goro',
   comune: 'Goro', prov: 'FE', acqua: 'Sacca di Goro',
-  tipo: 'mare', categoria: 'mare', lat: 44.8180, lon: 12.2900,
+  tipo: 'mare', categoria: 'mare', lat: 44.8165, lon: 12.2858,
   specie: ['cefalo', 'spigola', 'anguilla', 'orata', 'paganello'],
   tecniche: ['bolognese', 'pesca a fondo', 'spinning'],
   fondale: 'Laguna poco profonda delimitata a nord dal Po di Goro, alimentata dall\'impianto idrovoro del Bonello, dal canale Giralda, dal Canal Bianco e dal Po di Volano.',
@@ -525,7 +525,7 @@ const SPOT_EXTRA = [
 {
   id: 'fe-logonovo-estensi', nome: 'Foce del canale Logonovo, Lido degli Estensi',
   comune: 'Comacchio', prov: 'FE', acqua: 'Mare Adriatico',
-  tipo: 'mare', categoria: 'mare', lat: 44.6620, lon: 12.2530,
+  tipo: 'mare', categoria: 'mare', lat: 44.6625, lon: 12.2505,
   specie: ['spigola', 'cefalo', 'orata', 'mormora', 'paganello'],
   tecniche: ['spinning', 'beach ledgering', 'bolognese'],
   fondale: 'Foce tra il Lido degli Estensi e il Lido di Spina, soggetta a periodiche ostruzioni e insabbiamenti. Litorale sabbioso a grana fine.',
@@ -541,7 +541,7 @@ const SPOT_EXTRA = [
 {
   id: 'ra-casal-borsetti', nome: 'Foce del Destra Reno a Casal Borsetti',
   comune: 'Ravenna', prov: 'RA', acqua: 'Mare Adriatico',
-  tipo: 'mare', categoria: 'mare', lat: 44.5330, lon: 12.2830,
+  tipo: 'mare', categoria: 'mare', lat: 44.5339, lon: 12.2824,
   specie: ['spigola', 'cefalo', 'orata', 'mormora', 'anguilla', 'paganello'],
   tecniche: ['pesca a fondo', 'spinning', 'bilancione'],
   fondale: 'Foce protetta da due moli lunghi un centinaio di metri che convogliano le acque oltre le scogliere frangiflutti.',
@@ -555,7 +555,7 @@ const SPOT_EXTRA = [
 {
   id: 'ra-marina-romea', nome: 'Foce del Lamone a Marina Romea',
   comune: 'Ravenna', prov: 'RA', acqua: 'Mare Adriatico',
-  tipo: 'mare', categoria: 'mare', lat: 44.5050, lon: 12.2790,
+  tipo: 'mare', categoria: 'mare', lat: 44.5057, lon: 12.2824,
   specie: ['spigola', 'cefalo', 'orata', 'mormora', 'paganello'],
   tecniche: ['spinning', 'beach ledgering', 'bolognese'],
   fondale: 'Foce protetta da due moli lunghi una novantina di metri, fondale sabbioso.',
@@ -569,7 +569,7 @@ const SPOT_EXTRA = [
 {
   id: 'ra-punta-marina', nome: 'Punta Marina',
   comune: 'Ravenna', prov: 'RA', acqua: 'Mare Adriatico',
-  tipo: 'mare', categoria: 'mare', lat: 44.4470, lon: 12.2930,
+  tipo: 'mare', categoria: 'mare', lat: 44.4476, lon: 12.2952,
   specie: ['orata', 'mormora', 'spigola', 'cefalo'],
   tecniche: ['surfcasting', 'beach ledgering'],
   fondale: 'Fondale sabbioso, profondità 2–4 m a un centinaio di metri da riva.',
@@ -583,7 +583,7 @@ const SPOT_EXTRA = [
 {
   id: 'ra-lido-di-savio', nome: 'Foce del Savio, Lido di Classe',
   comune: 'Ravenna', prov: 'RA', acqua: 'Mare Adriatico',
-  tipo: 'mare', categoria: 'mare', lat: 44.3120, lon: 12.3350,
+  tipo: 'mare', categoria: 'mare', lat: 44.3142, lon: 12.3445,
   specie: ['spigola', 'cefalo', 'mormora', 'orata', 'anguilla'],
   tecniche: ['spinning', 'beach ledgering', 'bolognese'],
   fondale: 'Foce protetta da un prolungamento dell\'argine sinistro, tra Lido di Classe e Lido di Savio.',
@@ -597,7 +597,7 @@ const SPOT_EXTRA = [
 {
   id: 'ra-portocanale-cervia', nome: 'Portocanale di Cervia',
   comune: 'Cervia', prov: 'RA', acqua: 'Mare Adriatico',
-  tipo: 'mare', categoria: 'mare', lat: 44.2650, lon: 12.3560,
+  tipo: 'mare', categoria: 'mare', lat: 44.2670, lon: 12.3565,
   specie: ['cefalo', 'spigola', 'paganello', 'orata', 'mormora'],
   tecniche: ['bolognese', 'pesca a fondo', 'spinning'],
   fondale: 'Riceve le acque piovane e quelle provenienti dalle saline; foce protetta da due moli.',
@@ -627,7 +627,7 @@ const SPOT_EXTRA = [
 {
   id: 'fc-bidente-strabatenza', nome: 'Bidente di Strabatenza (no kill)',
   comune: 'Bagno di Romagna', prov: 'FC', acqua: 'Bidente di Strabatenza',
-  tipo: 'torrente', categoria: 'D', lat: 43.8724, lon: 11.8812,
+  tipo: 'torrente', categoria: 'D', lat: 43.8703, lon: 11.8789,
   specie: ['trotaFario', 'vairone'],
   tecniche: ['pesca a mosca', 'spinning con amo singolo senza ardiglione'],
   fondale: 'Lastroni di pietra affioranti alternati a correntine, salti e piccole buche, con abbondante vegetazione riparia.',
@@ -669,7 +669,7 @@ const SPOT_EXTRA = [
 {
   id: 'fc-tagliata-zadina', nome: 'Canale Tagliata a Zadina',
   comune: 'Cesenatico', prov: 'FC', acqua: 'Mare Adriatico',
-  tipo: 'mare', categoria: 'mare', lat: 44.2130, lon: 12.3900,
+  tipo: 'mare', categoria: 'mare', lat: 44.2136, lon: 12.3918,
   specie: ['spigola', 'cefalo', 'paganello', 'orata', 'mormora'],
   tecniche: ['spinning', 'bolognese', 'pesca a fondo'],
   fondale: 'Foce protetta da due piccoli moli lunghi una ventina di metri, in comunicazione col portocanale di Cesenatico tramite il canale di Allacciamento.',
@@ -683,7 +683,7 @@ const SPOT_EXTRA = [
 {
   id: 'fc-rubicone-gatteo', nome: 'Foce del Rubicone a Gatteo a Mare',
   comune: 'Gatteo', prov: 'FC', acqua: 'Fiume Rubicone',
-  tipo: 'mare', categoria: 'mare', lat: 44.1750, lon: 12.4400,
+  tipo: 'mare', categoria: 'mare', lat: 44.1736, lon: 12.4383,
   specie: ['spigola', 'cefalo', 'mormora', 'orata', 'anguilla'],
   tecniche: ['spinning', 'bolognese', 'beach ledgering'],
   fondale: 'Foce protetta da piccoli moli, fondale sabbioso.',
@@ -699,7 +699,7 @@ const SPOT_EXTRA = [
 {
   id: 'rn-bellaria-portocanale', nome: 'Portocanale di Bellaria (foce dell\'Uso)',
   comune: 'Bellaria-Igea Marina', prov: 'RN', acqua: 'Mare Adriatico',
-  tipo: 'mare', categoria: 'mare', lat: 44.1490, lon: 12.4720,
+  tipo: 'mare', categoria: 'mare', lat: 44.1466, lon: 12.4695,
   specie: ['spigola', 'cefalo', 'paganello', 'orata', 'mormora', 'pescePelagico'],
   tecniche: ['surfcasting dalla spiaggia', 'spinning ed eging dal molo', 'bolognese'],
   fondale: 'Spiaggia sabbiosa con il portocanale del fiume Uso; scogliere frangiflutti al largo.',
@@ -713,7 +713,7 @@ const SPOT_EXTRA = [
 {
   id: 'rn-riccione-portocanale', nome: 'Portocanale di Riccione',
   comune: 'Riccione', prov: 'RN', acqua: 'Mare Adriatico',
-  tipo: 'mare', categoria: 'mare', lat: 43.9930, lon: 12.6570,
+  tipo: 'mare', categoria: 'mare', lat: 44.0009, lon: 12.6673,
   specie: ['spigola', 'cefalo', 'paganello', 'orata', 'mormora'],
   tecniche: ['spinning', 'bolognese', 'pesca a fondo'],
   fondale: 'Portocanale alla foce del torrente Marano, con moli e scogliere frangiflutti parallele e perpendicolari alla costa.',
@@ -727,7 +727,7 @@ const SPOT_EXTRA = [
 {
   id: 'rn-cattolica-porto', nome: 'Porto di Cattolica (foce del Tavollo)',
   comune: 'Cattolica', prov: 'RN', acqua: 'Mare Adriatico',
-  tipo: 'mare', categoria: 'mare', lat: 43.9560, lon: 12.7370,
+  tipo: 'mare', categoria: 'mare', lat: 43.9712, lon: 12.7510,
   specie: ['spigola', 'orata', 'mormora', 'cefalo', 'pescePelagico', 'paganello'],
   tecniche: ['spinning', 'bombarda', 'pesca a fondo'],
   fondale: 'Porto realizzato sulla foce del torrente Tavollo, con moli e scogliere.',

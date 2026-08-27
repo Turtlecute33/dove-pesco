@@ -11,7 +11,7 @@ const SPOT_ROMAGNA = [
 {
   id: 'bo-collettore-acque-alte', nome: 'Collettore Acque Alte a Crevalcore',
   comune: 'Crevalcore / S. Giovanni in Persiceto', prov: 'BO', acqua: 'Collettore Acque Alte',
-  tipo: 'canale', categoria: 'B', lat: 44.7206, lon: 11.1498,
+  tipo: 'canale', categoria: 'B', lat: 44.7183, lon: 11.1983,
   specie: ['carpa', 'carassio', 'siluro', 'alborella', 'scardola'],
   tecniche: ['bolognese', 'roubaisienne', 'inglese'],
   fondale: 'Canale arginato di medio-grandi dimensioni. In estate buon volume d\'acqua e profondità di alcuni metri.',
@@ -151,7 +151,7 @@ const SPOT_ROMAGNA = [
 {
   id: 'bo-limentra-verzuno', nome: 'Limentra a Ponte di Verzuno',
   comune: 'Camugnano', prov: 'BO', acqua: 'Torrente Limentra di Treppio',
-  tipo: 'torrente', categoria: 'D', lat: 44.1700, lon: 11.0200,
+  tipo: 'torrente', categoria: 'D', lat: 44.2039, lon: 11.0573,
   specie: ['trotaFario', 'trotaIridea', 'barbo', 'cavedano', 'vairone'],
   tecniche: ['pesca a mosca', 'spinning', 'passata con bolognese'],
   fondale: 'Letto abbastanza ampio con lunghi raschi, correntine, briglie e buche di buona profondità: ambiente assai vario. Acqua sempre fresca perché alimentato dalle acque di profondità del bacino di Suviana.',
@@ -165,7 +165,7 @@ const SPOT_ROMAGNA = [
 {
   id: 'bo-limentra-castrola', nome: 'Limentra — Gole di Castrola',
   comune: 'Camugnano', prov: 'BO', acqua: 'Torrente Limentra di Treppio',
-  tipo: 'torrente', categoria: 'D', lat: 44.1720, lon: 11.0510,
+  tipo: 'torrente', categoria: 'D', lat: 44.1707, lon: 11.0511,
   specie: ['trotaFario', 'trotaIridea', 'barbo', 'cavedano'],
   tecniche: ['pesca a mosca', 'spinning'],
   fondale: 'Gole con buche profonde e briglie, ambiente chiuso e spettacolare.',
@@ -335,7 +335,7 @@ const SPOT_ROMAGNA = [
 {
   id: 'fe-navigabile-migliarino', nome: 'Canale Navigabile Migliarino–Porto Garibaldi',
   comune: 'Fiscaglia / Comacchio', prov: 'FE', acqua: 'Canale Navigabile',
-  tipo: 'canale', categoria: 'A', lat: 44.7000, lon: 12.1300,
+  tipo: 'canale', categoria: 'A', lat: 44.6991, lon: 12.1301,
   specie: ['cefalo', 'anguilla', 'lucioperca', 'siluro', 'spigola'],
   tecniche: ['bolognese', 'ledgering', 'spinning'],
   fondale: 'Segmento dell\'Idrovia ferrarese che sbocca in Adriatico presso Porto Garibaldi. Acque salmastre nel tratto terminale, profondità media circa 3,5 m.',
@@ -377,7 +377,7 @@ const SPOT_ROMAGNA = [
 {
   id: 'fe-molo-porto-garibaldi', nome: 'Molo di Porto Garibaldi',
   comune: 'Comacchio', prov: 'FE', acqua: 'Mare Adriatico',
-  tipo: 'mare', categoria: 'mare', lat: 44.6800, lon: 12.2450,
+  tipo: 'mare', categoria: 'mare', lat: 44.6799, lon: 12.2439,
   specie: ['paganello', 'pescePelagico', 'cefalo', 'spigola', 'anguilla', 'orata', 'mormora'],
   tecniche: ['pesca a fondo con tremolina', 'galleggiante con polpa di sarda', 'bolognese notturna', 'spinning'],
   fondale: 'Portocanale protetto da due moli lunghi 300 e 500 m. Fondale sabbioso.',
@@ -391,7 +391,7 @@ const SPOT_ROMAGNA = [
 {
   id: 'fe-pontile-lido-volano', nome: 'Pontile del Lido di Volano',
   comune: 'Comacchio', prov: 'FE', acqua: 'Mare Adriatico',
-  tipo: 'mare', categoria: 'mare', lat: 44.7950, lon: 12.2650,
+  tipo: 'mare', categoria: 'mare', lat: 44.7942, lon: 12.2680,
   specie: ['cefalo', 'spigola', 'paganello', 'pescePelagico', 'anguilla'],
   tecniche: ['bilancella', 'pesca a fondo', 'bolognese'],
   fondale: 'Pontile alle foci del Po di Volano, fondali sabbiosi bassi.',
@@ -505,7 +505,7 @@ const SPOT_ROMAGNA = [
 {
   id: 'ra-diga-porto-corsini', nome: 'Dighe di Porto Corsini e Marina di Ravenna',
   comune: 'Ravenna', prov: 'RA', acqua: 'Mare Adriatico',
-  tipo: 'mare', categoria: 'mare', lat: 44.4920, lon: 12.2830,
+  tipo: 'mare', categoria: 'mare', lat: 44.4922, lon: 12.2850,
   specie: ['spigola', 'cefalo', 'orata', 'mormora', 'paganello', 'pescePelagico'],
   tecniche: ['spinning', 'pesca a fondo', 'bombarda', 'bolognese'],
   fondale: 'Due dighe di circa 3 km che proteggono lo sbocco del canale Candiano, asse principale del porto di Ravenna, alimentato dalle pialasse Baiona e Piomboni.',
@@ -519,7 +519,7 @@ const SPOT_ROMAGNA = [
 {
   id: 'ra-foce-bevano', nome: 'Foce del Bevano',
   comune: 'Ravenna', prov: 'RA', acqua: 'Mare Adriatico',
-  tipo: 'mare', categoria: 'mare', lat: 44.3350, lon: 12.3220,
+  tipo: 'mare', categoria: 'mare', lat: 44.3377, lon: 12.3335,
   specie: ['spigola', 'mormora', 'orata', 'cefalo'],
   tecniche: ['beach ledgering', 'spinning'],
   fondale: 'Spiagge su entrambi i lati della foce, fondale sabbioso.',
@@ -533,7 +533,7 @@ const SPOT_ROMAGNA = [
 {
   id: 'ra-fiumi-uniti', nome: 'Foce dei Fiumi Uniti (Lido di Dante)',
   comune: 'Ravenna', prov: 'RA', acqua: 'Fiumi Uniti',
-  tipo: 'mare', categoria: 'A', lat: 44.3650, lon: 12.3170,
+  tipo: 'mare', categoria: 'A', lat: 44.3662, lon: 12.3240,
   specie: ['spigola', 'cefalo', 'anguilla', 'mormora', 'orata'],
   tecniche: ['spinning', 'ledgering', 'bolognese'],
   fondale: 'Foce del corso derivante dall\'unione di Montone e Ronco, tra Lido Adriano e Lido di Dante.',
@@ -717,7 +717,7 @@ const SPOT_ROMAGNA = [
 {
   id: 'fc-lago-quarto', nome: 'Lago di Quarto',
   comune: 'Sarsina', prov: 'FC', acqua: 'Lago di Quarto',
-  tipo: 'bacino', categoria: 'C', lat: 43.8851, lon: 12.0818,
+  tipo: 'bacino', categoria: 'C', lat: 43.8890, lon: 12.0813,
   specie: ['luccio', 'cavedano', 'carpa', 'scardola', 'pesceGatto'],
   tecniche: ['spinning a caccia di lucci', 'carp fishing', 'bolognese'],
   fondale: 'Invaso di una centrale idroelettrica, ricoperto da abbondante vegetazione. A valle della diga vasconi profondi diversi metri per attutire la forza dell\'acqua.',
@@ -787,7 +787,7 @@ const SPOT_ROMAGNA = [
 {
   id: 'fc-portocanale-cesenatico', nome: 'Portocanale di Cesenatico',
   comune: 'Cesenatico', prov: 'FC', acqua: 'Mare Adriatico',
-  tipo: 'mare', categoria: 'mare', lat: 44.2000, lon: 12.4000,
+  tipo: 'mare', categoria: 'mare', lat: 44.2032, lon: 12.4072,
   specie: ['spigola', 'cefalo', 'paganello', 'orata', 'mormora', 'pescePelagico'],
   tecniche: ['spinning', 'bolognese', 'pesca a fondo', 'bombarda'],
   fondale: 'Sbocco in mare accompagnato da protezioni lunghe circa 300 m. Riceve le acque di una fitta rete di fossi e scoli e del canale Tagliata.',
@@ -873,7 +873,7 @@ const SPOT_ROMAGNA = [
 {
   id: 'rn-portocanale-rimini', nome: 'Portocanale di Rimini',
   comune: 'Rimini', prov: 'RN', acqua: 'Mare Adriatico',
-  tipo: 'mare', categoria: 'mare', lat: 44.0750, lon: 12.5780,
+  tipo: 'mare', categoria: 'mare', lat: 44.0755, lon: 12.5789,
   specie: ['spigola', 'cefalo', 'paganello', 'orata', 'mormora', 'pescePelagico'],
   tecniche: ['spinning', 'bolognese', 'pesca a fondo', 'mosca (per sgombri e aguglie)'],
   fondale: 'Litorale sabbioso interrotto da foci e porti; scogliere frangiflutti parallele e perpendicolari alla costa.',
@@ -887,7 +887,7 @@ const SPOT_ROMAGNA = [
 {
   id: 'rn-foce-conca', nome: 'Foce del Conca e Portoverde',
   comune: 'Misano Adriatico / Cattolica', prov: 'RN', acqua: 'Mare Adriatico',
-  tipo: 'mare', categoria: 'mare', lat: 43.9450, lon: 12.7400,
+  tipo: 'mare', categoria: 'mare', lat: 43.9725, lon: 12.7206,
   specie: ['spigola', 'orata', 'mormora', 'cefalo', 'pescePelagico', 'paganello'],
   tecniche: ['surfcasting', 'spinning', 'bombarda'],
   fondale: 'Foce del Conca e porto di Portoverde; a poca distanza il porto di Cattolica realizzato sulla foce del torrente Tavollo.',

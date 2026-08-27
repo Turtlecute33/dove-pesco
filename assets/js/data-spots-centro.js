@@ -77,7 +77,7 @@ const SPOT_CENTRO = [
 {
   id: 'bo-reno-galliera', nome: 'Reno a Galliera',
   comune: 'Galliera', prov: 'BO', acqua: 'Fiume Reno',
-  tipo: 'fiume', categoria: 'B', lat: 44.7600, lon: 11.4270,
+  tipo: 'fiume', categoria: 'B', lat: 44.7614, lon: 11.4277,
   specie: ['carpa', 'siluro', 'breme', 'carassio', 'alborella', 'anguilla'],
   tecniche: ['pesca a fondo', 'bolognese', 'spinning pesante'],
   fondale: 'Alveo largo e lento fra argini alti, fondo di limo e sabbia, profondità 2 – 3,5 m. Alcuni allarghi nelle golene con acqua ferma.',
@@ -387,7 +387,7 @@ const SPOT_CENTRO = [
 {
   id: 'mo-secchia-pescale', nome: 'Secchia al Pescale',
   comune: 'Prignano sulla Secchia / Castellarano', prov: 'MO', acqua: 'Fiume Secchia',
-  tipo: 'fiume', categoria: 'C', lat: 44.4990, lon: 10.7248,
+  tipo: 'fiume', categoria: 'C', lat: 44.4992, lon: 10.7241,
   specie: ['barbo', 'cavedano', 'vairone', 'lasca', 'trotaFario'],
   tecniche: ['passata con fissa', 'pesca a mosca', 'spinning leggero'],
   fondale: 'Stretta fra le rupi del Pescale: buche profonde e verdi, massi in alveo, correnti forti dopo le piogge.',
@@ -401,7 +401,7 @@ const SPOT_CENTRO = [
 {
   id: 'mo-secchia-marzaglia', nome: 'Secchia a Marzaglia',
   comune: 'Modena (Marzaglia)', prov: 'MO', acqua: 'Fiume Secchia',
-  tipo: 'fiume', categoria: 'C', lat: 44.6548, lon: 10.8065,
+  tipo: 'fiume', categoria: 'C', lat: 44.6565, lon: 10.8052,
   specie: ['cavedano', 'barbo', 'carpa', 'alborella', 'gobione', 'siluro'],
   tecniche: ['bolognese', 'pesca a fondo leggera', 'spinning'],
   fondale: 'Golena ampia con laghetti di cava a fianco del fiume, alveo di ghiaia e sabbia, correnti lente e buche nelle anse.',
@@ -457,7 +457,7 @@ const SPOT_CENTRO = [
 {
   id: 'mo-dolo-romanoro', nome: 'Dolo a Romanoro',
   comune: 'Frassinoro', prov: 'MO', acqua: 'Torrente Dolo',
-  tipo: 'torrente', categoria: 'D', lat: 44.3318, lon: 10.5272,
+  tipo: 'torrente', categoria: 'D', lat: 44.3320, lon: 10.5259,
   specie: ['trotaFario', 'vairone', 'cavedano', 'barbo'],
   tecniche: ['pesca a mosca', 'camolera', 'spinning ultraleggero'],
   fondale: 'Alto corso di montagna: massi, salti e buche fresche sotto le cascatelle. Acqua limpidissima e fredda tutto l\'anno.',
@@ -543,7 +543,7 @@ const SPOT_CENTRO = [
 {
   id: 'fe-po-ro', nome: 'Po a Ro Ferrarese',
   comune: 'Riva del Po', prov: 'FE', acqua: 'Fiume Po',
-  tipo: 'fiume', categoria: 'A', lat: 44.9250, lon: 11.7244,
+  tipo: 'fiume', categoria: 'A', lat: 44.9268, lon: 11.7239,
   specie: ['siluro', 'carpa', 'lucioperca', 'aspio', 'breme', 'anguilla'],
   tecniche: ['pesca a fondo', 'spinning pesante', 'roubaisienne'],
   fondale: 'Ansa ampia con spiagge di sabbia e fondali che scendono rapidamente. Corrente costante lungo la sponda esterna.',
@@ -557,7 +557,7 @@ const SPOT_CENTRO = [
 {
   id: 'fe-po-berra', nome: 'Po a Berra',
   comune: 'Riva del Po', prov: 'FE', acqua: 'Fiume Po',
-  tipo: 'fiume', categoria: 'A', lat: 44.9832, lon: 11.9791,
+  tipo: 'fiume', categoria: 'A', lat: 44.9854, lon: 11.9798,
   specie: ['siluro', 'carpa', 'lucioperca', 'breme', 'anguilla', 'cefalo'],
   tecniche: ['pesca a fondo', 'spinning pesante', 'bolognese'],
   fondale: 'Basso corso vicino alla foce: acque profonde e lente, fondo di sabbia e limo, ampie golene allagabili.',
@@ -571,7 +571,7 @@ const SPOT_CENTRO = [
 {
   id: 'fe-po-stellata', nome: 'Po a Stellata di Bondeno',
   comune: 'Bondeno', prov: 'FE', acqua: 'Fiume Po',
-  tipo: 'fiume', categoria: 'A', lat: 44.9460, lon: 11.4255,
+  tipo: 'fiume', categoria: 'A', lat: 44.9458, lon: 11.4265,
   specie: ['siluro', 'carpa', 'aspio', 'lucioperca', 'breme', 'cheppia'],
   tecniche: ['spinning pesante', 'pesca a fondo', 'bolognese'],
   fondale: 'Ansa storica presso la Rocca Possente, spiagge di sabbia e correnti divise dai pennelli. Buche profonde sotto la sponda concava.',
@@ -683,7 +683,7 @@ const SPOT_CENTRO = [
 {
   id: 'fe-reno-panfilia', nome: 'Reno al Bosco Panfilia',
   comune: 'Terre del Reno', prov: 'FE', acqua: 'Fiume Reno',
-  tipo: 'fiume', categoria: 'B', lat: 44.7816, lon: 11.3814,
+  tipo: 'fiume', categoria: 'B', lat: 44.7804, lon: 11.3813,
   specie: ['carpa', 'siluro', 'cavedano', 'breme', 'carassio', 'alborella'],
   tecniche: ['pesca a fondo con pasturatore', 'bolognese', 'spinning'],
   fondale: 'Golena boscata lungo il Reno: acqua lenta, fondo di sabbia e limo, profondità 2 – 3 m, rive ombreggiate dai pioppi.',
@@ -711,7 +711,7 @@ const SPOT_CENTRO = [
 {
   id: 'fe-lido-spina', nome: 'Spiaggia del Lido di Spina',
   comune: 'Comacchio', prov: 'FE', acqua: 'Mare Adriatico',
-  tipo: 'mare', categoria: 'mare', lat: 44.6480, lon: 12.2500,
+  tipo: 'mare', categoria: 'mare', lat: 44.6493, lon: 12.2562,
   specie: ['spigola', 'mormora', 'orata', 'cefalo', 'paganello'],
   tecniche: ['surfcasting', 'beach ledgering', 'spinning leggero'],
   fondale: 'Sabbia fine con buche parallele alla riva e barre sommerse. Fondali bassi, la prima buca a 20 – 40 m dalla battigia.',
@@ -725,7 +725,7 @@ const SPOT_CENTRO = [
 {
   id: 'fe-lido-pomposa', nome: 'Spiaggia del Lido di Pomposa',
   comune: 'Comacchio', prov: 'FE', acqua: 'Mare Adriatico',
-  tipo: 'mare', categoria: 'mare', lat: 44.7290, lon: 12.2380,
+  tipo: 'mare', categoria: 'mare', lat: 44.7286, lon: 12.2428,
   specie: ['spigola', 'mormora', 'orata', 'cefalo', 'paganello'],
   tecniche: ['surfcasting', 'beach ledgering'],
   fondale: 'Litorale sabbioso uniforme con barre e canaline parallele alla battigia; profondità che cresce lentamente.',

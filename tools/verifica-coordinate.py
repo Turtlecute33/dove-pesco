@@ -3,8 +3,10 @@
 Controlla che ogni stazione sia davvero sull'acqua.
 
 Per ciascuno spot misura, nella sua mini-carta gia' scaricata, la distanza dal
-centro al corso d'acqua piu' vicino. Se supera la soglia la coordinata e'
-sbagliata: la si aggancia al punto piu' vicino del corso d'acqua principale.
+centro all'acqua che la scheda dichiara — il tratto che bake-locale.py ha
+riconosciuto per nome, o la riva del mare. Solo se la carta non l'ha riconosciuta
+vale il corso d'acqua piu' vicino, qualunque sia. Se la distanza supera la soglia
+la coordinata e' sbagliata: la si aggancia al punto piu' vicino di quell'acqua.
 
     python3 tools/verifica-coordinate.py            # solo diagnosi
     python3 tools/verifica-coordinate.py --correggi # riscrive i file dati
@@ -68,17 +70,26 @@ def main():
 
     fuori, ok, senza = [], 0, []
     for s in spot:
-        if s['tipo'] == 'mare':
-            continue                      # in mare il concetto non si applica
         g = carte.get(s['id'])
         if not g:
             senza.append(s['id']); continue
-        pg, dg = piu_vicino(punti(g.get('wg')))     # fiumi e canali
-        pp, dp = piu_vicino(punti(g.get('wp')))     # rii e fossi
-        pa, da = piu_vicino(punti(g.get('wa')))     # bordo degli specchi d'acqua
-        scelto, dist, tipo = pg, dg, 'fiume'
-        if dp < dist * .55: scelto, dist, tipo = pp, dp, 'rio'
-        if da < dist:       scelto, dist, tipo = pa, da, 'specchio'
+        # se la mini-carta sa qual e' il corso d'acqua della scheda, la misura
+        # e' quella: essere a due passi da un fosso qualsiasi non conta
+        pm, dm = piu_vicino(punti(g.get('wm')))     # il corso d'acqua dichiarato
+        pma, dma = piu_vicino(punti(g.get('ma')))   # il suo specchio d'acqua
+        # la riva del mare conta solo dove si pesca in mare: altrove e' il
+        # bordo della finestra, non l'acqua dello spot
+        ps, ds = piu_vicino(punti(g.get('ws'))) if s['tipo'] == 'mare' else (None, float('inf'))
+        scelto, dist, tipo = pm, dm, 'acqua della scheda'
+        if dma < dist: scelto, dist, tipo = pma, dma, 'specchio'
+        if ds < dist:  scelto, dist, tipo = ps, ds, 'riva'
+        if scelto is None:
+            pg, dg = piu_vicino(punti(g.get('wg')))     # fiumi e canali
+            pp, dp = piu_vicino(punti(g.get('wp')))     # rii e fossi
+            pa, da = piu_vicino(punti(g.get('wa')))     # bordo degli specchi d'acqua
+            scelto, dist, tipo = pg, dg, 'fiume'
+            if dp < dist * .55: scelto, dist, tipo = pp, dp, 'rio'
+            if da < dist:       scelto, dist, tipo = pa, da, 'specchio'
         if dist > SOGLIA:
             fuori.append((s, scelto, dist, tipo))
         else:

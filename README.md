@@ -25,7 +25,12 @@ chiamata a testa».
 
 ## Come è organizzata
 
-**Una domanda, una risposta.** La pagina apre con un solo spot: nome, luogo, indice, il
+**Una domanda, una risposta.** In cima, una riga sola dice cosa fa il sito — un voto da 0
+a 100 su 222 spot, ogni mattina, e cosa lo decide — perché il titolo da solo non bastava:
+chi arriva la prima volta vedeva un nome di fiume e un numero, senza sapere di che numero
+si trattasse. È scritta nell'HTML, non generata: si legge prima che parta uno script.
+
+Poi la pagina apre con un solo spot: nome, luogo, indice, il
 pesce del giorno, acqua, portata, prima luce e una frase sul perché. Sotto, la mappa con
 tutti gli spot. Sotto ancora, sei righe con le alternative e un «vedi tutti i 222».
 Nient'altro: filtri, rilevamenti completi, specie secondarie e regole stanno dietro un
@@ -91,27 +96,54 @@ e il secondo apre lo spot; da tastiera il punto si raggiunge con il tabulatore e
 con Invio. Il punto sulla mappa e la riga nell'elenco sono lo stesso spot visto da due
 parti: accendendo l'uno si accende anche l'altra.
 
-**Locale** — per ogni spot un riquadro di 3,6 km con il tratto d'acqua, le strade, le
+**Locale** — per ogni spot un riquadro fino a 3,6 km con il tratto d'acqua, le strade, le
 sterrate, i sentieri, i parcheggi e i **punti di accesso**: i tratti in cui una strada o
 un sentiero arriva a meno di 70 m dall'acqua, calcolati sulla geometria, non disegnati a
-mano. È lì che conviene fermarsi. Pesa 2,2 MB e per questo viene caricata solo alla prima
+mano. È lì che conviene fermarsi. Pesa 2,1 MB e per questo viene caricata solo alla prima
 scheda aperta, non all'avvio.
+
+Su questa carta si vede **l'acqua su cui si pesca**, non un intrico di righe azzurre
+tutte uguali. In una finestra di 3,6 km di rii e fossi ce ne sono a decine: il generatore
+confronta il nome che ogni scheda dichiara nel campo `acqua` con i nomi di OpenStreetMap —
+per parole, non per stringa intera, perché la scheda dice «Torrente Limentra di Treppio» e
+la mappa dice «Limentra» — e incide quel tratto a parte. È l'unico disegnato in grande, in
+tinta piena, col nome scritto in legenda.
+
+Il **mare** OpenStreetMap non lo disegna: disegna la linea di riva, con la terra a sinistra
+e l'acqua a destra di come è percorsa. Sui 22 spot di mare la carta restava tutta color
+terra, con il punto in mezzo al niente. Ora la riva viene tagliata sul quadrato della
+finestra e richiusa lungo il bordo dal lato dell'acqua: ne esce un poligono, che è il mare.
+
+Il riquadro infine **segue l'acqua**. Se il tratto d'acqua cade lontano dal punto — una
+foce, un fiume largo, una coordinata a mano — la finestra scivola verso l'acqua quel tanto
+che basta a tenere dentro tutti e due, e si stringe per non uscire dalla geometria incisa.
+Non c'è più una scheda che mostri lo spot senza il suo fiume.
 
 ## Precisione delle coordinate
 
-Le coordinate scritte a mano cadevano spesso lontano dall'acqua. Sono state
-ricalibrate agganciandole alla geometria del corso d'acqua che ogni scheda dichiara:
+Le coordinate scritte a mano cadevano spesso lontano dall'acqua. `tools/ricalibra.py`
+cerca in OpenStreetMap il corso d'acqua che ogni scheda dichiara e sposta la stazione sul
+punto più vicino di **quell'**acqua, non della prima che passa.
+
+Nel secondo giro sono state mosse **42 stazioni**: i 22 spot di mare, che nessuno aveva
+mai agganciato alla riva, e una manciata di punti finiti nel posto sbagliato — il Po a
+Torricella stava in provincia di Cremona, il Po a Luzzara sette chilometri dentro la
+campagna, il Collettore Acque Alte in mezzo a Crevalcore, il porto di Cattolica in centro
+paese. Otto sono state agganciate a mano, verificando a ritroso il comune del punto,
+perché sui fiumi di confine la sponda cambia provincia.
 
 | | prima | dopo |
 |---|---|---|
-| Spot entro 260 m dall'acqua | 72 su 151 | **192 su 200** |
-| Peggior scarto residuo | 2,0 km | 810 m |
+| Spot con la propria acqua nella carta | 0 su 222 | **210 su 222** |
+| di cui entro 100 m | — | **208** |
+| Distanza mediana dall'acqua dichiarata | — | **3 m** |
+| Peggior scarto da qualsiasi acqua | 940 m | **423 m** |
 
-Gli 8 rimanenti sono tutti entro 810 m, quindi l'acqua resta comunque dentro il
-riquadro della mappa locale (i 22 spot di mare non entrano nel conto). Il controllo si
-rilancia con `tools/verifica-coordinate.py`; per i 51 spot aggiunti nel 2026 le
-coordinate sono state agganciate al corso d'acqua dichiarato e il comune di ogni punto è
-stato verificato a ritroso, perché sui fiumi di confine la sponda cambia provincia.
+I 12 senza la propria acqua sono invasi, casse di espansione e canali di bonifica che in
+OpenStreetMap portano un altro nome, o non ne portano nessuno: la carta mostra comunque
+l'acqua che hanno intorno, tutta entro 500 m, e il riquadro si sposta per tenerla dentro.
+Il controllo si rilancia con `tools/verifica-coordinate.py`, che ora misura la distanza
+dall'acqua *dichiarata* e non da un fosso qualsiasi.
 
 ## Struttura
 
@@ -132,7 +164,7 @@ assets/js/
   data-index.js                unione, province, categorie, mappa delle rarità
   data-rules.js                licenze, attrezzi, limiti, zone, avvisi, fonti
   geo-regione.js               geometria della mappa regionale (84 KB)
-  geo-locale.js                222 mappe locali (2,2 MB, caricata a richiesta)
+  geo-locale.js                222 mappe locali (2,1 MB, caricata a richiesta)
   api.js                       legge il file delle previsioni, con Open-Meteo di riserva
   engine.js                    modello dell'indice
   mappa.js                     disegno delle due mappe
@@ -140,6 +172,9 @@ assets/js/
 tools/
   aggiorna-dati.py             scarica meteo e portata e scrive previsioni.json
   genera-pagine.py             prepara _sito/: applicazione + 277 pagine + sitemap
+  bake-locale.py               le 222 mini-carte, il mare e l'acqua di ogni scheda
+  nomi_acqua.py                confronta «Torrente Limentra di Treppio» e «Limentra»
+  ricalibra.py                 aggancia le coordinate all'acqua che la scheda dichiara
   og-immagine.py               ridisegna assets/og.png (solo se cambia il marchio)
 ```
 

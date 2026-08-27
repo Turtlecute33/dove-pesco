@@ -215,7 +215,7 @@ const SPOT_EMILIA = [
 {
   id: 'pr-po-torricella', nome: 'Po a Torricella di Sissa',
   comune: 'Sissa Trecasali', prov: 'PR', acqua: 'Fiume Po',
-  tipo: 'fiume', categoria: 'A', lat: 45.0300, lon: 10.3200,
+  tipo: 'fiume', categoria: 'A', lat: 44.9918, lon: 10.2973,
   specie: ['siluro', 'lucioperca', 'aspio', 'carpa', 'breme', 'cefalo'],
   tecniche: ['pesca a fondo', 'ledgering', 'spinning'],
   fondale: 'Ampio meandro con spiagge sabbiose e lanche laterali.',
@@ -639,7 +639,7 @@ const SPOT_EMILIA = [
 {
   id: 'mo-laghi-santanna', nome: 'Casse di espansione del Panaro — laghi S. Anna',
   comune: 'Modena', prov: 'MO', acqua: 'Casse di espansione del Panaro',
-  tipo: 'lago', categoria: 'B', lat: 44.5850, lon: 11.0550,
+  tipo: 'lago', categoria: 'B', lat: 44.6019, lon: 11.0045,
   specie: ['persicoTrota', 'luccio', 'siluro', 'pesceGatto', 'persicoReale', 'carpa', 'scardola'],
   tecniche: ['carp fishing', 'spinning', 'bolognese'],
   fondale: 'Diversi specchi d\'acqua originati da attività estrattive, sulla destra idrografica del Panaro. Ambiente selvaggio.',
@@ -765,7 +765,7 @@ const SPOT_EMILIA = [
 {
   id: 'mo-rio-tagliole', nome: 'Rio delle Tagliole',
   comune: 'Pievepelago', prov: 'MO', acqua: 'Rio delle Tagliole',
-  tipo: 'torrente', categoria: 'D', lat: 44.1900, lon: 10.5800,
+  tipo: 'torrente', categoria: 'D', lat: 44.1653, lon: 10.6071,
   specie: ['trotaFario'],
   tecniche: ['pesca a mosca', 'tocco'],
   fondale: 'Rio d\'alta quota che scende dal Parco dell\'Alto Appennino Modenese: acqua pura e limpida, spazi ridotti.',

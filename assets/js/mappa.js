@@ -281,7 +281,7 @@ const MAPPA = (() => {
      MAPPA LOCALE
      ==================================================================== */
 
-  /* Pesa 1,6 MB: si carica alla prima scheda aperta, non all'avvio. */
+  /* Pesa 2,1 MB: si carica alla prima scheda aperta, non all'avvio. */
   let promessa = null;
   function caricaLocale() {
     if (typeof GEO_LOCALE !== 'undefined') return Promise.resolve(true);
@@ -300,6 +300,66 @@ const MAPPA = (() => {
       <div class="gira">${TAVOLE.seg('bussola')}</div>
       <p class="mini">Carico la mappa dei dintorni…</p></div></div>`;
 
+  /* I percorsi che generiamo hanno una forma sola: M x y, poi l dx dy. Qui
+     tornano a essere punti, per misurare quanto dista l'acqua dal punto. */
+  function puntiDa(d) {
+    const linee = [];
+    let cur = null, x = 0, y = 0;
+    (String(d || '').match(/[MlZ][^MlZ]*/g) || []).forEach((t) => {
+      const n = (t.slice(1).match(/-?\d+(?:\.\d+)?/g) || []).map(Number);
+      if (t[0] === 'M') {
+        if (cur && cur.length > 1) linee.push(cur);
+        if (n.length >= 2) { x = n[0]; y = n[1]; cur = [[x, y]]; }
+      } else if (t[0] === 'l' && cur) {
+        for (let i = 0; i + 1 < n.length; i += 2) { x += n[i]; y += n[i + 1]; cur.push([x, y]); }
+      }
+    });
+    if (cur && cur.length > 1) linee.push(cur);
+    return linee;
+  }
+
+  /* il punto d'acqua più vicino allo spot, e quanto dista */
+  function acquaVicina(d) {
+    let best = null, bd = Infinity;
+    puntiDa(d).forEach((linea) => {
+      for (let i = 0; i < linea.length - 1; i++) {
+        const [ax, ay] = linea[i], [bx, by] = linea[i + 1];
+        const dx = bx - ax, dy = by - ay, n2 = dx * dx + dy * dy;
+        const t = n2 === 0 ? 0 : Math.max(0, Math.min(1, -(ax * dx + ay * dy) / n2));
+        const px = ax + t * dx, py = ay + t * dy, q = Math.hypot(px, py);
+        if (q < bd) { bd = q; best = [px, py]; }
+      }
+    });
+    return { pt: best, d: bd };
+  }
+
+  /* Quanto lontano può stare l'acqua prima che valga la pena spostare il
+     riquadro. Sotto questa distanza il punto e il fiume si vedono già insieme. */
+  const SCARTO = 380;
+
+  /* Il riquadro non è sempre lo stesso quadrato. Se l'acqua su cui si pesca
+     cade lontano dal punto — una coordinata approssimata, un fiume largo, una
+     foce — il riquadro scivola verso l'acqua quel tanto che basta a tenere
+     dentro tutti e due, e si stringe per non uscire dai dati incisi. Così la
+     carta mostra sempre lo spot *e* la sua acqua, non uno dei due. */
+  function inquadra(g) {
+    const R = GEO_RAGGIO;
+    /* Il riquadro intero contiene già tutta la geometria incisa: si sposta solo
+       quando *nessuna* acqua è vicina al punto, e allora va verso la più
+       vicina, qualunque sia. Inseguire l'acqua della scheda anche quando ce
+       n'è dell'altra sotto i piedi sposterebbe la carta per niente. */
+    const vicina = acquaVicina([g.wm, g.ma, g.ws, g.wg, g.wp, g.wa].filter(Boolean).join(' '));
+    if (!vicina.pt || vicina.d <= SCARTO) return { cx: 0, cy: 0, mezzo: R };
+    const cx = Math.round(vicina.pt[0] / 2), cy = Math.round(vicina.pt[1] / 2);
+    return { cx, cy, mezzo: Math.round(R - Math.max(Math.abs(cx), Math.abs(cy))) };
+  }
+
+  /* il lato del riquadro in metri: alla scheda serve per dire quanto è largo */
+  const latoLocale = (id) => {
+    const g = (typeof GEO_LOCALE !== 'undefined') ? GEO_LOCALE[id] : null;
+    return g ? inquadra(g).mezzo * 2 : GEO_RAGGIO * 2;
+  };
+
   function disegnaLocale(spot) {
     const g = (typeof GEO_LOCALE !== 'undefined') ? GEO_LOCALE[spot.id] : null;
     if (!g) {
@@ -307,8 +367,12 @@ const MAPPA = (() => {
         <p class="mini">Mappa dei dintorni non disponibile.</p>
         <p class="micro tenue num">${spot.lat.toFixed(4)}, ${spot.lon.toFixed(4)}</p></div></div>`;
     }
-    const R = GEO_RAGGIO;
-    const u = (px) => Math.round(px * (R * 2) / 420);   // px a schermo → unità della mappa
+    const { cx, cy, mezzo } = inquadra(g);
+    /* la legenda nomina l'acqua della scheda solo se la carta l'ha davvero
+       riconosciuta: in riva al mare è la battigia, altrove il tratto inciso */
+    const mia = !!(g.wm || g.ma || (g.ws && spot.tipo === 'mare'));
+    const lato = mezzo * 2;
+    const u = (px) => Math.round(px * lato / 420);      // px a schermo → unità della mappa
 
     const acc = (g.ac || []).map(([x, y], i) => `
       <g class="l-acc"><circle cx="${x}" cy="${y}" r="${u(9)}"/>
@@ -322,17 +386,21 @@ const MAPPA = (() => {
       `<text class="l-eti" x="${x}" y="${y}" text-anchor="middle"
         font-size="${u(r > 1 ? 8 : 9.4)}">${esc(n)}</text>`).join('');
 
-    const sm = 500, sx = -R + u(22), sy = R - u(22);
+    const sm = lato > 2200 ? 500 : 250;
+    const sx = cx - mezzo + u(22), sy = cy + mezzo - u(22);
 
     return `<div class="locale">
-      <svg viewBox="${-R} ${-R} ${R * 2} ${R * 2}" role="img"
-           aria-label="Dintorni di ${esc(spot.nome)}, riquadro di ${(R * 2 / 1000).toFixed(1)} km">
+      <svg viewBox="${cx - mezzo} ${cy - mezzo} ${lato} ${lato}" role="img"
+           aria-label="Dintorni di ${esc(spot.nome)}${spot.acqua ? ', con ' + esc(spot.acqua) : ''}, riquadro di ${(lato / 1000).toFixed(1)} km">
+        ${g.ws ? `<path class="l-mare" d="${g.ws}"/>` : ''}
         ${g.wa ? `<path class="l-area" d="${g.wa}"/>` : ''}
+        ${g.ma ? `<path class="l-mia-area" d="${g.ma}"/>` : ''}
         ${g.r3 ? `<path class="l-r3" d="${g.r3}"/>` : ''}
         ${g.r2 ? `<path class="l-r2" d="${g.r2}"/>` : ''}
         ${g.r1 ? `<path class="l-r1" d="${g.r1}"/>` : ''}
         ${g.wp ? `<path class="l-acqua-p" d="${g.wp}"/>` : ''}
         ${g.wg ? `<path class="l-acqua-g" d="${g.wg}"/>` : ''}
+        ${g.wm ? `<path class="l-mia" d="${g.wm}"/>` : ''}
         ${lb}${pk}${acc}
         <g class="l-qui"><circle cx="0" cy="0" r="${u(8)}"/></g>
         <g>
@@ -344,6 +412,7 @@ const MAPPA = (() => {
       </svg>
       <div class="locale-piede">
         <span class="chiave"><i style="background:var(--ink)"></i> lo spot</span>
+        ${mia && spot.acqua ? `<span class="chiave"><i style="background:var(--acc-2)"></i> ${esc(spot.acqua)}</span>` : ''}
         ${(g.ac || []).length ? `<span class="chiave"><i style="background:var(--acc)"></i> la strada tocca l'acqua</span>` : ''}
         ${(g.pk || []).length ? `<span class="chiave"><i style="background:var(--ink-3);border-radius:0"></i> parcheggio</span>` : ''}
       </div>
@@ -356,5 +425,5 @@ const MAPPA = (() => {
   };
 
   return { disegnaRegione, disegnaLocale, caricaLocale, attesaLocale, proietta, contaAccessi,
-           adatta, daRidisegnare, centraSu, tuttaLaRegione };
+           latoLocale, adatta, daRidisegnare, centraSu, tuttaLaRegione };
 })();

@@ -259,6 +259,12 @@ const APP = (() => {
       </div>`;
   }
 
+  /* Quanto è largo il riquadro della carta locale, e cosa ci trovi dentro. Il
+     lato non è sempre lo stesso: se l'acqua sta lontana, la carta si stringe
+     attorno allo spot e al suo tratto d'acqua. */
+  const misuraRiquadro = (s) =>
+    `Riquadro di ${(MAPPA.latoLocale(s.id) / 1000).toFixed(1).replace('.', ',')} km, con ${s.acqua}.`;
+
   /* ---------------------------------------------- la scheda dello spot */
   function schedaHTML(v) {
     const s = v.spot, m = v.meteo, a = v.acqua;
@@ -283,7 +289,8 @@ const APP = (() => {
             <span class="occhio">Dove fermarsi</span>
             <div class="porta-mappa" data-spot="${esc(s.id)}">${
               typeof GEO_LOCALE !== 'undefined' ? MAPPA.disegnaLocale(s) : MAPPA.attesaLocale()}</div>
-            <p class="micro tenue" style="margin-top:9px">Riquadro di 3,6 km.<span class="nota-acc">${
+            <p class="micro tenue" style="margin-top:9px"><span class="nota-lato">${
+              esc(misuraRiquadro(s))}</span><span class="nota-acc">${
               nAcc ? ` I ${nAcc} punti numerati sono i tratti in cui una strada o un sentiero arriva a meno di 70 m dall'acqua.` : ''}</span></p>
             <p class="mini" style="margin-top:12px">${esc(s.comeArrivare)}</p>
             <p class="mini">${esc(s.accesso)}</p>
@@ -517,6 +524,8 @@ const APP = (() => {
       if (!p || !v) return;
       p.innerHTML = ok ? MAPPA.disegnaLocale(v.spot)
         : `<div class="locale"><div class="locale-vuota"><p class="mini">Mappa non caricata.</p></div></div>`;
+      const lato = $('.nota-lato');
+      if (lato) lato.textContent = misuraRiquadro(v.spot);
       const nota = $('.nota-acc');
       const n = MAPPA.contaAccessi(id);
       if (nota) nota.textContent = n

@@ -19,6 +19,8 @@ Poi: svuota la cache delle mini-carte e rilancia tools/bake-locale.py.
 Dati: (c) OpenStreetMap contributors, ODbL.
 """
 import urllib.request, urllib.parse, json, math, os, re, sys, time
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from nomi_acqua import chiave as chiave_acqua, combacia, cerca
 
 BASE = os.path.join(os.path.dirname(__file__), '..')
 D = os.path.dirname(__file__)
@@ -37,45 +39,6 @@ LIMITE = int(os.environ.get('LIMITE', 1200))   # metri: oltre questo non ci fidi
 LOTTO = 10
 PROV = {'PC': 'Piacenza', 'PR': 'Parma', 'RE': 'Reggio Emilia', 'MO': 'Modena', 'BO': 'Bologna',
         'FE': 'Ferrara', 'RA': 'Ravenna', 'FC': 'Forlì-Cesena', 'RN': 'Rimini'}
-
-# il campo "acqua" non sempre coincide col nome in OSM
-ALIAS = {
-    'Casse di espansione del Secchia': 'Secchia', 'Casse di espansione del Panaro': 'Panaro',
-    'Ex cave del Marecchia': 'Marecchia', 'Laghetti di Castrola': 'Limentra di Treppio',
-    'Bacino di Gazzano': 'Lago di Fontanaluccia', 'Invaso di Ridracoli': 'Lago di Ridracoli',
-    'Lago del Molato': 'Lago di Trebecco', 'Laghi Cerretani': 'Lago Pranda',
-    'Laghi Gemini': 'Lagoni', 'Bacino di Mignano': 'Lago di Mignano',
-    'Bacino di Suviana': 'Lago di Suviana', 'Bacino del Brasimone': 'Lago del Brasimone',
-    'Bacino di Santa Maria': 'Lago di Santa Maria', 'Cavo Fiuma': 'Cavo Fiuma Parmigiana-Moglia',
-    'Canale Destra Reno': 'Canale di Bonifica Destra Reno', 'Idrovia ferrarese': 'Po di Volano',
-    'Laghi Pozzo Rosso, Rosso Basso, Rosso Alto': None, 'Lago di Pometo': None,
-    'Sacca di Goro': None, 'Laghetto del Gelso': None, 'Lago della Fiera': None,
-    'Bidente di Strabatenza': 'Bidente di Strabatenza', 'Bidentino': 'Bidente di Pietrapazza',
-    'Canale Navigabile': 'Canale Navigabile Migliarino-Porto Garibaldi',
-    'Collettore Acque Alte': 'Collettore Acque Alte', 'Scolo Riolo': 'Scolo Riolo',
-    'Canali Botte e Lorgana': 'Canale Lorgana',
-    'Torrente Limentra di Treppio': 'Limentra di Treppio',
-    'Lago Santo': 'Lago Santo', 'Lago Calamone': 'Lago Calamone',
-    'Lago di Castel dell\'Alpi': 'Savena', 'Lago di Quarto': 'Fiume Savio',
-    'Lago di Ponte': 'Torrente Tramazzo', 'Laghetti di Castrola': 'Limentra di Treppio',
-    'Bacino di Santa Maria': 'Limentra di Treppio', 'Lago di Pometo': 'Taro',
-    'Canale Navigabile': 'Canale Navigabile', 'Scolo Riolo': 'Riolo',
-    'Canali Botte e Lorgana': 'Lorgana', 'Collettore Acque Alte': 'Acque Alte',
-    'Laghi Pozzo Rosso, Rosso Basso, Rosso Alto': 'Rio Sanguinario',
-    'Laghetto del Gelso': 'Uso', 'Lago della Fiera': 'Ausa',
-    'Torrente Para': 'Para', 'Torrente Alferello': 'Alferello',
-    'Torrente Dardagna': 'Dardagna', 'Torrente Bratica': 'Bratica',
-    'Rio delle Tagliole': 'Rio delle Tagliole', 'Bidente di Strabatenza': 'Bidente di Strabatenza',
-    'Bidentino': 'Bidente di Pietrapazza', 'Invaso di Ridracoli': 'Lago di Ridracoli',
-    'Laghi Cerretani': 'Lago Pranda', 'Lago del Molato': 'Tidone',
-}
-PREF = ('Fiume ', 'Torrente ', 'Rio ')
-
-def nucleo(a):
-    if a in ALIAS: return ALIAS[a]
-    for p in PREF:
-        if a.startswith(p): return a[len(p):]
-    return a
 
 def leggi():
     out = []
@@ -122,7 +85,10 @@ def vicino(geoms, la, lo):
 
 def main():
     correggi = '--correggi' in sys.argv
-    spot = [s for s in leggi() if s['tipo'] != 'mare']
+    # Gli spot di mare hanno "Mare Adriatico" nel campo acqua: nessun corso
+    # d'acqua da cercare per nome, ma una riva sì. Si agganciano a quella,
+    # altrimenti restano in mezzo al paese a un chilometro dalla battigia.
+    spot = leggi()
     geo = json.load(open(C_GEO)) if os.path.exists(C_GEO) else {}
 
     # ---- passo 1: scegli l'ancora ----
@@ -140,26 +106,34 @@ def main():
     for n, lotto in enumerate(lotti, 1):
         parti = []
         for s in lotto:
-            nu = nucleo(s['acqua'])
-            if not nu: continue
-            r = re.escape(nu).replace('\\ ', '\\\\s+')
             a = 'around:%d,%.5f,%.5f' % (RAGGIO, s['ala'], s['alo'])
-            parti.append('way["waterway"]["name"~"^((Fiume|Torrente|Rio)\\\\s+)?%s$"](%s);' % (r, a))
-            parti.append('way["natural"="water"]["name"~"^%s"](%s);' % (r, a))
-            parti.append('rel["natural"="water"]["name"~"^%s"](%s);' % (r, a))
+            if s['tipo'] == 'mare':
+                parti.append('way["natural"="coastline"](%s);' % a)
+                continue
+            # Cerchiamo per le parole caratteristiche del nome, non per il nome
+            # intero: OSM chiama "Limentra" quello che la scheda chiama
+            # "Torrente Limentra di Treppio". Il confronto vero si fa dopo.
+            nu = '|'.join(cerca(s['acqua']))
+            if not nu: continue
+            parti.append('way["waterway"]["name"~"%s",i](%s);' % (nu, a))
+            parti.append('way["natural"="water"]["name"~"%s",i](%s);' % (nu, a))
+            parti.append('rel["natural"="water"]["name"~"%s",i](%s);' % (nu, a))
         sys.stderr.write('  lotto %2d/%d ' % (n, len(lotti))); sys.stderr.flush()
         els = interroga('[out:json][timeout:300];\n(\n%s\n);\nout geom;' % '\n'.join(parti)) if parti else []
-        per_nome = {}
+        con_nome, riva = [], []
         for e in els:
-            nm = e.get('tags', {}).get('name', '')
-            for p in PREF:
-                if nm.startswith(p): nm = nm[len(p):]
             g = [e['geometry']] if (e['type'] == 'way' and e.get('geometry')) else \
                 [m['geometry'] for m in e.get('members', []) if m.get('geometry')]
-            per_nome.setdefault(nm.lower(), []).extend(g)
+            if e.get('tags', {}).get('natural') == 'coastline':
+                riva.extend(g)
+            else:
+                con_nome.append((e.get('tags', {}).get('name', ''), g))
         for s in lotto:
-            nu = nucleo(s['acqua'])
-            gs = per_nome.get((nu or '').lower(), []) if nu else []
+            if s['tipo'] == 'mare':
+                gs = riva
+            else:
+                nomi = chiave_acqua(s['acqua'])
+                gs = [x for nm, g in con_nome if combacia(nm, nomi) for x in g]
             pt, d = vicino(gs, s['ala'], s['alo']) if gs else (None, None)
             snap[chiave(s)] = {'lat': round(pt[0], 5), 'lon': round(pt[1], 5), 'd': round(d)} if pt else None
         json.dump(snap, open(C_SNAP, 'w'))
