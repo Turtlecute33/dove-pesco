@@ -327,6 +327,8 @@ nav.men button[aria-current]{
 .mappa-corpo.trascina{ cursor:grabbing }
 svg.mappa{ display:block; width:100%; height:auto }
 
+/* il mare e' piu' tenue dei laghi: e' un fondo, non un posto dove si pesca */
+.m-mare{ fill:#D5E3E2; stroke:none }
 .m-terra{ fill:#F4F0E6; stroke:rgba(120,110,92,.34); stroke-width:1;
   vector-effect:non-scaling-stroke }
 .m-lago{ fill:#C3D6D5; stroke:none }

@@ -265,7 +265,7 @@ const SPOT_ROMAGNA = [
 {
   id: 'fe-cavo-napoleonico-mirabello', nome: 'Cavo Napoleonico a Ponte Mirabello',
   comune: 'Terre del Reno', prov: 'FE', acqua: 'Cavo Napoleonico',
-  tipo: 'canale', categoria: 'B', lat: 44.8450, lon: 11.3220,
+  tipo: 'canale', categoria: 'B', lat: 44.8370, lon: 11.4082,
   specie: ['carpa', 'carassio', 'breme', 'siluro', 'pesceGatto', 'lucioperca', 'aspio'],
   tecniche: ['fissa', 'bolognese', 'roubaisienne', 'inglese', 'spinning', 'pesca a fondo'],
   fondale: 'Canale lungo 18 km con sezione trapezoidale, larghezza circa 200 m tra i cigli esterni degli argini. Alveo praticamente orizzontale, acqua che scorre molto lentamente. Abbondante vegetazione acquatica.',
@@ -279,7 +279,7 @@ const SPOT_ROMAGNA = [
 {
   id: 'fe-cavo-napoleonico-salvatonica', nome: 'Cavo Napoleonico a Salvatonica di Bondeno',
   comune: 'Bondeno', prov: 'FE', acqua: 'Cavo Napoleonico',
-  tipo: 'canale', categoria: 'B', lat: 44.8760, lon: 11.3430,
+  tipo: 'canale', categoria: 'B', lat: 44.9263, lon: 11.4408,
   specie: ['carpa', 'carassio', 'breme', 'siluro', 'lucioperca'],
   tecniche: ['fissa', 'bolognese', 'roubaisienne', 'pesca a fondo'],
   fondale: 'Presso la chiusa e la rampa il livello è più gestibile; anche nei punti meno profondi vicino al ponte entrano in canna piccole breme e carassi.',
@@ -349,7 +349,7 @@ const SPOT_ROMAGNA = [
 {
   id: 'fe-po-goro-serravalle', nome: 'Po di Goro a Serravalle (Porta del Delta)',
   comune: 'Berra / Goro', prov: 'FE', acqua: 'Po di Goro',
-  tipo: 'fiume', categoria: 'A', lat: 44.9050, lon: 12.0050,
+  tipo: 'fiume', categoria: 'A', lat: 44.9713, lon: 12.0541,
   specie: ['cefalo', 'lucioperca', 'siluro', 'carpa', 'carassio', 'breme', 'aspio', 'anguilla'],
   tecniche: ['pesca a fondo con vivo o palle di lombrichi', 'spinning', 'bolognese medio rigida per i cefali'],
   fondale: 'Ramo di ridotte dimensioni rispetto al Po di Venezia, 47 km fino al mare, larghezza 50–100 m con ampie anse e isolotti.',
@@ -491,7 +491,7 @@ const SPOT_ROMAGNA = [
 {
   id: 'ra-lago-di-ponte', nome: 'Lago di Ponte (Tredozio)',
   comune: 'Tredozio', prov: 'FC', acqua: 'Lago di Ponte',
-  tipo: 'bacino', categoria: 'D', lat: 44.0750, lon: 11.7600,
+  tipo: 'bacino', categoria: 'D', lat: 44.0796, lon: 11.7455,
   specie: ['carpa', 'pesceGatto', 'persicoReale', 'trotaFario'],
   tecniche: ['carp fishing', 'pesca a fondo', 'bolognese'],
   fondale: 'Sbarramento del 1962 sul Tramazzo. Acqua di un bel verde smeraldo, sponde facilmente percorribili.',

@@ -11,4 +11,5 @@ _sito/
 tools/.cache-locale.json
 tools/.cache-snap.json
 tools/.cache-geocodifica.json
+tools/.cache-geo.json
 __pycache__/

@@ -355,7 +355,7 @@ const SPOT_EMILIA = [
 {
   id: 'pr-lago-santo-parmense', nome: 'Lago Santo Parmense',
   comune: 'Corniglio', prov: 'PR', acqua: 'Lago Santo',
-  tipo: 'lago', categoria: 'D', lat: 44.3480, lon: 10.0170,
+  tipo: 'lago', categoria: 'D', lat: 44.4008, lon: 10.0089,
   specie: ['trotaFario', 'salmerino', 'carpa', 'cavedano', 'tinca', 'scardola', 'vairone'],
   tecniche: ['pesca al tocco', 'spinning', 'pesca a mosca'],
   fondale: 'Lago glaciale di crinale a oltre 1.500 m, acque fredde e limpide, sponde con vegetazione.',
@@ -497,7 +497,7 @@ const SPOT_EMILIA = [
 {
   id: 're-lago-calamone', nome: 'Lago Calamone (Monte Ventasso)',
   comune: 'Ventasso', prov: 'RE', acqua: 'Lago Calamone',
-  tipo: 'lago', categoria: 'D', lat: 44.3430, lon: 10.2220,
+  tipo: 'lago', categoria: 'D', lat: 44.3821, lon: 10.2803,
   specie: ['trotaFario', 'tinca', 'vairone', 'carassio', 'scardola'],
   tecniche: ['moschiera a centro lago con inglese', 'pesca a lancio con ondulanti o minnow', 'pesca a mosca'],
   fondale: 'Conca glaciale ai piedi del Monte Ventasso, acque limpide e fresche con abbondante fauna acquatica (gambero di fiume, anfibi).',

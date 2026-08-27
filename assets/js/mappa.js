@@ -60,6 +60,10 @@ const MAPPA = (() => {
 
     const banda = (p) => p >= 62 ? 'buono' : p >= 30 ? 'medio' : 'scarso';
 
+    /* Il mare sta sotto la terra: dove i due poligoni si sovrappongono deve
+       vincere la costa vera, non il taglio del rettangolo. */
+    const acqua  = (typeof GEO_MARE === 'undefined' ? [] : GEO_MARE)
+      .map(d => `<path class="m-mare" d="${d}"/>`).join('');
     const terre  = GEO_CONFINE.map(d => `<path class="m-terra" d="${d}"/>`).join('');
     const laghi  = GEO_LAGHI.map(l => `<path class="m-lago" d="${l.d}"/>`).join('');
     const fiumi2 = GEO_FIUMI.filter(f => f.r === 2).map(f => `<path class="m-fiume r2" d="${f.d}"/>`).join('');
@@ -89,7 +93,7 @@ const MAPPA = (() => {
         <div class="mappa-corpo">
           <svg class="mappa" viewBox="${base.map(n => n.toFixed(0)).join(' ')}"
                role="img" aria-label="Mappa degli spot di pesca in Emilia-Romagna">
-            <g>${terre}</g>
+            <g>${acqua}${terre}</g>
             <g>${fiumi2}${fiumi1}${laghi}</g>
             <g>${citta}</g>
             <g>${punti}</g>

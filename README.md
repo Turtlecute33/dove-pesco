@@ -42,16 +42,22 @@ L'applicazione vive a un solo indirizzo e calcola tutto nel browser. Comodo da u
 invisibile a un motore di ricerca: 222 spot e 40 specie senza un indirizzo proprio non si
 possono indicizzare, e chi cerca «dove pescare sul Panaro» non arriva.
 
-Per questo `tools/genera-pagine.py` scrive **277 pagine statiche** a ogni pubblicazione:
+Per questo `tools/genera-pagine.py` scrive **278 pagine statiche** a ogni pubblicazione:
 
 ```
 /spot/<nome>/          222 schede: come arrivare, accessi, fondale, specie, esche, note
 /specie/<nome>/         40 schede: misura minima, divieto, temperatura, esche, dove si trova
 /provincia/<nome>/       9 elenchi per corso d'acqua, con le specie più diffuse
-/spot/  /specie/         i due indici completi
+/spot/ /provincia/ /specie/   i tre indici completi
 /regole/ /metodo/ /privacy/
 sitemap.xml  robots.txt  404.html
 ```
+
+L'elenco di tutti i 278 indirizzi sta anche in fondo all'applicazione, in un `<details>`
+chiuso. Prima stava dentro un `<noscript>`, ed era come non esserci: Googlebot esegue
+JavaScript, e quando lo esegue butta via il contenuto di `<noscript>`. Risultato, la home
+— la pagina con più autorità del sito — passava **dieci** collegamenti, tutti verso
+l'esterno, e nessuno verso le 277 pagine che deve far trovare. Ora ne passa 291.
 
 Dentro ci vanno **solo i fatti che non cambiano**. L'indice del giorno no: cambia ogni
 quattro ore, e su una pagina statica sarebbe vecchio. C'è invece un link che apre lo spot
@@ -83,11 +89,30 @@ successivo. Se il sito non sta alla radice del dominio (per esempio
 Nessuna libreria di mappe e nessun server di tile. La geometria è stata scaricata una
 volta sola da OpenStreetMap, semplificata e incorporata nel sito come percorsi SVG.
 
-**Regionale** — confini, 68 corsi d'acqua reali, 95 specchi d'acqua, nove città per
-orientarsi. Gli spot sono punti: il colore dice come si presenta la giornata. Nessun
+**Regionale** — confini, il mare, 107 corsi d'acqua reali, 95 specchi d'acqua, nove città
+per orientarsi. Gli spot sono punti: il colore dice come si presenta la giornata. Nessun
 numero stampato sulla mappa, altrimenti diventa un tabellone. Si trascina, si ingrandisce
 con il pizzico del trackpad, con due dita o con i tasti in alto a destra; punti e nomi si
 contro-scalano e restano della stessa misura a ogni ingrandimento.
+
+Su questa carta ogni spot deve avere **la sua** acqua sotto il punto, e per molti non
+c'era: l'elenco dei corsi da scaricare era scritto a mano in `bake-geo.py` e nessuno lo
+confrontava con i dati. Sessanta spot su 222 stavano su terra vergine — i quattro della
+Limentra di Treppio, il Dardagna, l'Aveto, il Canal Bianco a Ferrara, il Navile, il
+Naviglio, il Burana, i laghetti di crinale — e i 19 di mare stavano peggio, perché il mare
+non era disegnato affatto. Ora l'elenco lo decidono le schede: si scarica la rete
+principale per nome intero, si guarda quali punti sono rimasti senz'acqua addosso, e solo
+per quelli si cerca per parole (la scheda dice «Torrente Limentra di Treppio», la mappa
+dice «Limentra»), tenendo i corsi che passano davvero vicino a chi li nomina. Alla fine lo
+script **dice quali schede sono rimaste scoperte**, invece di lasciarlo scoprire a chi
+guarda la mappa.
+
+| | prima | dopo |
+|---|---|---|
+| Corsi d'acqua sulla carta | 68 | **107** |
+| Il mare | non disegnato | **disegnato** |
+| Spot senza acqua disegnata entro 500 m | 60 su 222 | **2 su 222** |
+| oltre 1,5 km da qualsiasi acqua | 43 | **0** |
 
 La mappa è un comando, non un'illustrazione. Con il mouse il passaggio apre la **scheda
 rapida** — indice, acqua, portata, pesce del giorno — e il clic porta dritto alla scheda
@@ -113,6 +138,10 @@ Il **mare** OpenStreetMap non lo disegna: disegna la linea di riva, con la terra
 e l'acqua a destra di come è percorsa. Sui 22 spot di mare la carta restava tutta color
 terra, con il punto in mezzo al niente. Ora la riva viene tagliata sul quadrato della
 finestra e richiusa lungo il bordo dal lato dell'acqua: ne esce un poligono, che è il mare.
+Lo stesso trucco vale ora anche sulla carta regionale, dove il quadrato è il rettangolo
+della carta e il lato buono lo indica una sonda nell'angolo di nord-est, che lì è mare
+aperto: i portocanali di Cervia, Cesenatico, Riccione e Rimini stavano addosso al nome del
+paese, senza un filo d'acqua intorno.
 
 Il riquadro infine **segue l'acqua**. Se il tratto d'acqua cade lontano dal punto — una
 foce, un fiume largo, una coordinata a mano — la finestra scivola verso l'acqua quel tanto
@@ -134,21 +163,35 @@ perché sui fiumi di confine la sponda cambia provincia.
 
 | | prima | dopo |
 |---|---|---|
-| Spot con la propria acqua nella carta | 0 su 222 | **210 su 222** |
-| di cui entro 100 m | — | **208** |
+| Spot con la propria acqua nella carta | 0 su 222 | **219 su 222** |
+| di cui entro 100 m | — | **217** |
 | Distanza mediana dall'acqua dichiarata | — | **3 m** |
 | Peggior scarto da qualsiasi acqua | 940 m | **423 m** |
 
-I 12 senza la propria acqua sono invasi, casse di espansione e canali di bonifica che in
-OpenStreetMap portano un altro nome, o non ne portano nessuno: la carta mostra comunque
-l'acqua che hanno intorno, tutta entro 500 m, e il riquadro si sposta per tenerla dentro.
-Il controllo si rilancia con `tools/verifica-coordinate.py`, che ora misura la distanza
-dall'acqua *dichiarata* e non da un fosso qualsiasi.
+Al terzo giro `bake-geo.py` ha trovato **dieci coordinate ancora sbagliate**, che i
+controlli di prima non vedevano: misuravano la distanza dal fosso più vicino, e un fosso
+c'è quasi sempre. Misurando invece la distanza dall'acqua *dichiarata* sono venuti fuori
+il Lago Santo Parmense sei chilometri a valle del suo lago, il Lago Calamone altri sei
+chilometri fuori, il Cavo Napoleonico due volte a sei chilometri dal canale, il Po di Goro
+otto chilometri dentro la campagna, il Bacino di Santa Maria cinque chilometri dal suo
+invaso, e il Collettore Acque Alte, la Valle Fattibello, il Lago di Ponte e il Lago di
+Pometo più vicini ma comunque fuori. Ognuna è stata riagganciata all'acqua giusta,
+partendo dal paese che il nome della scheda dichiara — Salvatonica, Mirabello, Serravalle —
+e non dalla coordinata sbagliata, che avrebbe tirato l'aggancio sul tratto vicino a sé.
+
+Restano tre schede la cui acqua **non esiste in OpenStreetMap con quel nome**: lo Scolo
+Riolo a Malalbergo (il punto è su un canale, a 14 m, ma il canale in mappa non ha quel
+nome), il Lago di Pometo (un invaso di un chilometro quadro, senza nome) e i Laghi di
+Varignana, dove nessuno specchio d'acqua si chiama Pozzo Rosso: quel punto sta a 800 m dal
+laghetto più vicino e va verificato sul posto. Il Lago della Fiera di Rimini è nel parco
+del quartiere fieristico e in mappa non c'è. Il controllo si rilancia con
+`tools/verifica-coordinate.py` sulle mini-carte già scaricate, o con `tools/bake-geo.py`,
+che lo rifà contro OpenStreetMap in diretta e stampa l'elenco.
 
 ## Struttura
 
 ```
-index.html                     4 viste: Oggi · Specie · Regole · Metodo
+index.html                     4 viste: Oggi · Specie · Regole · Metodo, piu' l'indice
 .github/workflows/dati.yml     riscarica le previsioni ogni 4 ore e pubblica su Pages
 assets/dati/previsioni.json    le previsioni pronte (generate, non versionate)
 assets/og.png                  l'anteprima per chi condivide un link
@@ -163,7 +206,7 @@ assets/js/
   data-spots-*.js              222 spot in quattro elenchi
   data-index.js                unione, province, categorie, mappa delle rarità
   data-rules.js                licenze, attrezzi, limiti, zone, avvisi, fonti
-  geo-regione.js               geometria della mappa regionale (84 KB)
+  geo-regione.js               geometria della mappa regionale (101 KB, mare compreso)
   geo-locale.js                222 mappe locali (2,1 MB, caricata a richiesta)
   api.js                       legge il file delle previsioni, con Open-Meteo di riserva
   engine.js                    modello dell'indice
@@ -171,7 +214,8 @@ assets/js/
   ui.js                        interfaccia
 tools/
   aggiorna-dati.py             scarica meteo e portata e scrive previsioni.json
-  genera-pagine.py             prepara _sito/: applicazione + 277 pagine + sitemap
+  genera-pagine.py             prepara _sito/: applicazione + 278 pagine + sitemap
+  bake-geo.py                  la carta regionale, e l'elenco degli spot senz'acqua
   bake-locale.py               le 222 mini-carte, il mare e l'acqua di ogni scheda
   nomi_acqua.py                confronta «Torrente Limentra di Treppio» e «Limentra»
   ricalibra.py                 aggancia le coordinate all'acqua che la scheda dichiara
@@ -306,7 +350,7 @@ Gli script in `tools/` servono solo se vuoi aggiornare la geometria o aggiungere
 Il sito funziona senza di essi.
 
 ```bash
-python3 tools/bake-geo.py            # mappa regionale da OpenStreetMap
+python3 tools/bake-geo.py            # mappa regionale; elenca gli spot senz'acqua
 python3 tools/bake-locale.py         # 222 mappe locali (ripresa da cache)
 python3 tools/verifica-coordinate.py # controlla che ogni spot sia sull'acqua
 python3 tools/ricalibra.py --correggi # aggancia gli spot al corso d'acqua dichiarato

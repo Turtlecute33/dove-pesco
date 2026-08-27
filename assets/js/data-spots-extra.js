@@ -153,7 +153,7 @@ const SPOT_EXTRA = [
 {
   id: 'pr-lago-pometo', nome: 'Lago di Pometo',
   comune: 'Bedonia', prov: 'PR', acqua: 'Lago di Pometo',
-  tipo: 'bacino', categoria: 'D', lat: 44.5330, lon: 9.5950,
+  tipo: 'bacino', categoria: 'D', lat: 44.5353, lon: 9.5934,
   specie: ['trotaFario', 'trotaIridea'],
   tecniche: ['bolognese al tocco', 'spinning', 'mosca'],
   fondale: 'Piccolo invaso sull\'alto Taro: da qui parte la zona di pesca turistica che scende fino alla diga di Piane di Carniglia.',
@@ -425,7 +425,7 @@ const SPOT_EXTRA = [
 {
   id: 'bo-santa-maria', nome: 'Bacino di Santa Maria',
   comune: 'Camugnano', prov: 'BO', acqua: 'Bacino di Santa Maria',
-  tipo: 'bacino', categoria: 'C', lat: 44.1440, lon: 11.0850,
+  tipo: 'bacino', categoria: 'C', lat: 44.1513, lon: 11.1467,
   specie: ['cavedano', 'trotaFario', 'trotaIridea', 'persicoReale', 'carpa', 'luccio'],
   tecniche: ['bolognese', 'spinning', 'carp fishing', 'mosca'],
   fondale: 'Il terzo bacino del sistema idroelettrico Suviana-Brasimone, alimentato dallo scambio idrico con gli altri due.',
@@ -439,7 +439,7 @@ const SPOT_EXTRA = [
 {
   id: 'bo-collettore-santagata', nome: 'Collettore Acque Alte a Sant\'Agata Bolognese',
   comune: 'Sant\'Agata Bolognese', prov: 'BO', acqua: 'Collettore Acque Alte',
-  tipo: 'canale', categoria: 'B', lat: 44.6640, lon: 11.1300,
+  tipo: 'canale', categoria: 'B', lat: 44.6654, lon: 11.1774,
   specie: ['carpa', 'carassio', 'siluro', 'alborella', 'scardola'],
   tecniche: ['bolognese', 'roubaisienne', 'inglese'],
   fondale: 'Canale arginato di medio-grandi dimensioni: in estate buon volume d\'acqua e alcuni metri di profondità. Sponde inerbite e sfalciate.',
@@ -511,7 +511,7 @@ const SPOT_EXTRA = [
 {
   id: 'fe-circondariale-fattibello', nome: 'Circondariale Gramigna-Fosse (Valle Fattibello)',
   comune: 'Comacchio', prov: 'FE', acqua: 'Canale Circondariale',
-  tipo: 'canale', categoria: 'B', lat: 44.6980, lon: 12.1500,
+  tipo: 'canale', categoria: 'B', lat: 44.6882, lon: 12.1759,
   specie: ['carpa', 'carassio', 'breme', 'anguilla', 'cefalo', 'lucioperca'],
   tecniche: ['roubaisienne', 'ledgering', 'inglese'],
   fondale: 'Ramo destro del Circondariale che costeggia il Mezzano e sbocca nella Valle Fattibello. Larghezza 70–80 m, profondità 1–2,5 m, fondale compatto ricco di molluschi.',
