@@ -342,8 +342,13 @@ const MAPPA = (() => {
      foce — il riquadro scivola verso l'acqua quel tanto che basta a tenere
      dentro tutti e due, e si stringe per non uscire dai dati incisi. Così la
      carta mostra sempre lo spot *e* la sua acqua, non uno dei due. */
+  /* GEO_RAGGIO arriva con geo-locale.js, che si carica alla prima scheda
+     aperta: prima di allora non esiste, e leggerlo direttamente fermava tutta
+     la scheda a metà. Finché non c'è, vale la misura con cui è stato inciso. */
+  const raggioLocale = () => (typeof GEO_RAGGIO !== 'undefined') ? GEO_RAGGIO : 1800;
+
   function inquadra(g) {
-    const R = GEO_RAGGIO;
+    const R = raggioLocale();
     /* Il riquadro intero contiene già tutta la geometria incisa: si sposta solo
        quando *nessuna* acqua è vicina al punto, e allora va verso la più
        vicina, qualunque sia. Inseguire l'acqua della scheda anche quando ce
@@ -357,7 +362,7 @@ const MAPPA = (() => {
   /* il lato del riquadro in metri: alla scheda serve per dire quanto è largo */
   const latoLocale = (id) => {
     const g = (typeof GEO_LOCALE !== 'undefined') ? GEO_LOCALE[id] : null;
-    return g ? inquadra(g).mezzo * 2 : GEO_RAGGIO * 2;
+    return g ? inquadra(g).mezzo * 2 : raggioLocale() * 2;
   };
 
   function disegnaLocale(spot) {
