@@ -26,6 +26,7 @@ import shutil
 import subprocess
 import sys
 import unicodedata
+import urllib.parse
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATI = ['data-species.js', 'data-spots-emilia.js', 'data-spots-romagna.js',
@@ -221,8 +222,33 @@ LOGO = ('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width
         ' 6.1-4.4 0-8.2-2.2-11.4-4.2Z"/><path d="m2.6 12 2.9-2.4M2.6 12l2.9 2.4"/>'
         '<circle cx="17.2" cy="10.6" r=".9" fill="currentColor" stroke="none"/></svg>')
 
+# gli stessi due segni di assets/js/tavole.js, qui a mano: le pagine statiche
+# non caricano JavaScript
+SEGNO = ('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"'
+         ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">%s</svg>')
+PUNTINA = SEGNO % ('<path d="M12 21.4c4.2-4.6 6.4-8 6.4-10.6a6.4 6.4 0 1 0-12.8 0c0 2.6 2.2 6'
+                   ' 6.4 10.6Z"/><circle cx="12" cy="10.6" r="2.4"/>')
+NAVIGATORE = SEGNO % '<path d="M20.8 3.2 3.6 10.4l7.2 2.8 2.8 7.2Z"/>'
+
 MENU = [('/', 'Oggi'), ('/specie/', 'Specie'), ('/regole/', 'Regole'),
         ('/metodo/', 'Metodo')]
+
+
+def fuori_html(s):
+    """i tasti che aprono il punto esatto in una mappa di terzi o nel navigatore"""
+    la, lo = '%.5f' % s['lat'], '%.5f' % s['lon']
+    return f"""<div class="fuori">
+  <a class="btn vuoto piccolo" target="_blank" rel="noopener noreferrer"
+     href="https://www.openstreetmap.org/?mlat={la}&amp;mlon={lo}#map=16/{la}/{lo}"
+     >{PUNTINA} OpenStreetMap</a>
+  <a class="btn vuoto piccolo" target="_blank" rel="noopener noreferrer"
+     href="https://www.google.com/maps/search/?api=1&amp;query={la},{lo}"
+     >{PUNTINA} Google Maps</a>
+  <a class="btn vuoto piccolo solo-telefono"
+     href="geo:{la},{lo}?q={la},{lo}({urllib.parse.quote(s['nome'])})"
+     >{NAVIGATORE} Naviga</a>
+  <span class="micro tenue num coord">{la}, {lo}</span>
+</div>"""
 
 
 def pagina(base, url, titolo, desc, corpo, ld=None, briciole=None, indicizza=True):
@@ -477,12 +503,10 @@ def pagina_spot(d, s, base):
 <h2>Tecniche, esche e acque</h2>
 <div class="voci">{attr_html}</div>
 <h2>Coordinate</h2>
-<p class="mini">Punto di riferimento <span class="num">{s['lat']:.4f}, {s['lon']:.4f}</span>.
-  <a href="https://www.openstreetmap.org/?mlat={s['lat']}&amp;mlon={s['lon']}#map=15/{s['lat']}/{s['lon']}"
-     target="_blank" rel="noopener noreferrer">Apri su OpenStreetMap</a> ·
-  <a href="geo:{s['lat']},{s['lon']}?q={s['lat']},{s['lon']}">apri nel navigatore</a>.
+<p class="mini">Punto di riferimento sull'acqua: apri il punto esatto dove preferisci.
   La mappa dei punti di accesso, con strade, sentieri e parcheggi entro 70 m dall'acqua,
   è nella <a href="/#spot/{e(s['id'])}">scheda dell'applicazione</a>.</p>
+{fuori_html(s)}
 <h2>Altri spot vicini</h2>
 {vic_html}
 <p class="mini tenue" style="margin-top:26px;max-width:72ch">Scheda ricavata da
@@ -952,6 +976,13 @@ def pagina_privacy(d, base):
     direttamente dal browser, a poche richieste per volta, con i dati tenuti in cache 45 minuti nel
     deposito locale del browser. Anche in quel caso l'unica destinazione è Open-Meteo, e passano
     solo coordinate: nessun dato personale.</p></div></div>
+  <div class="voce"><h3>I tasti verso le mappe</h3><div><p>Ogni scheda ha due tasti che aprono il
+    punto in OpenStreetMap o in Google Maps. Sono collegamenti normali: finché non li tocchi, da
+    quei servizi non arriva e non parte niente. Toccandoli si apre il loro sito, che a quel punto
+    segue le proprie regole, e il tuo browser non gli dice da dove vieni perché ogni pagina qui
+    dichiara <span class="num">no-referrer</span>. Sul telefono c'è anche «Naviga», che passa le
+    coordinate all'applicazione di navigazione già installata, senza uscire dal
+    dispositivo.</p></div></div>
   <div class="voce"><h3>Il deposito locale</h3><div><p>Il browser conserva le previsioni e i filtri
     scelti nel proprio deposito locale, sul tuo dispositivo. Non vengono inviati da nessuna parte e
     si cancellano svuotando i dati del sito.</p></div></div>

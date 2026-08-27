@@ -150,6 +150,18 @@ hr{ border:0; height:1px; background:var(--linea); margin:0 }
 .btn.piccolo{ padding:9px 16px; font-size:.87rem }
 .btn svg{ width:16px; height:16px }
 
+/* i tasti che portano il punto fuori dal sito: mappe di terzi e navigatore.
+   Stanno dentro un riquadro che ha gia' il colore di .btn.vuoto, quindi il
+   tasto si vede per il bordo, non per il fondo. */
+.fuori{ display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin-top:14px }
+.fuori .btn{ background:var(--carta); border:1px solid var(--linea-2); color:var(--ink) }
+.fuori .btn:hover{ background:var(--panna-2); border-color:transparent }
+.fuori .btn svg{ color:var(--acc) }
+.fuori .coord{ margin-left:2px }
+/* l'indirizzo geo: lo capisce solo un telefono: dove c'è un mouse, il tasto
+   «Naviga» non compare invece di non fare nulla */
+@media (hover:hover) and (pointer:fine){ .solo-telefono{ display:none } }
+
 .link{
   display:inline-flex; align-items:center; gap:7px; font:inherit; font-size:.94rem;
   font-weight:600; letter-spacing:-.012em; color:var(--acc); background:none; border:0;

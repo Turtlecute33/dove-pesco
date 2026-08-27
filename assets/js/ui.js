@@ -265,6 +265,25 @@ const APP = (() => {
   const misuraRiquadro = (s) =>
     `Riquadro di ${(MAPPA.latoLocale(s.id) / 1000).toFixed(1).replace('.', ',')} km, con ${s.acqua}.`;
 
+  /* Il punto esatto, aperto dove serve: la carta qui accanto dice dove
+     fermarsi, questi tasti portano il punto in mano a chi guida. «Naviga» apre
+     l'applicazione di navigazione del telefono con l'indirizzo geo:, che su un
+     computer non porta da nessuna parte: lì il tasto non compare (style.css). */
+  const fuoriHTML = (s) => {
+    const la = s.lat.toFixed(5), lo = s.lon.toFixed(5);
+    return `<div class="fuori">
+      <a class="btn vuoto piccolo" target="_blank" rel="noopener noreferrer"
+         href="https://www.openstreetmap.org/?mlat=${la}&mlon=${lo}#map=16/${la}/${lo}"
+         >${seg('puntina')} OpenStreetMap</a>
+      <a class="btn vuoto piccolo" target="_blank" rel="noopener noreferrer"
+         href="https://www.google.com/maps/search/?api=1&query=${la},${lo}"
+         >${seg('puntina')} Google Maps</a>
+      <a class="btn vuoto piccolo solo-telefono" href="geo:${la},${lo}?q=${la},${lo}(${encodeURIComponent(s.nome)})"
+         >${seg('navigatore')} Naviga</a>
+      <span class="micro tenue num coord">${la}, ${lo}</span>
+    </div>`;
+  };
+
   /* ---------------------------------------------- la scheda dello spot */
   function schedaHTML(v) {
     const s = v.spot, m = v.meteo, a = v.acqua;
@@ -294,11 +313,7 @@ const APP = (() => {
               nAcc ? ` I ${nAcc} punti numerati sono i tratti in cui una strada o un sentiero arriva a meno di 70 m dall'acqua.` : ''}</span></p>
             <p class="mini" style="margin-top:12px">${esc(s.comeArrivare)}</p>
             <p class="mini">${esc(s.accesso)}</p>
-            <p class="micro" style="margin-top:10px">
-              <a href="https://www.openstreetmap.org/?mlat=${s.lat}&mlon=${s.lon}#map=15/${s.lat}/${s.lon}"
-                 target="_blank" rel="noopener noreferrer">Apri su OpenStreetMap</a> ·
-              <a href="geo:${s.lat},${s.lon}?q=${s.lat},${s.lon}">navigatore</a>
-              <span class="tenue num"> · ${s.lat.toFixed(4)}, ${s.lon.toFixed(4)}</span></p>
+            ${fuoriHTML(s)}
           </div>
 
           <div style="display:grid;gap:clamp(26px,4vw,38px)">

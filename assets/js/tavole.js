@@ -368,6 +368,8 @@ const TAVOLE = (() => {
   S.filtro = g(`<path d="M3.6 6.4h16.8M6.8 12h10.4M10 17.6h4"/>`);
   S.luna = g(`<path d="M20.4 14.6A8.6 8.6 0 0 1 9.4 3.6a8.8 8.8 0 1 0 11 11Z"/>`);
   S.freccia = g(`<path d="M4.5 12h14M12.8 6.2 18.6 12l-5.8 5.8"/>`);
+  S.puntina = g(`<path d="M12 21.4c4.2-4.6 6.4-8 6.4-10.6a6.4 6.4 0 1 0-12.8 0c0 2.6 2.2 6 6.4 10.6Z"/><circle cx="12" cy="10.6" r="2.4"/>`);
+  S.navigatore = g(`<path d="M20.8 3.2 3.6 10.4l7.2 2.8 2.8 7.2Z"/>`);
   S.indietro = g(`<path d="M19.5 12h-14M11.2 6.2 5.4 12l5.8 5.8"/>`);
 
   /* --- cielo, in stile inciso --- */
