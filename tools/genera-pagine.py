@@ -230,8 +230,8 @@ PUNTINA = SEGNO % ('<path d="M12 21.4c4.2-4.6 6.4-8 6.4-10.6a6.4 6.4 0 1 0-12.8 
                    ' 6.4 10.6Z"/><circle cx="12" cy="10.6" r="2.4"/>')
 NAVIGATORE = SEGNO % '<path d="M20.8 3.2 3.6 10.4l7.2 2.8 2.8 7.2Z"/>'
 
-MENU = [('/', 'Oggi'), ('/specie/', 'Specie'), ('/regole/', 'Regole'),
-        ('/metodo/', 'Metodo')]
+MENU = [('/', 'Oggi'), ('/spot/', 'Spot'), ('/specie/', 'Specie'),
+        ('/regole/', 'Regole'), ('/metodo/', 'Metodo')]
 
 
 def fuori_html(s):
@@ -327,6 +327,7 @@ def pagina(base, url, titolo, desc, corpo, ld=None, briciole=None, indicizza=Tru
         <ul>
           <li><a href="/">Indice del giorno</a></li>
           <li><a href="/spot/">Tutti gli spot</a></li>
+          <li><a href="/provincia/">Provincia per provincia</a></li>
           <li><a href="/specie/">Tutte le specie</a></li>
         </ul>
       </div>
@@ -667,7 +668,7 @@ def pagina_provincia(d, sigla, base):
     desc = taglia('I %d spot di pesca della provincia di %s: fiumi, torrenti, laghi e canali, '
                   'con accessi, specie e regole. Indice del giorno su portata e meteo.'
                   % (len(sp), nome), 158)
-    briciole = [('/', 'Oggi'), ('/spot/', 'Spot'), (None, nome)]
+    briciole = [('/', 'Oggi'), ('/spot/', 'Spot'), ('/provincia/', 'Province'), (None, nome)]
 
     per_tipo = {}
     for s in sp:
@@ -736,6 +737,47 @@ def pagina_provincia(d, sigla, base):
 
 # ---------------------------------------------------------------- indici
 
+def pagina_indice_provincia(d, base):
+    """/provincia/ esisteva come cartella e non come pagina: chi tagliava
+       l'indirizzo a mano, e chi lo indovinava, trovava un 404. Le nove
+       province, invece, sono una domanda che la gente fa."""
+    u = '/provincia/'
+    titolo = 'Dove pescare in Emilia-Romagna, provincia per provincia | Dove Pesco'
+    desc = ('Le nove province dell\'Emilia-Romagna: %d spot di pesca su fiumi, torrenti, laghi, '
+            'canali e mare, con accessi, specie dichiarate e regole locali.' % len(d['SPOT']))
+    briciole = [('/', 'Oggi'), ('/spot/', 'Spot'), (None, 'Province')]
+    voci = []
+    for sig, nome in d['PROVINCE'].items():
+        sp = [s for s in d['SPOT'] if s['prov'] == sig]
+        if not sp:
+            continue
+        acque = {}
+        for s in sp:
+            acque.setdefault(s['acqua'], 0)
+            acque[s['acqua']] += 1
+        prime = [a for a, _ in sorted(acque.items(), key=lambda x: (-x[1], x[0]))[:3]]
+        voci.append(('/provincia/%s/' % slug(nome), nome,
+                     '%d spot · %s' % (len(sp), elenco(prime))))
+    voci.sort(key=lambda v: -int(v[2].split()[0]))
+    corpo = f"""<span class="occhio acc">Emilia-Romagna</span>
+<h1>Dove pescare, provincia per provincia</h1>
+<div class="intro">{len(d['SPOT'])} spot in nove province, dal Trebbia al Marecchia e dal Po al
+  mare. Ogni elenco è ordinato per corso d'acqua, con le specie più diffuse della provincia e le
+  scorciatoie no kill, con i bambini e accessibili.</div>
+{cta('/', "Vedi l'indice di oggi, spot per spot")}
+{righe(voci)}
+<p class="mini tenue" style="margin-top:26px;max-width:72ch">Le categorie delle acque, le zone e i
+  periodi di divieto li fissa la Regione, ma il calendario ittico della provincia può essere più
+  restrittivo: prima di partire, il <a href="/regole/">quadro delle regole</a>.</p>"""
+    ld = [briciola_ld(base, briciole), {
+        '@context': 'https://schema.org', '@type': 'ItemList',
+        'name': 'Province dell\'Emilia-Romagna', 'numberOfItems': len(voci),
+        'itemListElement': [{'@type': 'ListItem', 'position': i + 1, 'name': t,
+                             'url': base + uu}
+                            for i, (uu, t, _) in enumerate(voci)]}]
+    return u, pagina(base, u, titolo, desc, corpo, ld, briciole)
+
+
 def pagina_indice_spot(d, base):
     u = '/spot/'
     titolo = 'Tutti i 222 spot di pesca in Emilia-Romagna | Dove Pesco'
@@ -754,9 +796,10 @@ def pagina_indice_spot(d, base):
                 ('/spot/%s/' % s['slug'], s['nome'],
                  '%s — %s' % (s['comune'], s['acqua'])) for s in v])))
     corpo = f"""<h1>Tutti gli spot</h1>
-<div class="intro">{len(d['SPOT'])} spot in Emilia-Romagna, divisi per provincia. Ogni scheda
-  dice come arrivare, dove ci si ferma, cosa nuota e cosa dice la legge. L'ordine del giorno,
-  calcolato su portata e meteo, è nell'<a href="/">indice di oggi</a>.</div>
+<div class="intro">{len(d['SPOT'])} spot in Emilia-Romagna, divisi per <a
+  href="/provincia/">provincia</a>. Ogni scheda dice come arrivare, dove ci si ferma, cosa nuota
+  e cosa dice la legge. L'ordine del giorno, calcolato su portata e meteo, è
+  nell'<a href="/">indice di oggi</a>.</div>
 {''.join(blocchi)}"""
     ld = [briciola_ld(base, briciole), {
         '@context': 'https://schema.org', '@type': 'ItemList',
@@ -1028,16 +1071,28 @@ def ritocca_indice(testo, d, base):
                         for sp in sorted(d['SPECIE'].values(), key=lambda s: s['nome']))
     voci.append('<h3><a href="specie/">Le specie</a></h3><p>%s</p>' % specie)
 
+    # Dentro <noscript> resta solo l'avviso. L'elenco dei 277 indirizzi sta in
+    # un <details>, cioe' nel documento vero: <noscript> il motore di ricerca lo
+    # butta appena vede che JavaScript gira, e cosi' la home — la pagina con piu'
+    # autorita' del sito — non passava un solo collegamento interno. Chiuso non
+    # occupa spazio, e chi vuole l'elenco completo ora ce l'ha.
     rifugio = ("""<noscript>
   <div class="col senza-js">
     <h2>Serve JavaScript per l'indice del giorno</h2>
     <p class="mini">L'indice si calcola nel browser sui dati di oggi, quindi senza JavaScript non
-      compare. Le schede dei 222 spot sono pagine normali e si leggono comunque:
-      <a href="spot/">tutti gli spot</a> · <a href="specie/">le specie</a> ·
-      <a href="regole/">le regole</a> · <a href="metodo/">il metodo</a>.</p>
+      compare. Le schede dei 222 spot sono pagine normali e si leggono comunque.</p>
+  </div>
+</noscript>
+
+<details class="tutto-il-sito col">
+  <summary>Tutti i %d spot e le %d specie, indirizzo per indirizzo</summary>
+  <div class="senza-js">
+    <p class="mini"><a href="spot/">tutti gli spot</a> · <a href="specie/">le specie</a> ·
+      <a href="regole/">le regole</a> · <a href="metodo/">il metodo</a> ·
+      <a href="privacy/">privacy</a></p>
     %s
   </div>
-</noscript>""" % ''.join(voci))
+</details>""" % (len(d['SPOT']), len(d['SPECIE']), ''.join(voci)))
 
     ld = [
         {'@context': 'https://schema.org', '@type': 'WebSite', '@id': base + '/#sito',
@@ -1054,7 +1109,10 @@ def ritocca_indice(testo, d, base):
                         'portata GloFAS, temperatura stimata dell\'acqua, pioggia delle 72 ore '
                         'precedenti, pressione, luce e luna.' % len(d['SPOT']),
          'url': base + '/', 'inLanguage': 'it',
-         'license': 'https://creativecommons.org/licenses/by/4.0/',
+         # due licenze, come dice il piede di ogni pagina: meteo e portata sono
+         # CC BY 4.0, la cartografia e' ODbL
+         'license': ['https://creativecommons.org/licenses/by/4.0/',
+                     'https://opendatacommons.org/licenses/odbl/1-0/'],
          'spatialCoverage': {'@type': 'Place', 'name': 'Emilia-Romagna, Italia'},
          'variableMeasured': ['indice del giorno', 'temperatura stimata dell\'acqua',
                               'portata sulla mediana', 'torbidità stimata', 'specie attive'],
@@ -1150,8 +1208,8 @@ def main():
             u, t = pagina_provincia(d, sig, base)
             scrivi(out, u, t, pre)
             urls.append(u)
-    for fn in (pagina_indice_spot, pagina_indice_specie, pagina_regole,
-               pagina_metodo, pagina_privacy):
+    for fn in (pagina_indice_spot, pagina_indice_provincia, pagina_indice_specie,
+               pagina_regole, pagina_metodo, pagina_privacy):
         u, t = fn(d, base)
         scrivi(out, u, t, pre)
         urls.append(u)

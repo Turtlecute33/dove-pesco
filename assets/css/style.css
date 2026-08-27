@@ -814,8 +814,22 @@ table.dati .sci{ font-family:var(--sans); font-style:italic; color:var(--ink-3);
   html{ scroll-behavior:auto }
 }
 
+/* L'elenco completo degli indirizzi, in fondo all'applicazione. Chiuso e' una
+   riga; aperto e' l'indice del sito. Sta nel documento, non in <noscript>:
+   di qui passano i collegamenti interni della home. */
+details.tutto-il-sito{ padding-block:26px 40px }
+details.tutto-il-sito>summary{
+  cursor:pointer; font-family:var(--sans); font-size:.86rem; font-weight:600;
+  color:var(--ink-3); padding:9px 0; list-style:none }
+details.tutto-il-sito>summary::-webkit-details-marker{ display:none }
+details.tutto-il-sito>summary::before{ content:'+ '; color:var(--acc) }
+details.tutto-il-sito[open]>summary::before{ content:'– ' }
+details.tutto-il-sito>summary:hover{ color:var(--ink) }
+.senza-js h3{ margin:20px 0 3px; font-size:.95rem }
+.senza-js p{ margin:0; font-size:.84rem; line-height:1.9; color:var(--ink-2) }
+
 @media print{
-  .top,nav.men,.giorni,details.pieghe,.mappa-sez{ display:none }
+  .top,nav.men,.giorni,details.pieghe,.mappa-sez,details.tutto-il-sito{ display:none }
   body{ background:#fff }
   .corpo-risposta,.righe,.card,.voci,.piede-in{ box-shadow:none }
 }
