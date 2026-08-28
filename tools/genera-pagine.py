@@ -1109,6 +1109,11 @@ def ritocca_indice(testo, d, base):
                         'portata GloFAS, temperatura stimata dell\'acqua, pioggia delle 72 ore '
                         'precedenti, pressione, luce e luna.' % len(d['SPOT']),
          'url': base + '/', 'inLanguage': 'it',
+         # Chi ha messo insieme la raccolta. Search Console lo chiedeva come
+         # campo mancante: senza, la scheda del dataset resta senza attribuzione
+         # e vale meno. E' il sito, non una persona: qui non c'e' un nome
+         # proprio da esporre.
+         'creator': {'@type': 'Organization', 'name': 'Dove Pesco', 'url': base + '/'},
          # due licenze, come dice il piede di ogni pagina: meteo e portata sono
          # CC BY 4.0, la cartografia e' ODbL
          'license': ['https://creativecommons.org/licenses/by/4.0/',
