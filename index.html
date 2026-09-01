@@ -193,12 +193,18 @@
         95 specchi d'acqua, strade, sentieri e parcheggi sono stati scaricati una volta sola da
         OpenStreetMap, semplificati e incorporati nel sito come percorsi SVG. Funziona offline e
         non mostra il tuo indirizzo IP a nessun server di mappe.</p>
-        <p class="mini" style="margin-top:10px">Nella mappa dello spot i punti numerati sono i
-        tratti in cui una strada o un sentiero arriva a meno di 70 metri dall'acqua: calcolati,
-        non disegnati a mano. È lì che conviene fermarsi.</p>
-        <p class="mini" style="margin-top:10px">Le coordinate degli spot sono state ricalibrate
-        agganciandole al corso d'acqua che ogni scheda dichiara: 192 su 200 cadono entro 260 metri
-        dall'acqua, le altre entro 810. I 22 spot di mare non entrano nel conto.</p>
+        <p class="mini" style="margin-top:10px">Ogni spot porta due punti, e non sono lo stesso.
+        La <b>coordinata della scheda</b> dice di che pezzo di fiume parlano il meteo e la
+        portata: sta sul corso d'acqua, e su un fiume largo cade in mezzo alla corrente. Il
+        <b>punto di accesso</b> — il segno pieno sulla carta, quello che aprono i tasti
+        OpenStreetMap, Google Maps e Naviga — è dove una strada arriva alla sponda e ci si può
+        fermare. I due possono distare qualche centinaio di metri: la cella della portata è larga
+        chilometri, il posto dove si tira è largo dieci metri.</p>
+        <p class="mini" style="margin-top:10px">Il punto di accesso è calcolato sulla sponda
+        disegnata, non sulla mezzeria, scartando i punti in acqua e quelli sulla riva opposta e
+        penalizzando quelli sui ponti. Vale di più dove c'è una briglia, un guado, uno scivolo, un pennello o
+        un greto. Dove la sponda non è disegnata in mappa la scheda lo dice, invece di far finta
+        di saperlo.</p>
       </div>
     </details>
 
@@ -309,7 +315,9 @@
 <script defer src="assets/js/data-index.js"></script>
 <script defer src="assets/js/data-rules.js"></script>
 <script defer src="assets/js/geo-regione.js"></script>
-<!-- geo-locale.js (1,6 MB) non è qui: lo carica mappa.js alla prima scheda aperta -->
+<!-- 15 KB, e i tasti mappa devono essere giusti al primo disegno della scheda -->
+<script defer src="assets/js/geo-accessi.js"></script>
+<!-- geo-locale.js (2,1 MB) non è qui: lo carica mappa.js alla prima scheda aperta -->
 <script defer src="assets/js/api.js"></script>
 <script defer src="assets/js/engine.js"></script>
 <script defer src="assets/js/mappa.js"></script>

@@ -12,9 +12,12 @@ Dati: (c) OpenStreetMap contributors, ODbL.
 """
 import urllib.request, urllib.parse, json, math, time, sys, os, re
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import geom
 
+# I mirror in ordine di preferenza. Il primo era maps.mail.ru: le coordinate di
+# 222 posti di pesca passavano da un servizio di terzi senza motivo, quando
+# quello ufficiale risponde uguale. Tolto.
 MIRROR = [
-    "https://maps.mail.ru/osm/tools/overpass/api/interpreter",
     "https://overpass-api.de/api/interpreter",
     "https://overpass.kumi.systems/api/interpreter",
     "https://overpass.private.coffee/api/interpreter",
@@ -22,14 +25,20 @@ MIRROR = [
 UA = {'User-Agent': 'dove-pesco-static-site/1.0 (bake script, one-off)'}
 BASE = os.path.join(os.path.dirname(__file__), '..')
 OUT = os.path.join(BASE, 'assets', 'js', 'geo-locale.js')
-CACHE = os.path.join(os.path.dirname(__file__), '.cache-locale.json')   # per riprendere
 
 RAGGIO = 1800          # metri, semilato della finestra
 EPS = 9.0              # semplificazione, metri
-LOTTO = 6              # spot per interrogazione
+LOTTO = 3              # spot per interrogazione: la query e' piu' larga di prima
+PAUSA = 8.0            # secondi fra un lotto e l'altro: e' un servizio pubblico
 VICINO = 70.0          # metri: distanza strada-acqua per un punto di accesso
 CLUSTER = 150.0        # metri: raggio di raggruppamento dei punti di accesso
-VERSIONE = 2           # formato della cache: cambiandolo, le carte si rifanno
+VERSIONE = 3           # formato della cache: cambiandolo, le carte si rifanno
+
+# La cache porta il numero di formato nel nome. Prima si chiamava sempre allo
+# stesso modo, e alzare VERSIONE la sovrascriveva al primo lotto riuscito: se
+# la rete cadeva a meta', restava una cache monca e l'unica copia di quella
+# vecchia era persa. Ora le due convivono, e si torna indietro cancellando.
+CACHE = os.path.join(os.path.dirname(__file__), '.cache-locale.%d.json' % VERSIONE)
 
 # ---- lettura degli spot dai file dati -------------------------------------
 def leggi_spot():
@@ -39,9 +48,11 @@ def leggi_spot():
         testo += open(os.path.join(BASE, 'assets', 'js', f)).read()
     spot = []
     for m in re.finditer(r"id:\s*'([^']+)'[\s\S]{0,600}?acqua:\s*'((?:[^'\\]|\\.)*)'"
+                         r"[\s\S]{0,80}?tipo:\s*'(\w+)'"
                          r"[\s\S]{0,200}?lat:\s*(-?[\d.]+),\s*lon:\s*(-?[\d.]+)", testo):
         spot.append({'id': m.group(1), 'acqua': m.group(2).replace("\\'", "'"),
-                     'lat': float(m.group(3)), 'lon': float(m.group(4))})
+                     'tipo': m.group(3),
+                     'lat': float(m.group(4)), 'lon': float(m.group(5))})
     visti, out = set(), []
     for s in spot:
         if s['id'] not in visti:
@@ -289,7 +300,15 @@ def query(q, etichetta):
         for url in MIRROR:
             try:
                 req = urllib.request.Request(url, data=urllib.parse.urlencode({'data': q}).encode(), headers=UA)
-                d = json.load(urllib.request.urlopen(req, timeout=150))
+                d = json.load(urllib.request.urlopen(req, timeout=180))
+                # Overpass risponde 200 anche quando si arrende a meta': lo dice
+                # solo in 'remark'. Una risposta monca entrava in cache come
+                # buona e ci restava per sempre, con mezza carta mancante.
+                nota = d.get('remark') or ''
+                if 'timed out' in nota or 'exceeded' in nota or 'error' in nota.lower():
+                    ultimo = 'monca@%s' % url.split('/')[2].split('.')[0]
+                    sys.stderr.write('~'); sys.stderr.flush()
+                    continue
                 return d['elements']
             except Exception as e:
                 ultimo = '%s@%s' % (type(e).__name__, url.split('/')[2].split('.')[0])
@@ -298,14 +317,73 @@ def query(q, etichetta):
     sys.stderr.write(' [%s FALLITO: %s] ' % (etichetta, ultimo))
     return []
 
+# La classe serve a due cose diverse: come disegnare la strada, e se ci si puo'
+# fermare. Prima motorway e secondary stavano insieme in classe 1, e un punto
+# di accesso poteva finire sulla corsia di emergenza di un'autostrada. La 0 si
+# disegna come la 1 ma non produce mai un posto dove fermarsi.
 STRADE = {
-    'motorway': 1, 'motorway_link': 1, 'trunk': 1, 'trunk_link': 1,
+    'motorway': 0, 'motorway_link': 0, 'trunk': 0, 'trunk_link': 0,
     'primary': 1, 'primary_link': 1, 'secondary': 1, 'secondary_link': 1,
     'tertiary': 2, 'tertiary_link': 2, 'unclassified': 2, 'residential': 2,
     'living_street': 2, 'service': 3, 'track': 3, 'path': 3, 'footway': 3,
     'cycleway': 3, 'bridleway': 3,
 }
 ACQUA_GROSSA = ('river', 'canal')
+
+# I manufatti che dicono "qui si pesca" o almeno "qui si arriva all'acqua".
+# leisure=fishing in Italia non esiste sui fiumi (390 oggetti in tutto il
+# paese, quasi tutti laghetti a pagamento): il segnale vero e' la struttura
+# sulla riva. Sul Po il pennello e' taggato man_made=pier, non groyne.
+STRUTTURE = {
+    ('leisure', 'fishing'): 'pesca',        ('ford', '*'): 'guado',
+    ('leisure', 'slipway'): 'scivolo',      ('waterway', 'weir'): 'briglia',
+    ('waterway', 'dam'): 'diga',            ('man_made', 'pier'): 'pontile',
+    ('man_made', 'groyne'): 'pennello',     ('man_made', 'breakwater'): 'scogliera',
+    ('man_made', 'quay'): 'banchina',       ('waterway', 'lock_gate'): 'chiusa',
+    ('natural', 'beach'): 'spiaggia',       ('natural', 'shingle'): 'ghiaia',
+    ('natural', 'sand'): 'greto',           ('leisure', 'marina'): 'darsena',
+    ('tourism', 'camp_site'): 'campeggio',  ('tourism', 'picnic_site'): 'sosta',
+    ('waterway', 'fish_pass'): 'scala',     # segnale negativo: li' e' vietato
+}
+
+# bandiere di una strada, a bit: quello che decide se ci si puo' fermare
+PONTE, PRIVATA, ARGINE, SCONNESSA = 1, 2, 4, 8
+
+
+def bandiere(t):
+    """Cosa sappiamo di questa strada oltre a dove passa. I tag arrivano gia'
+       con 'out geom': leggerli non costa un byte di rete in piu'."""
+    b = 0
+    if t.get('bridge') or t.get('tunnel') or t.get('layer'):
+        b |= PONTE
+    if (t.get('access') in ('private', 'no')
+            or t.get('motor_vehicle') in ('private', 'no')):
+        b |= PRIVATA
+    if t.get('embankment') == 'yes' or t.get('man_made') in ('dyke', 'embankment'):
+        b |= ARGINE
+    if t.get('tracktype') in ('grade4', 'grade5'):
+        b |= SCONNESSA
+    return b
+
+
+def dedup(voci):
+    """Lo stesso manufatto arriva piu' volte: una linea corta da tre punti
+       uguali, un pontile disegnato come via e come area."""
+    visti, fuori = set(), []
+    for v in voci:
+        k = tuple(v)
+        if k not in visti:
+            visti.add(k); fuori.append(v)
+    return fuori
+
+
+def sosta(t):
+    """0 parcheggio libero, 1 privato, 2 a pagamento. Prima erano tutti uguali."""
+    if t.get('access') in ('private', 'no', 'customers'):
+        return 1
+    if t.get('fee') in ('yes', 'y'):
+        return 2
+    return 0
 
 def bbox(s):
     dlat = RAGGIO / 110540.0
@@ -325,37 +403,55 @@ def costruisci_query(lotto):
         parti.append('way["amenity"="parking"](%s);' % b)
         parti.append('node["amenity"="parking"](%s);' % b)
         parti.append('node["place"~"^(town|village|hamlet|isolated_dwelling|locality|suburb)$"](%s);' % b)
+        # I manufatti sulla riva, e cio' che sbarra la strada per arrivarci.
+        # nw invece di nwr dove la relazione non esiste in pratica: ogni "r" e'
+        # una ricerca in piu' per il server, e questa e' un'istanza pubblica.
+        # Il greto resta nwr perche' li' i multipoligoni ci sono davvero.
+        parti.append('nw["man_made"~"^(pier|groyne|breakwater|quay)$"](%s);' % b)
+        parti.append('nw["leisure"~"^(slipway|fishing|marina)$"](%s);' % b)
+        parti.append('nwr["natural"~"^(beach|shingle|sand)$"](%s);' % b)
+        parti.append('nw["waterway"~"^(weir|dam|lock_gate|fish_pass)$"](%s);' % b)
+        parti.append('nw["ford"](%s);' % b)
+        parti.append('nw["tourism"~"^(camp_site|picnic_site)$"](%s);' % b)
+        parti.append('node["barrier"~"^(gate|lift_gate|bollard|block)$"](%s);' % b)
     return '[out:json][timeout:600];\n(\n%s\n);\nout geom;' % '\n'.join(parti)
 
 # ---- punti di accesso ------------------------------------------------------
-def punti_accesso(acqua, strade, centro_r):
-    """dove una strada o un sentiero arriva a meno di VICINO metri dall'acqua"""
+def punti_accesso(acqua, strade, centro_r, assi=(), rive=(), anelli=(), ponti=()):
+    """Dove una strada o un sentiero arriva a meno di VICINO metri dall'acqua.
+
+    Tre correzioni rispetto a prima, tutte e tre necessarie perche' il conto
+    torni sui fiumi larghi.
+
+    La prima: si misura contro la riva, non contro l'asse del canale. Sul Po
+    l'arginale dista 67-138 m dalla linea di mezzeria e 0-50 m dalla sponda: la
+    strada c'era sempre stata, la misura la mancava.
+
+    La seconda: le polilinee si infittiscono a 20 m prima di misurare. Prima si
+    confrontavano i soli vertici, e un arginale rettilineo con due vertici a
+    400 m di distanza non produceva nessun punto.
+
+    La terza: un punto dentro l'acqua o su un ponte non e' un posto dove ci si
+    ferma a pescare.
+    """
     if not acqua:
         return []
-    cella = VICINO
-    griglia = {}
-    for seg in acqua:
-        for x, y in seg:
-            griglia.setdefault((int(x // cella), int(y // cella)), []).append((x, y))
-
-    def vicino_acqua(x, y):
-        gx, gy = int(x // cella), int(y // cella)
-        for i in (-1, 0, 1):
-            for j in (-1, 0, 1):
-                for wx, wy in griglia.get((gx + i, gy + j), ()):
-                    if (wx - x) ** 2 + (wy - y) ** 2 <= VICINO * VICINO:
-                        return True
-        return False
-
+    griglia = geom.Griglia(geom.densifica(acqua, 20.0), cella=VICINO)
     candidati = []
     for cls, seg in strade:
-        passo = 1 if cls == 3 else 1
-        for k in range(0, len(seg), passo):
-            x, y = seg[k]
+        if cls == 0:                 # in autostrada non ci si ferma
+            continue
+        for x, y in geom.densifica([seg], 20.0)[0]:
             if abs(x) > centro_r or abs(y) > centro_r:
                 continue
-            if vicino_acqua(x, y):
-                candidati.append((math.hypot(x, y), x, y, cls))
+            d, _ = griglia.vicino((x, y), VICINO)
+            if d > VICINO:
+                continue
+            if geom.in_acqua((x, y), assi, rive, anelli):
+                continue
+            if any(math.dist((x, y), p) < 45 for p in ponti):
+                continue
+            candidati.append((math.hypot(x, y), x, y, cls))
     candidati.sort()
     tenuti = []
     for d, x, y, cls in candidati:
@@ -375,8 +471,24 @@ def elabora(lotto, elementi):
         mia, mia_aree, coste = [], [], []      # il corso d'acqua della scheda, e la riva
         r1, r2, r3 = [], [], []
         parcheggi, luoghi, strade_tutte = [], [], []
+        strutture, barriere, vie = [], [], []
         chiave = chiave_acqua(s.get('acqua'))
-        in_mare = bool({'mare', 'adriatico'} & chiave)
+        # Il tipo della scheda dice se si pesca in mare, non il nome dell'acqua:
+        # "Foce del Bevano" e "Sacca di Goro" sono mare senza dirlo, e restavano
+        # senza il poligono del mare, cioe' senza la riva su cui si sta.
+        in_mare = s.get('tipo') == 'mare' or bool({'mare', 'adriatico'} & chiave)
+        # Uno specchio da 60 x 60 m e' un laghetto: per una cava o un lago e' il
+        # caso d'uso, non il rumore da scartare.
+        min_area = 900 if s.get('tipo') in ('cava', 'lago') else 4000
+
+        def struttura(t):
+            """come si chiama, se e' un manufatto che porta all'acqua"""
+            if t.get('ford'):
+                return 'guado'
+            for (k, v), nome in STRUTTURE.items():
+                if v != '*' and t.get(k) == v:
+                    return nome
+            return None
 
         for e in elementi:
             t = e.get('tags', {})
@@ -384,8 +496,13 @@ def elabora(lotto, elementi):
                 if not (la0 <= e['lat'] <= la1 and lo0 <= e['lon'] <= lo1):
                     continue
                 x, y = prj(e['lon'], e['lat'])
-                if t.get('amenity') == 'parking':
-                    parcheggi.append((x, y))
+                k = struttura(t)
+                if k:
+                    strutture.append((x, y, k, t.get('name')))
+                elif t.get('amenity') == 'parking':
+                    parcheggi.append((x, y, sosta(t)))
+                elif t.get('barrier'):
+                    barriere.append((x, y))
                 elif t.get('place'):
                     nome = t.get('name')
                     if nome:
@@ -397,15 +514,19 @@ def elabora(lotto, elementi):
                 if t.get('natural') != 'water':
                     continue
                 for mem in e.get('members', []):
+                    # role=inner e' un'isola: e' terra dentro l'acqua, e contarla
+                    # come acqua metteva il pin in mezzo al fiume per non finire
+                    # su una golena.
                     if mem.get('role') != 'outer' or not mem.get('geometry'):
                         continue
                     gm = mem['geometry']
                     if max(q['lat'] for q in gm) < la0 or min(q['lat'] for q in gm) > la1: continue
                     if max(q['lon'] for q in gm) < lo0 or min(q['lon'] for q in gm) > lo1: continue
-                    tr = dp([prj(q['lon'], q['lat']) for q in gm], EPS * 2.6)
+                    mio = combacia(t.get('name'), chiave)
+                    tr = dp([prj(q['lon'], q['lat']) for q in gm], EPS if mio else EPS * 2.6)
                     xs = [q[0] for q in tr]; ys = [q[1] for q in tr]
-                    if len(tr) > 3 and (max(xs) - min(xs)) * (max(ys) - min(ys)) > 4000:
-                        (mia_aree if combacia(t.get('name'), chiave) else aree).append(tr)
+                    if len(tr) > 3 and (max(xs) - min(xs)) * (max(ys) - min(ys)) > min_area:
+                        (mia_aree if mio else aree).append(tr)
                 continue
 
             g = e.get('geometry')
@@ -416,23 +537,32 @@ def elabora(lotto, elementi):
             if max(p['lon'] for p in g) < lo0 or min(p['lon'] for p in g) > lo1: continue
 
             pts = [prj(p['lon'], p['lat']) for p in g]
+            k = struttura(t)
 
             if t.get('natural') == 'coastline':
                 coste.append(pts)         # si cuciono e si tagliano dopo, tutte insieme
-            elif t.get('waterway'):
+            elif t.get('waterway') in ('river', 'stream', 'canal', 'ditch', 'drain'):
                 grande = t['waterway'] in ACQUA_GROSSA
                 mio = combacia(t.get('name'), chiave)
                 for tr in ritaglia(pts, RAGGIO):
                     tr = dp(tr, EPS)
                     (mia if mio else acq_g if grande else acq_p).append(tr)
+            elif k and not t.get('highway'):
+                # un manufatto disegnato come linea o area: ne basta il centro,
+                # piu' gli estremi, che sulla scogliera sono la punta
+                for q in (pts[0], pts[len(pts) // 2], pts[-1]):
+                    strutture.append((q[0], q[1], k, t.get('name')))
             elif t.get('natural') == 'water' or t.get('landuse') == 'reservoir':
-                tr = dp(pts, EPS * 2.6)
+                mio = combacia(t.get('name'), chiave)
+                # La riva della propria acqua si semplifica come le strade, non
+                # come lo sfondo: e' il bordo su cui si misura tutto il resto.
+                tr = dp(pts, EPS if mio else EPS * 2.6)
                 xs = [p[0] for p in tr]; ys = [p[1] for p in tr]
-                if len(tr) > 3 and (max(xs) - min(xs)) * (max(ys) - min(ys)) > 4000:
-                    (mia_aree if combacia(t.get('name'), chiave) else aree).append(tr)
+                if len(tr) > 3 and (max(xs) - min(xs)) * (max(ys) - min(ys)) > min_area:
+                    (mia_aree if mio else aree).append(tr)
             elif t.get('amenity') == 'parking':
                 xs = [p[0] for p in pts]; ys = [p[1] for p in pts]
-                parcheggi.append((sum(xs) / len(xs), sum(ys) / len(ys)))
+                parcheggi.append((sum(xs) / len(xs), sum(ys) / len(ys), sosta(t)))
             elif t.get('highway') in STRADE:
                 cls = STRADE[t['highway']]
                 # sterrate e sentieri servono solo nei pressi dello spot
@@ -441,8 +571,10 @@ def elabora(lotto, elementi):
                     tr = dp(tr, EPS if cls < 3 else EPS * 1.4)
                     if len(tr) < 2:
                         continue
-                    (r1 if cls == 1 else r2 if cls == 2 else r3).append(tr)
+                    (r1 if cls <= 1 else r2 if cls == 2 else r3).append(tr)
                     strade_tutte.append((cls, tr))
+                    vie.append((cls, bandiere(t), t.get('name') or t.get('ref') or '',
+                                d_path(tr)))
 
         riva = [dp(tr, EPS) for catena in cuci(coste)
                 for tr in taglia_quadrato(catena, RAGGIO) if len(tr) > 1]
@@ -460,18 +592,33 @@ def elabora(lotto, elementi):
             mia, mia_aree = [], []
         if in_mare:
             mia += coste                  # in mare la riva e' il posto dove si pesca
-        accessi = punti_accesso(mia + acq_g + acq_p + coste, strade_tutte, RAGGIO * 0.92)
+
+        # La sponda del proprio fiume, anche quando OpenStreetMap non le ha
+        # dato un nome: senza questa riga il Po resta un filo in mezzo al nulla.
+        riva = mia_aree + geom.riva_di(mia, aree, 200.0)
+        if in_mare:
+            riva += mare
+        # dove una strada taglia l'acqua: e' un ponte, e sopra non si pesca
+        ponti = geom.incroci([t for _, t in strade_tutte], mia + acq_g + acq_p)
+        # Gli anelli chiusi si passano anche qui: senza, questa parte e
+        # tools/accessi.py usavano due definizioni diverse di "nell'acqua", e i
+        # segni numerati sulla carta cadevano dove il tasto non sarebbe andato.
+        anelli, _ = geom.cuci_anelli(mia_aree + aree)
+        accessi = punti_accesso(riva or mia, strade_tutte, RAGGIO * 0.92,
+                                assi=mia, rive=riva, anelli=anelli, ponti=ponti)
 
         # raggruppa i parcheggi vicini
         pk = []
-        for x, y in sorted(parcheggi, key=lambda p: math.hypot(*p)):
+        for x, y, a in sorted(parcheggi, key=lambda p: math.hypot(p[0], p[1])):
             if abs(x) > RAGGIO or abs(y) > RAGGIO:
                 continue
-            if all((x - a) ** 2 + (y - b) ** 2 > 120 ** 2 for a, b in pk):
-                pk.append((x, y))
+            if all((x - b) ** 2 + (y - c) ** 2 > 120 ** 2 for b, c, _ in pk):
+                pk.append((x, y, a))
             if len(pk) >= 8:
                 break
 
+        vicini = lambda pts, lim: [(x, y) for x, y, *_ in pts
+                                   if abs(x) <= lim and abs(y) <= lim]
         luoghi.sort(key=lambda l: (l[3], math.hypot(l[0], l[1])))
         risultati[s['id']] = {
             'wm': ' '.join(filter(None, (d_path(p) for p in mia))),
@@ -483,14 +630,45 @@ def elabora(lotto, elementi):
             'r1': ' '.join(filter(None, (d_path(p) for p in r1))),
             'r2': ' '.join(filter(None, (d_path(p) for p in r2))),
             'r3': ' '.join(filter(None, (d_path(p) for p in r3))),
-            'pk': [[int(round(x)), int(round(y))] for x, y in pk],
+            'pk': [[int(round(x)), int(round(y)), a] for x, y, a in pk],
             'lb': [[int(round(x)), int(round(y)), n, r] for x, y, n, r in luoghi[:7]],
             'ac': [[int(round(x)), int(round(y)), c] for x, y, c in accessi],
+            # i campi che servono a tools/accessi.py, non al disegno: restano
+            # nella cache e non entrano in geo-locale.js, che il browser scarica
+            'st': dedup([[int(round(x)), int(round(y)), k, n or '']
+                         for x, y, k, n in strutture
+                         if abs(x) <= RAGGIO and abs(y) <= RAGGIO]),
+            'xb': [[int(round(x)), int(round(y))] for x, y in vicini(barriere, RAGGIO)],
+            'bg': [[int(round(x)), int(round(y))] for x, y in ponti],
+            'rv': [[c, b, n, d] for c, b, n, d in vie if d],
         }
     return risultati
 
 # ---- principale ------------------------------------------------------------
+def tutte_le_carte(nuove=None):
+    """Le mini-carte da pubblicare: la cache nuova dove c'e', la precedente per
+       il resto. Il file servito al browser deve contenere tutti e 222 gli spot
+       anche quando Overpass ne ha resi solo una parte."""
+    tutto = {}
+    for p in (os.path.join(os.path.dirname(__file__), '.cache-locale.json'), CACHE):
+        if os.path.exists(p):
+            c = json.load(open(p)); c.pop('__v', None); tutto.update(c)
+    if nuove:
+        tutto.update(nuove)
+    return tutto
+
+
 def main():
+    if '--riscrivi' in sys.argv:
+        # Rigenera geo-locale.js da cio' che e' gia' in cache, senza toccare la
+        # rete: serve quando cambia solo il modo di scrivere la carta.
+        tutto = tutte_le_carte()
+        if not tutto:
+            sys.exit('Nessuna cache da cui riscrivere.')
+        sys.stderr.write('Riscrivo da %d carte in cache, senza rete\n' % len(tutto))
+        scrivi(tutto, leggi_spot())
+        return
+
     solo = None
     if '--solo' in sys.argv:
         solo = sys.argv[sys.argv.index('--solo') + 1]
@@ -511,27 +689,103 @@ def main():
 
     mancanti = [s for s in spot if s['id'] not in tutto]
     lotti = [mancanti[i:i + LOTTO] for i in range(0, len(mancanti), LOTTO)]
+    vuoti = 0
     for n, lotto in enumerate(lotti, 1):
         t = time.time()
         sys.stderr.write('  lotto %2d/%d (%d) ' % (n, len(lotti), len(lotto)))
         sys.stderr.flush()
         els = query(costruisci_query(lotto), 'lotto %d' % n)
         if not els:
-            sys.stderr.write('vuoto, salto\n'); continue
+            # Un lotto vuoto vuol dire quasi sempre "429: stai chiedendo
+            # troppo". Insistere allo stesso passo brucia la quota e allunga il
+            # blocco: si rallenta, si riprova una volta, e dopo tre vuoti di
+            # fila ci si ferma. La cache e' incrementale, quindi chi rilancia
+            # domani non perde niente — mentre attraversare tutta la lista
+            # dormendo non produce nulla e tiene occupata la macchina un'ora.
+            attesa = min(600, 60 * 2 ** vuoti)
+            vuoti += 1
+            sys.stderr.write('vuoto, aspetto %ds\n' % attesa)
+            time.sleep(attesa)
+            els = query(costruisci_query(lotto), 'lotto %d (secondo tentativo)' % n)
+        if not els:
+            if vuoti >= 3:
+                sys.stderr.write('\nTre lotti vuoti di fila: Overpass non risponde. '
+                                 'Mi fermo, la cache resta e il prossimo giro riprende '
+                                 'da qui (%d/%d).\n' % (len(tutto), len(spot)))
+                break
+            continue
+        vuoti = 0
         tutto.update(elabora(lotto, els))
         json.dump(dict(tutto, __v=VERSIONE), open(CACHE, 'w'))
         sys.stderr.write('%5d elementi %5.1fs  [%d/%d]\n' % (len(els), time.time() - t, len(tutto), len(spot)))
-        time.sleep(3.0)
+        time.sleep(PAUSA)
 
-    tutto = {k: v for k, v in tutto.items() if k in {s['id'] for s in spot}}
+    if solo:
+        # --solo serve a guardare una carta, non a pubblicarne una sola: prima
+        # riscriveva geo-locale.js con quell'unico spot dentro, e le altre 221
+        # sparivano dal sito senza un avviso.
+        sys.stderr.write('Solo %s: la carta e\' in cache, %s non viene toccato\n'
+                         % (solo, os.path.basename(OUT)))
+        return
 
-    righe = ['/* Mini-carte locali — generate da tools/bake-locale.py',
+    # Si pubblica unendo la cache precedente: se un lotto e' fallito, gli spot
+    # che mancano alla cache nuova ci sono ancora nella vecchia. Senza questa
+    # riga un giro con Overpass a mezzo servizio riscriveva geo-locale.js con
+    # le sole carte del giro, e le altre sparivano dal sito senza un avviso.
+    scrivi(tutte_le_carte(tutto), spot)
+
+
+def cuci_acque(d):
+    """Rimette insieme i contorni d'acqua, e separa cio' che si riempie da cio'
+       che si disegna come una linea.
+
+    Un lago o un fiume grande arriva da OpenStreetMap a pezzi, un membro della
+    relazione per volta, e ogni pezzo finiva sulla carta come una superficie a
+    se'. Il browser, per riempire, chiude d'ufficio anche un arco aperto: da li'
+    le macchie d'azzurro larghe chilometri, con dentro le strade e il nome di un
+    paese. Rimessi in fila per gli estremi tornano l'anello che erano; quello
+    che resta aperto e' una sponda tagliata dal riquadro, e va disegnata come
+    una linea, non come un lago.
+    """
+    anelli, aperti = geom.cuci_anelli(geom.linee(d))
+    return (' '.join(filter(None, (d_path(p, True) for p in anelli))),
+            ' '.join(filter(None, (d_path(p) for p in aperti))))
+
+
+def scrivi(tutto, spot):
+    mancanti = [s['id'] for s in spot if s['id'] not in tutto]
+    if mancanti:
+        sys.exit('Mancano %d carte su %d: non pubblico un file monco.\n  %s\n'
+                 'Rilancia tools/bake-locale.py finche\' la cache non e\' completa.'
+                 % (len(mancanti), len(spot), ', '.join(mancanti[:20])))
+    # Copia: scrivi() non deve modificare i record che il chiamante ha in mano,
+    # o una seconda chiamata ricucirebbe contorni gia' ricuciti e cancellerebbe
+    # le sponde calcolate al primo giro.
+    tutto = {k: dict(v) for k, v in tutto.items() if k in {s['id'] for s in spot}}
+    ricucite = 0
+    for sid, d in tutto.items():
+        # Gli archi dell'acqua della scheda restano separati da quelli di
+        # sfondo: se finissero insieme, un bacino il cui contorno il riquadro
+        # taglia perderebbe il colore e il nome in legenda.
+        for k, dove in (('ma', 'mb'), ('wa', 'wb')):
+            d.setdefault(dove, '')
+            if not d.get(k):
+                continue
+            prima = len(geom.linee(d[k]))
+            d[k], resto = cuci_acque(d[k])
+            d[dove] = resto
+            ricucite += prima - len(geom.linee(d[k])) - len(geom.linee(resto))
+    sys.stderr.write('Contorni d\'acqua ricuciti: %d pezzi in meno\n' % ricucite)
+
+    righe =['/* Mini-carte locali — generate da tools/bake-locale.py',
              '   Dati: © OpenStreetMap contributors, licenza ODbL.',
              '   Origine di ogni carta: le coordinate dello spot. Unita: metri.',
              '   wm il corso d\'acqua della scheda · ma il suo specchio · ws il mare',
              '   wg altri fiumi e canali · wp rii e fossi · wa altri specchi d\'acqua',
+             '   mb e wb sponde tagliate dal riquadro: linee, non superfici',
              '   r1 strade principali · r2 secondarie · r3 sterrate e sentieri',
-             '   pk parcheggi · lb etichette · ac punti in cui la strada tocca l\'acqua',
+             '   pk parcheggi (0 libero, 1 privato, 2 a pagamento) · lb etichette',
+             '   ac punti in cui la strada arriva alla riva',
              '   NON modificare a mano: rilancia lo script. */',
              '',
              'const GEO_RAGGIO = %d;' % RAGGIO,
@@ -539,7 +793,7 @@ def main():
     for sid in sorted(tutto):
         d = tutto[sid]
         campi = []
-        for k in ('wm', 'ma', 'ws', 'wg', 'wp', 'wa', 'r1', 'r2', 'r3'):
+        for k in ('wm', 'ma', 'mb', 'ws', 'wg', 'wp', 'wa', 'wb', 'r1', 'r2', 'r3'):
             if d.get(k):
                 campi.append('%s:"%s"' % (k, d[k]))
         for k in ('pk', 'ac'):

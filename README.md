@@ -122,10 +122,17 @@ con Invio. Il punto sulla mappa e la riga nell'elenco sono lo stesso spot visto 
 parti: accendendo l'uno si accende anche l'altra.
 
 **Locale** — per ogni spot un riquadro fino a 3,6 km con il tratto d'acqua, le strade, le
-sterrate, i sentieri, i parcheggi e i **punti di accesso**: i tratti in cui una strada o
-un sentiero arriva a meno di 70 m dall'acqua, calcolati sulla geometria, non disegnati a
-mano. È lì che conviene fermarsi. Pesa 2,1 MB e per questo viene caricata solo alla prima
-scheda aperta, non all'avvio.
+sterrate, i sentieri, i parcheggi, il **punto in cui fermarsi** (segno pieno) e gli altri
+tratti in cui una strada arriva alla riva (segni numerati), calcolati sulla geometria e
+non disegnati a mano. Pesa 2,1 MB e per questo viene caricata solo alla prima scheda
+aperta, non all'avvio.
+
+Un contorno d'acqua, in OpenStreetMap, arriva **a pezzi**: un lago o un fiume grande è una
+relazione, e ogni membro è un arco che da solo non si chiude. Il browser, per riempire,
+chiude d'ufficio anche un arco aperto — e dipingeva d'azzurro chilometri di terra asciutta,
+con dentro le strade e il nome di un paese. Ora i pezzi si ricuciono per gli estremi prima
+di scrivere la carta: quello che torna un anello si riempie, quello che il riquadro ha
+tagliato resta una linea di sponda.
 
 Su questa carta si vede **l'acqua su cui si pesca**, non un intrico di righe azzurre
 tutte uguali. In una finestra di 3,6 km di rii e fossi ce ne sono a decine: il generatore
@@ -188,6 +195,70 @@ del quartiere fieristico e in mappa non c'è. Il controllo si rilancia con
 `tools/verifica-coordinate.py` sulle mini-carte già scaricate, o con `tools/bake-geo.py`,
 che lo rifà contro OpenStreetMap in diretta e stampa l'elenco.
 
+## Dove fermarsi: il secondo punto
+
+«Sull'acqua» non vuol dire «dove si pesca». Agganciare la coordinata all'acqua più vicina,
+su un fiume largo, la mette **in mezzo alla corrente**: il tasto «Naviga» mandava dentro
+il Po. Misurato sulla carta che il sito disegna, il pin della scheda cadeva sull'azzurro in
+**80 spot su 222**. Con la misura di allora — dalla mezzeria, e vertice contro vertice — la
+distanza dal punto in cui una strada tocca *quell'*acqua aveva mediana 131 m e lasciava
+**53 spot senza nessun accesso**. Rifatta come si deve, la stessa misura dà mediana 62 m e
+**5 spot**: quei 53 erano un artefatto del metro, non un fatto del terreno.
+`tools/verifica-accessi.py` stampa anche questa riga, così i due numeri si rilanciano.
+
+Il difetto era nella misura, non nei dati. Si misurava dalla **mezzeria** del canale invece
+che dalla **sponda**, e si confrontavano i soli vertici delle polilinee: un arginale
+rettilineo con due vertici a 400 m di distanza non produceva nessun punto. Sul Po la strada
+dista 67–138 m dalla linea di mezzo e **0–50 m dalla sponda**; la sponda c'era in tutti e
+23 gli spot del fiume, senza nome in mappa, e non la guardava nessuno.
+
+Perciò le coordinate delle schede **non si toccano** — sono quelle che scelgono la cella di
+Open-Meteo e quella della portata, e spostarle di 500 m sul Po fa crollare la portata da
+1348 a 0,05 m³/s. `tools/accessi.py` calcola a parte un **secondo punto**, quello in cui
+una strada arriva alla riva, e lo scrive in `assets/js/geo-accessi.js`: lo aprono i tasti
+OpenStreetMap, Google Maps e Naviga, e nient'altro. Il dato strutturato della pagina resta
+sulla coordinata della scheda, che è il punto di cui si mostrano meteo e portata.
+
+Il punto pubblicato è quello **sulla strada**, dove ci si ferma, non un punto proiettato
+sull'acqua: i contorni sono semplificati a 23 m, e arretrare di dieci metri da un bordo
+incerto di ventitré è un decimale finto. Si scartano i punti in acqua, quelli sulla riva
+opposta e quelli su un ponte — ma non su un **guado**, una **briglia** o una **diga**, che
+sono attraversamenti anche loro e sono esattamente il posto dove si pesca. Valgono di più
+la briglia, il guado, lo scivolo, il pennello (sul Po è taggato `pier`, non `groyne`), il
+greto e un parcheggio libero a due passi; valgono di meno l'argine con l'acqua lontana, la
+strada privata e la sbarra.
+
+| | prima | dopo |
+|---|---|---|
+| Punti che cadono sull'azzurro della carta | **80 su 222** | **12**, tutti sul bordo |
+| Dentro l'acqua (mezzeria più vicina della sponda) | 82 | **0** |
+| Sulla riva opposta a quella da cui si arriva | 18 | **0** |
+| Su un ponte | 23 | **10** |
+| Distanza dalla sponda, mediana / p90 | 13 m / 91 m | **12 m / 37 m** |
+| Spot con un punto di accesso | — | **219 su 222** |
+
+I dodici punti che il conteggio crudo trova ancora «dentro» stanno tutti entro **6,9 m**
+dal bordo: sono sulla riva, che è dove si sta in piedi, e sotto la tolleranza di 23 m con
+cui la sponda è disegnata. Tre spot restano **senza punto**, e la scheda lo dice invece di
+inventarne uno: Scolo Riolo, Laghi di Varignana e Lago della Fiera, le cui acque in
+OpenStreetMap non esistono con quel nome.
+
+La confidenza esce insieme al punto, con la **causa**: `mezzeria` dove la sponda non è
+disegnata, `ponte`, `strada grossa`, `allargato` dove le soglie sono state aperte per
+trovare qualcosa. La scheda scrive quella, non una frase sola buona per tutte — prima
+diceva «misurato sulla mezzeria» anche ai trenta spot su cui la misura era sulla sponda.
+
+Le correzioni fatte a mano stanno in `tools/accessi-verificati.json`, sono tracciate da git
+e **vincono su ogni rigenerazione**. Ogni voce porta il pin della scheda al momento del
+controllo: se quel pin cambia, lo script avvisa e rifà il conto, invece di lasciare lì un
+punto vecchio che nessuno sa più leggere.
+
+```zsh
+python3 tools/accessi.py            # scrive assets/js/geo-accessi.js
+python3 tools/verifica-accessi.py   # confronta prima e dopo, esce 1 se un punto è in acqua
+python3 tools/verifica-accessi.py --rete   # controprova su OpenStreetMap, con is_in
+```
+
 ## Struttura
 
 ```
@@ -208,6 +279,7 @@ assets/js/
   data-rules.js                licenze, attrezzi, limiti, zone, avvisi, fonti
   geo-regione.js               geometria della mappa regionale (101 KB, mare compreso)
   geo-locale.js                222 mappe locali (2,1 MB, caricata a richiesta)
+  geo-accessi.js               dove fermarsi in ogni spot (13 KB, caricata subito)
   api.js                       legge il file delle previsioni, con Open-Meteo di riserva
   engine.js                    modello dell'indice
   mappa.js                     disegno delle due mappe
@@ -217,6 +289,10 @@ tools/
   genera-pagine.py             prepara _sito/: applicazione + 278 pagine + sitemap
   bake-geo.py                  la carta regionale, e l'elenco degli spot senz'acqua
   bake-locale.py               le 222 mini-carte, il mare e l'acqua di ogni scheda
+  geom.py                      la geometria delle mini-carte, in un posto solo
+  accessi.py                   il punto in cui fermarsi, da quelle stesse carte
+  verifica-accessi.py          misura i punti nuovi contro i vecchi, e contro OSM
+  accessi-verificati.json      le correzioni a mano: vincono su ogni rigenerazione
   nomi_acqua.py                confronta «Torrente Limentra di Treppio» e «Limentra»
   ricalibra.py                 aggancia le coordinate all'acqua che la scheda dichiara
   og-immagine.py               ridisegna assets/og.png (solo se cambia il marchio)
@@ -352,7 +428,10 @@ Il sito funziona senza di essi.
 ```bash
 python3 tools/bake-geo.py            # mappa regionale; elenca gli spot senz'acqua
 python3 tools/bake-locale.py         # 222 mappe locali (ripresa da cache)
+python3 tools/bake-locale.py --riscrivi  # rifa' geo-locale.js dalla cache, senza rete
 python3 tools/verifica-coordinate.py # controlla che ogni spot sia sull'acqua
+python3 tools/accessi.py             # dove fermarsi: assets/js/geo-accessi.js
+python3 tools/verifica-accessi.py    # prima/dopo, esce 1 se un punto e' in acqua
 python3 tools/ricalibra.py --correggi # aggancia gli spot al corso d'acqua dichiarato
 python3 tools/inline-font.py         # rigenera caratteri.css dai woff2
 python3 tools/aggiorna-dati.py       # previsioni pronte in assets/dati/previsioni.json

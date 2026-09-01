@@ -379,13 +379,31 @@ const MAPPA = (() => {
     const { cx, cy, mezzo } = inquadra(g);
     /* la legenda nomina l'acqua della scheda solo se la carta l'ha davvero
        riconosciuta: in riva al mare è la battigia, altrove il tratto inciso */
-    const mia = !!(g.wm || g.ma || (g.ws && spot.tipo === 'mare'));
+    const mia = !!(g.wm || g.ma || g.mb || (g.ws && spot.tipo === 'mare'));
     const lato = mezzo * 2;
     const u = (px) => Math.round(px * lato / 420);      // px a schermo → unità della mappa
 
-    const acc = (g.ac || []).map(([x, y], i) => `
-      <g class="l-acc"><circle cx="${x}" cy="${y}" r="${u(9)}"/>
-      <text x="${x}" y="${y + u(5.2)}" text-anchor="middle" font-size="${u(9.5)}">${i + 1}</text></g>`).join('');
+    /* Il punto che aprono i tasti, disegnato qui: la carta e il tasto devono
+       indicare lo stesso posto, o si torna al difetto che stiamo togliendo.
+       Sta in gradi, la carta in metri: si converte con la stessa proiezione
+       che ha inciso la carta, centrata sulle coordinate della scheda. */
+    const a = (typeof ACCESSI !== 'undefined') ? ACCESSI[spot.id] : null;
+    const qui = a ? [
+      (a[1] - spot.lon) * 111320 * Math.cos(spot.lat * Math.PI / 180),
+      -(a[0] - spot.lat) * 110540,
+    ] : null;
+
+    /* gli altri posti in cui una strada arriva alla riva: utili, ma non sono
+       quello che si apre. Chi è già disegnato come punto di accesso non si
+       ripete a due passi da sé. */
+    const acc = (g.ac || [])
+      .filter(([x, y]) => !qui || Math.hypot(x - qui[0], y - qui[1]) > u(22))
+      .map(([x, y], i) => `
+      <g class="l-acc"><circle cx="${x}" cy="${y}" r="${u(7.5)}"/>
+      <text x="${x}" y="${y + u(4.4)}" text-anchor="middle" font-size="${u(8)}">${i + 1}</text></g>`).join('');
+
+    const puntoAcc = qui ? `
+      <g class="l-acc-qui"><circle cx="${qui[0]}" cy="${qui[1]}" r="${u(10)}"/></g>` : '';
 
     const pk = (g.pk || []).map(([x, y]) => `
       <g class="l-pk"><rect x="${x - u(7)}" y="${y - u(7)}" width="${u(14)}" height="${u(14)}"/>
@@ -404,6 +422,8 @@ const MAPPA = (() => {
         ${g.ws ? `<path class="l-mare" d="${g.ws}"/>` : ''}
         ${g.wa ? `<path class="l-area" d="${g.wa}"/>` : ''}
         ${g.ma ? `<path class="l-mia-area" d="${g.ma}"/>` : ''}
+        ${g.wb ? `<path class="l-sponda" d="${g.wb}"/>` : ''}
+        ${g.mb ? `<path class="l-mia-sponda" d="${g.mb}"/>` : ''}
         ${g.r3 ? `<path class="l-r3" d="${g.r3}"/>` : ''}
         ${g.r2 ? `<path class="l-r2" d="${g.r2}"/>` : ''}
         ${g.r1 ? `<path class="l-r1" d="${g.r1}"/>` : ''}
@@ -411,7 +431,8 @@ const MAPPA = (() => {
         ${g.wg ? `<path class="l-acqua-g" d="${g.wg}"/>` : ''}
         ${g.wm ? `<path class="l-mia" d="${g.wm}"/>` : ''}
         ${lb}${pk}${acc}
-        <g class="l-qui"><circle cx="0" cy="0" r="${u(8)}"/></g>
+        <g class="l-qui${qui ? ' vuoto' : ''}"><circle cx="0" cy="0" r="${u(qui ? 5.5 : 8)}"/></g>
+        ${puntoAcc}
         <g>
           <path d="M${sx} ${sy}h${sm}M${sx} ${sy - u(3.5)}v${u(7)}M${sx + sm} ${sy - u(3.5)}v${u(7)}"
             stroke="var(--ink-4)" stroke-width="${u(1.1)}" fill="none"/>
@@ -420,17 +441,28 @@ const MAPPA = (() => {
         </g>
       </svg>
       <div class="locale-piede">
-        <span class="chiave"><i style="background:var(--ink)"></i> lo spot</span>
+        ${qui ? `<span class="chiave"><i style="background:var(--acc)"></i> dove fermarsi</span>` : ''}
+        <span class="chiave"><i style="background:var(--ink)"></i> ${qui ? 'la coordinata della scheda' : 'lo spot'}</span>
         ${mia && spot.acqua ? `<span class="chiave"><i style="background:var(--acc-2)"></i> ${esc(spot.acqua)}</span>` : ''}
-        ${(g.ac || []).length ? `<span class="chiave"><i style="background:var(--acc)"></i> la strada tocca l'acqua</span>` : ''}
+        ${acc ? `<span class="chiave"><i style="background:transparent;box-shadow:inset 0 0 0 2px var(--acc)"></i> altri accessi</span>` : ''}
         ${(g.pk || []).length ? `<span class="chiave"><i style="background:var(--ink-3);border-radius:0"></i> parcheggio</span>` : ''}
       </div>
     </div>`;
   }
 
+  /* Quanti segni numerati la carta disegna davvero. Non g.ac.length: da quello
+     disegnaLocale toglie i punti che cadono addosso al punto di accesso, e la
+     didascalia annunciava segni che non c'erano — su quattro spot, tutti. */
   const contaAccessi = (id) => {
     const g = (typeof GEO_LOCALE !== 'undefined') ? GEO_LOCALE[id] : null;
-    return g && g.ac ? g.ac.length : 0;
+    if (!g || !g.ac) return 0;
+    const s = (typeof SPOT !== 'undefined') ? SPOT.find(x => x.id === id) : null;
+    const a = (typeof ACCESSI !== 'undefined') ? ACCESSI[id] : null;
+    if (!s || !a) return g.ac.length;
+    const qx = (a[1] - s.lon) * 111320 * Math.cos(s.lat * Math.PI / 180);
+    const qy = -(a[0] - s.lat) * 110540;
+    const soglia = inquadra(g).mezzo * 2 * 22 / 420;
+    return g.ac.filter(([x, y]) => Math.hypot(x - qx, y - qy) > soglia).length;
   };
 
   return { disegnaRegione, disegnaLocale, caricaLocale, attesaLocale, proietta, contaAccessi,

@@ -666,6 +666,13 @@ details.pieghe .dentro{ padding:2px 18px 18px }
 .locale{ background:var(--carta); border-radius:var(--r-md); overflow:hidden }
 .locale svg{ display:block; width:100%; height:auto; background:#F4F0E6 }
 .l-area{ fill:#D6E3E2; stroke:none }
+/* La sponda che il riquadro ha tagliato: è una linea, non una superficie.
+   Riempirla dipingeva d'azzurro chilometri di terra asciutta, strade e paesi
+   compresi, e il punto dove fermarsi sembrava in mezzo al fiume. */
+.l-sponda{ fill:none; stroke:#BBD2D2; stroke-width:1.6; vector-effect:non-scaling-stroke }
+/* la sponda dell'acqua della scheda: stessa linea, ma nel suo colore */
+.l-mia-sponda{ fill:none; stroke:var(--acc-2); stroke-width:1.6;
+  vector-effect:non-scaling-stroke }
 /* il mare: OpenStreetMap dà la riva, il colore lo mettiamo noi */
 .l-mare{ fill:#C7DCDE; stroke:none }
 /* l'acqua della scheda — quella su cui si pesca — è l'unica linea in grande */
@@ -687,9 +694,21 @@ details.pieghe .dentro{ padding:2px 18px 18px }
   stroke-linejoin:round }
 .l-pk rect{ fill:var(--ink-3); rx:3 }
 .l-pk text{ font-family:var(--sans); font-weight:700; fill:#fff }
-.l-acc circle{ fill:var(--acc); stroke:#fff; stroke-width:2 }
-.l-acc text{ font-family:var(--sans); font-weight:700; fill:#fff }
-.l-qui circle{ fill:var(--ink); stroke:#fff; stroke-width:2.6 }
+/* Il punto pieno è quello che aprono i tasti: dove ci si ferma davvero. I
+   cerchi vuoti numerati sono gli altri tratti in cui una strada arriva alla
+   riva, e il cerchio scuro vuoto è la coordinata della scheda — quella del
+   meteo e della portata, che su un fiume largo sta in mezzo alla corrente. */
+/* vector-effect: senza, stroke-width sta nelle unità del viewBox — cioè in
+   METRI di questa carta — e un contorno da 2 diventa 0,2 px a schermo, cioè
+   invisibile. Ogni altra classe della carta locale lo dichiara già. */
+.l-acc circle{ fill:none; stroke:var(--acc); stroke-width:2; vector-effect:non-scaling-stroke }
+.l-acc text{ font-family:var(--sans); font-weight:700; fill:var(--acc) }
+.l-acc-qui circle{ fill:var(--acc); stroke:#fff; stroke-width:2.6;
+  vector-effect:non-scaling-stroke }
+.l-qui circle{ fill:var(--ink); stroke:#fff; stroke-width:2.6;
+  vector-effect:non-scaling-stroke }
+.l-qui.vuoto circle{ fill:none; stroke:var(--ink); stroke-width:2;
+  vector-effect:non-scaling-stroke }
 .locale-piede{ display:flex; flex-wrap:wrap; gap:5px 14px; padding:10px 13px;
   border-top:1px solid var(--linea) }
 .locale-vuota{ padding:40px 20px; text-align:center; color:var(--ink-3) }

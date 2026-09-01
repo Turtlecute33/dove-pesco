@@ -1,0 +1,20 @@
+{
+  "__nota": "I punti di accesso controllati a mano, su ortofoto o sul posto. Questo file comanda su tools/accessi.py: una rigenerazione non lo tocca. Sta in git apposta, perche' e' l'unico pezzo del calcolo che una macchina non sa rifare.",
+  "__campi": {
+    "lat": "latitudine del punto, 5 decimali",
+    "lon": "longitudine",
+    "f": "confidenza: 3 controllato e sicuro",
+    "m": "il motivo, che finisce scritto nella scheda (per esempio 'rampa di alaggio')",
+    "p": "il pin della scheda quando fu controllato, 'lat,lon' com'e' scritto nei data-spots. Se il pin cambia, accessi.py avvisa e rifa' il conto: senza questo campo una ricalibratura delle coordinate lascerebbe qui un punto vecchio e nessuno se ne accorgerebbe.",
+    "perche": "una riga per chi legge fra sei mesi",
+    "quando": "la data del controllo"
+  },
+  "__esempio": {
+    "re-po-boretto": {
+      "lat": 44.90512, "lon": 10.55901, "f": 3, "m": "rampa di alaggio",
+      "p": "44.9087,10.5553",
+      "perche": "la rampa a valle dell'attracco, ghiaia, si scende con la macchina",
+      "quando": "2026-09-01"
+    }
+  }
+}

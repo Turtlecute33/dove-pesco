@@ -9,7 +9,9 @@ _sito/
 
 # cache di lavoro degli script: si rigenera da Overpass, non serve nel repo
 tools/.cache-locale.json
+tools/.cache-locale.*.json
 tools/.cache-snap.json
 tools/.cache-geocodifica.json
 tools/.cache-geo.json
+tools/.metrica-accessi.json
 __pycache__/

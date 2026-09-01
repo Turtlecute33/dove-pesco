@@ -30,6 +30,8 @@ def leggi_spot():
                 r"tipo: '(\w+)'[\s\S]{0,80}?lat: (-?[\d.]+), lon: (-?[\d.]+)", testo):
             spot.append({'id': m.group(1), 'nome': m.group(2).replace("\\'", "'"),
                          'tipo': m.group(3), 'lat': float(m.group(4)), 'lon': float(m.group(5)),
+                         # la stringa com'e' scritta nel file: 44.9040 non e' 44.904
+                         'latraw': m.group(4), 'lonraw': m.group(5),
                          'file': f})
     return spot
 
@@ -110,27 +112,41 @@ def main():
         nlat, nlon = round(s['lat'] + dlat, 4), round(s['lon'] + dlon, 4)
         print('  %-30s %-40s %5.0f m → %s  (%.4f, %.4f)'
               % (s['id'], s['nome'][:40], d, tipo, nlat, nlon))
-        modifiche.setdefault(s['file'], []).append((s['id'], s['lat'], s['lon'], nlat, nlon))
+        modifiche.setdefault(s['file'], []).append(
+            (s['id'], s['latraw'], s['lonraw'], nlat, nlon))
 
     if not correggi:
         print('\nDiagnosi soltanto. Per riscrivere i file: --correggi')
         return
 
+    # La sostituzione usa la coordinata *come e' scritta nel file* e la protegge
+    # con re.escape. Prima si costruiva il modello da str(float(...)): "44.9040"
+    # diventava "44.904" e non combaciava piu'. Su 45 spot su 222 la correzione
+    # falliva in silenzio — e la voce veniva tolta dalla cache lo stesso, quindi
+    # al giro dopo la mini-carta si ridisegnava sul punto vecchio e sembrava
+    # tutto a posto. Ora chi non combacia resta anche in cache.
+    falliti = set()
     for f, voci in modifiche.items():
         p = os.path.join(BASE, 'assets', 'js', f)
         t = open(p).read()
         for sid, la, lo, nla, nlo in voci:
-            pat = re.compile(r"(id: '%s'[\s\S]{0,1200}?lat: )%s(, lon: )%s" % (re.escape(sid), la, lo))
+            pat = re.compile(r"(id: '%s'[\s\S]{0,1200}?lat: )%s(, lon: )%s"
+                             % (re.escape(sid), re.escape(la), re.escape(lo)))
             t2 = pat.sub(lambda m: '%s%s%s%s' % (m.group(1), nla, m.group(2), nlo), t, count=1)
-            if t2 == t: print('  ATTENZIONE: non ho potuto correggere %s' % sid)
+            if t2 == t:
+                print('  ATTENZIONE: non ho potuto correggere %s' % sid)
+                falliti.add(sid)
             t = t2
         open(p, 'w').write(t)
-    print('\nCorretti %d spot. Ora rilancia tools/bake-locale.py (svuota prima la cache di quelli mossi).'
-          % sum(len(v) for v in modifiche.values()))
+    fatti = sum(len(v) for v in modifiche.values()) - len(falliti)
+    print('\nCorretti %d spot%s. Ora rilancia tools/bake-locale.py.'
+          % (fatti, ', %d falliti' % len(falliti) if falliti else ''))
 
     # toglie dalla cache gli spot spostati, cosi' il bake li rifa'
     for f, voci in modifiche.items():
-        for sid, *_ in voci: carte.pop(sid, None)
+        for sid, *_ in voci:
+            if sid not in falliti:
+                carte.pop(sid, None)
     json.dump(carte, open(CACHE, 'w'))
 
 if __name__ == '__main__':

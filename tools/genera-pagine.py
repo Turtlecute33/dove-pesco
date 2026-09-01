@@ -74,7 +74,7 @@ def leggi_dati():
 FONTI = {
     'spot': ['assets/js/data-spots-emilia.js', 'assets/js/data-spots-romagna.js',
              'assets/js/data-spots-extra.js', 'assets/js/data-spots-centro.js',
-             'assets/js/data-index.js'],
+             'assets/js/data-index.js', 'assets/js/geo-accessi.js'],
     'specie': ['assets/js/data-species.js'],
     'regole': ['assets/js/data-rules.js'],
     'fisse': ['tools/genera-pagine.py'],
@@ -234,12 +234,54 @@ MENU = [('/', 'Oggi'), ('/spot/', 'Spot'), ('/specie/', 'Specie'),
         ('/regole/', 'Regole'), ('/metodo/', 'Metodo')]
 
 
-def fuori_html(s):
-    """i tasti che aprono il punto esatto in una mappa di terzi o nel navigatore"""
-    la, lo = '%.5f' % s['lat'], '%.5f' % s['lon']
+def leggi_accessi():
+    """I punti di accesso calcolati da tools/accessi.py. Il file e' generato e
+       sta in git: se manca, i tasti tornano alla coordinata della scheda."""
+    p = os.path.join(BASE, 'assets', 'js', 'geo-accessi.js')
+    if not os.path.exists(p):
+        return {}
+    fuori = {}
+    for riga in open(p):
+        riga = riga.strip()
+        if riga.startswith('"'):
+            fuori[riga.split('"')[1]] = json.loads(riga[riga.index('['):riga.rindex(']') + 1])
+    return fuori
+
+
+# Perche' quel punto non e' al massimo della confidenza. Sono quattro cause
+# diverse, e prima la scheda ne raccontava sempre una sola: per una buona meta'
+# degli spot a confidenza 2 diceva una cosa falsa.
+PERCHE = {
+    'mezzeria': ' La sponda qui non è disegnata: la misura è sulla mezzeria del corso d\'acqua.',
+    'ponte': ' Il punto è su un attraversamento: guarda da che parte si scende.',
+    'strada grossa': ' È su una strada di grande traffico: cerca dove accostare.',
+    'allargato': ' Trovato allargando le soglie: è il tratto giusto, non il metro giusto.',
+    'mano': ' Controllato a mano.',
+}
+
+
+def detto_accesso(s, accessi):
+    """Che cosa promettere di quel punto, senza promettere di piu'."""
+    a = (accessi or {}).get(s['id'])
+    if not a:
+        return ('Il punto qui sotto è la coordinata della scheda: su questo spot '
+                'la sponda non è disegnata in mappa e non sappiamo indicare '
+                'l\'accesso esatto.')
+    return ('Il punto qui sotto è dove ci si ferma: %s.' % a[3]) + PERCHE.get(a[4], '')
+
+
+def fuori_html(s, accessi=None):
+    """I tasti che aprono il punto esatto in una mappa di terzi o nel navigatore.
+
+    Aprono il punto di accesso calcolato da tools/accessi.py, non la coordinata
+    della scheda: quella sceglie la cella del meteo e della portata, e su un
+    fiume largo cade in mezzo alla corrente. Dove il punto non c'e', si torna
+    alla coordinata della scheda."""
+    a = (accessi or {}).get(s['id'])
+    la, lo = ('%.5f' % (a[0] if a else s['lat']), '%.5f' % (a[1] if a else s['lon']))
     return f"""<div class="fuori">
   <a class="btn vuoto piccolo" target="_blank" rel="noopener noreferrer"
-     href="https://www.openstreetmap.org/?mlat={la}&amp;mlon={lo}#map=16/{la}/{lo}"
+     href="https://www.openstreetmap.org/?mlat={la}&amp;mlon={lo}#map=17/{la}/{lo}"
      >{PUNTINA} OpenStreetMap</a>
   <a class="btn vuoto piccolo" target="_blank" rel="noopener noreferrer"
      href="https://www.google.com/maps/search/?api=1&amp;query={la},{lo}"
@@ -385,7 +427,7 @@ def righe(voci):
 
 # ---------------------------------------------------------------- pagine spot
 
-def pagina_spot(d, s, base):
+def pagina_spot(d, s, base, accessi=None):
     prov = d['PROVINCE'][s['prov']]
     cat = d['CATEGORIE'][s['categoria']]
     tipo = TIPI.get(s['tipo'], s['tipo'].capitalize())
@@ -503,11 +545,11 @@ def pagina_spot(d, s, base):
 {sp_html}
 <h2>Tecniche, esche e acque</h2>
 <div class="voci">{attr_html}</div>
-<h2>Coordinate</h2>
-<p class="mini">Punto di riferimento sull'acqua: apri il punto esatto dove preferisci.
-  La mappa dei punti di accesso, con strade, sentieri e parcheggi entro 70 m dall'acqua,
-  è nella <a href="/#spot/{e(s['id'])}">scheda dell'applicazione</a>.</p>
-{fuori_html(s)}
+<h2>Dove fermarsi</h2>
+<p class="mini">{e(detto_accesso(s, accessi))}
+  La carta dei dintorni, con strade, sentieri e parcheggi, è nella
+  <a href="/#spot/{e(s['id'])}">scheda dell'applicazione</a>.</p>
+{fuori_html(s, accessi)}
 <h2>Altri spot vicini</h2>
 {vic_html}
 <p class="mini tenue" style="margin-top:26px;max-width:72ch">Scheda ricavata da
@@ -971,9 +1013,16 @@ def pagina_metodo(d, base):
 <p class="mini" style="max-width:72ch;margin-top:12px">Nessun tile, nessuna libreria di mappe.
   Confini, 68 corsi d'acqua, 95 specchi d'acqua, strade, sentieri e parcheggi sono stati scaricati
   una volta sola da OpenStreetMap, semplificati e incorporati nel sito come percorsi SVG. Funziona
-  offline e non mostra il tuo indirizzo IP a nessun server di mappe. Nella mappa dello spot i punti
-  numerati sono i tratti in cui una strada o un sentiero arriva a meno di 70 metri dall'acqua:
-  calcolati sulla geometria, non disegnati a mano.</p>
+  offline e non mostra il tuo indirizzo IP a nessun server di mappe.</p>
+<p class="mini" style="max-width:72ch;margin-top:12px">Ogni spot porta due punti. La
+  <b>coordinata della scheda</b> dice di che pezzo di fiume parlano il meteo e la portata: sta sul
+  corso d'acqua, e su un fiume largo cade in mezzo alla corrente. Il <b>punto di accesso</b> —
+  quello che aprono i tasti delle mappe — è dove una strada arriva alla sponda e ci si può
+  fermare. È calcolato sulla sponda disegnata e non sulla mezzeria, scartando i punti in acqua,
+  quelli sui ponti e quelli sulla riva opposta, e pesando briglie, guadi, scivoli, pennelli e
+  greti. I due punti possono distare qualche centinaio di metri: la cella della portata è larga
+  chilometri, il posto dove si tira è largo dieci metri. Dove la sponda non è disegnata in mappa,
+  la scheda lo dice.</p>
 <h2>Le previsioni</h2>
 <p class="mini" style="max-width:72ch;margin-top:12px">Le previsioni non le chiama il tuo browser:
   le scarica un flusso automatico ogni due ore e finiscono in un file servito insieme alla pagina.
@@ -1200,8 +1249,12 @@ def main():
 
     # le pagine
     urls = ['/']
+    accessi = leggi_accessi()
+    if not accessi:
+        sys.stderr.write('Nessun punto di accesso: i tasti mappa useranno la '
+                         'coordinata della scheda. Lancia tools/accessi.py.\n')
     for s in d['SPOT']:
-        u, t = pagina_spot(d, s, base)
+        u, t = pagina_spot(d, s, base, accessi)
         scrivi(out, u, t, pre)
         urls.append(u)
     for sp in sorted(d['SPECIE'].values(), key=lambda s: s['nome']):

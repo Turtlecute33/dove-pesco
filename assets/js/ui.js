@@ -265,15 +265,27 @@ const APP = (() => {
   const misuraRiquadro = (s) =>
     `Riquadro di ${(MAPPA.latoLocale(s.id) / 1000).toFixed(1).replace('.', ',')} km, con ${s.acqua}.`;
 
-  /* Il punto esatto, aperto dove serve: la carta qui accanto dice dove
-     fermarsi, questi tasti portano il punto in mano a chi guida. «Naviga» apre
-     l'applicazione di navigazione del telefono con l'indirizzo geo:, che su un
-     computer non porta da nessuna parte: lì il tasto non compare (style.css). */
+  /* Il punto che aprono i tasti.
+
+     Non è la coordinata della scheda. Quella dice di che pezzo di fiume
+     parlano il meteo e la portata, e su un fiume largo cade in mezzo alla
+     corrente: 82 spot su 222 mandavano chi premeva «Naviga» dentro l'acqua.
+     tools/accessi.py calcola a parte il punto in cui una strada arriva alla
+     sponda, e sta in ACCESSI. Dove non c'è, si torna alla coordinata della
+     scheda, che è il meglio che sappiamo.
+
+     «Naviga» apre l'applicazione di navigazione del telefono con l'indirizzo
+     geo:, che su un computer non porta da nessuna parte: lì il tasto non
+     compare (style.css). */
+  const accessoDi = (s) =>
+    (typeof ACCESSI !== 'undefined' && ACCESSI[s.id]) || null;
+
   const fuoriHTML = (s) => {
-    const la = s.lat.toFixed(5), lo = s.lon.toFixed(5);
+    const a = accessoDi(s);
+    const la = (a ? a[0] : s.lat).toFixed(5), lo = (a ? a[1] : s.lon).toFixed(5);
     return `<div class="fuori">
       <a class="btn vuoto piccolo" target="_blank" rel="noopener noreferrer"
-         href="https://www.openstreetmap.org/?mlat=${la}&mlon=${lo}#map=16/${la}/${lo}"
+         href="https://www.openstreetmap.org/?mlat=${la}&mlon=${lo}#map=17/${la}/${lo}"
          >${seg('puntina')} OpenStreetMap</a>
       <a class="btn vuoto piccolo" target="_blank" rel="noopener noreferrer"
          href="https://www.google.com/maps/search/?api=1&query=${la},${lo}"
@@ -282,6 +294,24 @@ const APP = (() => {
          >${seg('navigatore')} Naviga</a>
       <span class="micro tenue num coord">${la}, ${lo}</span>
     </div>`;
+  };
+
+  /* Che cosa promettere di quel punto. Un punto calcolato sulla sponda
+     disegnata e su una strada su cui ci si ferma è una cosa; un punto trovato
+     allargando le soglie è un'altra, e va detto invece che lasciato credere. */
+  const PERCHE = {
+    mezzeria: ' La sponda qui non è disegnata: la misura è sulla mezzeria del corso d\'acqua.',
+    ponte: ' Il punto è su un attraversamento: guarda da che parte si scende.',
+    'strada grossa': ' È su una strada di grande traffico: cerca dove accostare.',
+    allargato: ' Trovato allargando le soglie: è il tratto giusto, non il metro giusto.',
+    mano: ' Controllato a mano.',
+  };
+
+  const dettoAccesso = (s) => {
+    const a = accessoDi(s);
+    if (!a) return ' Il segno è la coordinata della scheda: qui la sponda non è disegnata in mappa.';
+    const testa = ` Il segno pieno è dove ci si ferma: ${a[3]}.`;
+    return testa + (PERCHE[a[4]] || '');
   };
 
   /* ---------------------------------------------- la scheda dello spot */
@@ -310,7 +340,8 @@ const APP = (() => {
               typeof GEO_LOCALE !== 'undefined' ? MAPPA.disegnaLocale(s) : MAPPA.attesaLocale()}</div>
             <p class="micro tenue" style="margin-top:9px"><span class="nota-lato">${
               esc(misuraRiquadro(s))}</span><span class="nota-acc">${
-              nAcc ? ` I ${nAcc} punti numerati sono i tratti in cui una strada o un sentiero arriva a meno di 70 m dall'acqua.` : ''}</span></p>
+              esc(dettoAccesso(s))}${
+              nAcc ? ` Gli altri segni numerati sono i tratti in cui una strada arriva alla riva.` : ''}</span></p>
             <p class="mini" style="margin-top:12px">${esc(s.comeArrivare)}</p>
             <p class="mini">${esc(s.accesso)}</p>
             ${fuoriHTML(s)}
@@ -543,8 +574,8 @@ const APP = (() => {
       if (lato) lato.textContent = misuraRiquadro(v.spot);
       const nota = $('.nota-acc');
       const n = MAPPA.contaAccessi(id);
-      if (nota) nota.textContent = n
-        ? ` I ${n} punti numerati sono i tratti in cui una strada o un sentiero arriva a meno di 70 m dall'acqua.` : '';
+      if (nota) nota.textContent = dettoAccesso(v.spot)
+        + (n ? ' Gli altri segni numerati sono i tratti in cui una strada arriva alla riva.' : '');
     });
   }
 
