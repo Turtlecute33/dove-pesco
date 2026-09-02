@@ -66,7 +66,7 @@ NEGA = re.compile(r'imperv|difficil|scars|poco accessibil|vietat|proibit|'
 
 # ---- lettura degli spot ----------------------------------------------------
 def leggi_spot():
-    """Gli spot con i campi che servono qui. Si ferma se non sono 222: le
+    """Gli spot con i campi che servono qui. Si ferma se non sono 225: le
        regex di questo repo hanno gia' perso schede in silenzio."""
     testo = ''
     for f in FILE_DATI:
@@ -95,7 +95,7 @@ def leggi_spot():
     for s in spot:
         if s['id'] not in visti:
             visti.add(s['id']); fuori.append(s)
-    if len(fuori) < 222:
+    if len(fuori) < 225:
         sys.exit('Letti solo %d spot: la regex ha perso qualcosa, non proseguo.'
                  % len(fuori))
     return fuori

@@ -271,6 +271,20 @@ const SPOT_CENTRO = [
   livello: 'facile', bimbi: false, disabili: false, noKill: false, gare: true, notturna: false
 },
 {
+  id: 'bo-cer-galliera-cucco', nome: 'Canale Emiliano Romagnolo al Cucco',
+  comune: 'Galliera', prov: 'BO', acqua: 'Canale Emiliano Romagnolo',
+  tipo: 'canale', categoria: 'B', lat: 44.7607, lon: 11.3809,
+  specie: ['carpa', 'breme', 'carassio', 'alborella', 'scardola', 'siluro', 'lucioperca'],
+  tecniche: ['roubaisienne', 'bolognese', 'canna fissa', 'pesca a fondo'],
+  fondale: 'Canale artificiale a sezione regolare, sponde in cemento inclinate e profondità costante di 3 – 4 m. Corrente lenta, regolata dalle derivazioni irrigue.',
+  accesso: 'Via Cucco scavalca il canale 130 m più a monte e da lì si scende all\'argine. Sponde lisce e scivolose: servono scaletta e guadino lungo.',
+  comeArrivare: 'Da Galliera verso ovest per Via Coronella, poi Via Cucco fino al ponte sul canale.',
+  esche: ['bigattino', 'mais', 'pellet', 'pane'],
+  stagioniTop: ['primavera', 'estate', 'autunno'],
+  note: 'Nel tratto bolognese il CER è zona a sola canna: da una a tre canne, con o senza mulinello, e ogni altro attrezzo è vietato. Il punto è 130 m a valle del ponte di Via Cucco perché dalla prima domenica di ottobre all\'ultima di marzo la pesca è vietata entro 50 m da ogni ponte dei canali di bonifica. La zona di ripopolamento e frega finisce 1,2 km a monte, al ponte di Via Bisana; l\'idrovora Crevenzosa, con la sua fascia di divieto, è 900 m a valle. Tinca e luccio non si trattengono in tutta la città metropolitana. Il Consorzio CER dichiara vietato l\'accesso alle sponde e le sbarra: acqua profonda, sponde scivolose e risalita difficile.',
+  livello: 'medio', bimbi: false, disabili: false, noKill: false, gare: false, notturna: false
+},
+{
   id: 'bo-navile-bentivoglio', nome: 'Canale Navile a Bentivoglio',
   comune: 'Bentivoglio', prov: 'BO', acqua: 'Canale Navile',
   tipo: 'canale', categoria: 'B', lat: 44.6371, lon: 11.4226,

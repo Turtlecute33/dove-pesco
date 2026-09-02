@@ -263,6 +263,20 @@ const SPOT_ROMAGNA = [
 
 /* =============================== FERRARA ================================= */
 {
+  id: 'fe-cavo-napoleonico-san-carlo', nome: 'Cavo Napoleonico a San Carlo',
+  comune: 'Terre del Reno', prov: 'FE', acqua: 'Cavo Napoleonico',
+  tipo: 'canale', categoria: 'B', lat: 44.8100, lon: 11.3937,
+  specie: ['carpa', 'carassio', 'breme', 'siluro', 'pesceGatto', 'lucioperca', 'aspio'],
+  tecniche: ['roubaisienne', 'bolognese', 'inglese', 'pesca a fondo', 'spinning'],
+  fondale: 'Sezione trapezoidale larga circa 200 m fra i cigli degli argini, alveo quasi orizzontale e corrente lentissima. Vegetazione acquatica fitta lungo le sponde.',
+  accesso: 'Via Cavo Napoleonico corre sull\'argine; postazioni tagliate nel canneto a monte e a valle del ponte di Via dei Frutteti.',
+  comeArrivare: 'Da Ferrara SP66 fino a San Carlo, poi Via dei Frutteti fino al ponte sul Cavo.',
+  esche: ['bigattino', 'mais', 'boiles', 'esche siliconiche'],
+  stagioniTop: ['primavera', 'estate', 'autunno'],
+  note: 'Primo tratto pescabile risalendo dal Reno: la zona di ripopolamento e frega finisce 1,3 km più a sud, alla botte del CER, e sotto quel punto la pesca è vietata tutto l\'anno. Qui si è in comune di Terre del Reno e non di Bondeno, quindi dal 1° ottobre al 15 aprile valgono il divieto di bilancella e di ardiglione e il divieto di pesca entro 40 m dal ponte. Da marzo a ottobre il canale viene invasato con acqua del Po e il livello sale di parecchi metri.',
+  livello: 'medio', bimbi: false, disabili: false, noKill: false, gare: false, notturna: false
+},
+{
   id: 'fe-cavo-napoleonico-mirabello', nome: 'Cavo Napoleonico a Ponte Mirabello',
   comune: 'Terre del Reno', prov: 'FE', acqua: 'Cavo Napoleonico',
   tipo: 'canale', categoria: 'B', lat: 44.8370, lon: 11.4082,
@@ -273,21 +287,35 @@ const SPOT_ROMAGNA = [
   comeArrivare: 'Da Ferrara Via Modena fino a Cassana, poi SP66 per 13 km fino a San Carlo (passando Vigarano Mainarda e Mirabello). A San Carlo imboccare Via dei Frutteti e prima del ponte a destra su Via Cavo Napoleonico.',
   esche: ['larva di mosca', 'mais', 'boiles', 'esche siliconiche'],
   stagioniTop: ['primavera', 'estate', 'autunno'],
-  note: 'Canale molto tecnico con pesce particolarmente smaliziato, frequentato da agonisti. Campi gara permanenti nella zona nord, Zona di ripopolamento e frega nella zona sud. Attenzione: per gran parte dell\'anno il canale può essere riempito con acqua dal Po e risultare impescabile.',
-  livello: 'medio', bimbi: true, disabili: false, noKill: false, gare: true, notturna: false
+  note: 'Canale molto tecnico con pesce particolarmente smaliziato. I campi gara del Cavo, il permanente e i temporanei, sono stati soppressi nel 2024: oggi è acqua libera. La zona di ripopolamento e frega resta nei primi 2,7 km a sud, dal Reno alla botte del CER. Qui si è in comune di Terre del Reno: dal 1° ottobre al 15 aprile niente bilancella né ardiglione, e divieto di pesca entro 40 m dai ponti. Da marzo a ottobre il canale viene invasato con acqua dal Po e può risultare impescabile.',
+  livello: 'medio', bimbi: true, disabili: false, noKill: false, gare: false, notturna: false
+},
+{
+  id: 'fe-cavo-napoleonico-bondeno', nome: 'Cavo Napoleonico a Bondeno',
+  comune: 'Bondeno', prov: 'FE', acqua: 'Cavo Napoleonico',
+  tipo: 'canale', categoria: 'B', lat: 44.8798, lon: 11.4351,
+  specie: ['carpa', 'carassio', 'breme', 'siluro', 'lucioperca', 'aspio', 'pesceGatto'],
+  tecniche: ['roubaisienne', 'bolognese', 'inglese', 'pesca a fondo', 'spinning'],
+  fondale: 'Canale largo e profondo con fondo regolare e corrente quasi nulla. Le sponde alternano canneto fitto e tratti aperti sotto l\'argine.',
+  accesso: 'Sulla sponda ovest la sterrata di Via Enrico Fermi arriva al canale; sull\'altra riva corrono Via Cavo Napoleonico e la Ciclopista Burana FE 101, che lo scavalca 70 m più a nord. Poste ricavate nel canneto, si arriva a piedi o in bici.',
+  comeArrivare: 'Da Bondeno verso est fino al Cavo: Via Enrico Fermi scende all\'argine ovest, Via Cavo Napoleonico corre su quello opposto.',
+  esche: ['bigattino', 'mais', 'boiles', 'esche siliconiche'],
+  stagioniTop: ['primavera', 'estate', 'autunno'],
+  note: 'Tratto in comune di Bondeno, escluso dai vincoli invernali del calendario ferrarese: dal 1° ottobre al 15 aprile restano leciti bilancella e ardiglione. Il ponte della ciclopista e quello della ferrovia stanno a 73 e 107 m, oltre la fascia di 40 m in cui la pesca è vietata in permanenza attorno ai manufatti idraulici. Il campo gara che occupava il tratto a nord è stato soppresso nel 2024.',
+  livello: 'medio', bimbi: false, disabili: false, noKill: false, gare: false, notturna: false
 },
 {
   id: 'fe-cavo-napoleonico-salvatonica', nome: 'Cavo Napoleonico a Salvatonica di Bondeno',
   comune: 'Bondeno', prov: 'FE', acqua: 'Cavo Napoleonico',
-  tipo: 'canale', categoria: 'B', lat: 44.9263, lon: 11.4408,
+  tipo: 'canale', categoria: 'B', lat: 44.9242, lon: 11.4405,
   specie: ['carpa', 'carassio', 'breme', 'siluro', 'lucioperca'],
   tecniche: ['fissa', 'bolognese', 'roubaisienne', 'pesca a fondo'],
-  fondale: 'Presso la chiusa e la rampa il livello è più gestibile; anche nei punti meno profondi vicino al ponte entrano in canna piccole breme e carassi.',
-  accesso: 'Posizionarsi sulla chiusa o sulla rampa poco prima della chiusa.',
+  fondale: 'Ultimo tratto prima dello sbocco in Po: fondale più gestibile che nel resto del canale, e anche nei punti meno profondi entrano in canna piccole breme e carassi.',
+  accesso: 'Via Cavo Napoleonico corre sull\'argine: si scende allo scivolo circa 300 m a monte della chiusa, fuori dalla fascia di 40 m in cui la pesca è vietata attorno ai manufatti idraulici.',
   comeArrivare: 'Da Bondeno verso Salvatonica seguendo il Cavo.',
   esche: ['larva di mosca', 'mais'],
   stagioniTop: ['estate'],
-  note: 'Da aprile a ottobre questo è spesso l\'unico tratto pescabile del Cavo: nei dintorni di Sant\'Agostino l\'acqua è troppo alta. Linea di pesca a 14,50 m con lenze da 0,5 a 1,5 g. Il canale è in gran parte invaso dai canneti: poste scarse e lunghi tratti a piedi sull\'argine.',
+  note: 'Da aprile a ottobre questo è spesso l\'unico tratto pescabile del Cavo: nei dintorni di Sant\'Agostino l\'acqua è troppo alta. Il campo gara permanente che copriva gli ultimi 3 km, dal ponte della Pioppa allo sbocco in Po, è stato soppresso nel 2024: oggi è acqua libera. Linea di pesca a 14,50 m con lenze da 0,5 a 1,5 g. Il canale è in gran parte invaso dai canneti: poste scarse e lunghi tratti a piedi sull\'argine. Sulla chiusa non si pesca.',
   livello: 'medio', bimbi: false, disabili: false, noKill: false, gare: false, notturna: false
 },
 {

@@ -4,7 +4,7 @@
 
 Sito statico che risponde a una domanda sola: **stamattina, dove vado a pescare?**
 
-222 spot su fiumi, torrenti, laghi, canali e mare. Ogni mattina ognuno riceve un
+225 spot su fiumi, torrenti, laghi, canali e mare. Ogni mattina ognuno riceve un
 *indice del giorno*, calcolato incrociando la portata reale del corso d'acqua, la
 temperatura stimata dell'acqua, la pioggia delle 72 ore precedenti, la pressione, la
 luce, la luna e la finestra stagionale di ogni specie — con i divieti dell'Allegato 2
@@ -26,26 +26,26 @@ chiamata a testa».
 ## Come è organizzata
 
 **Una domanda, una risposta.** In cima, una riga sola dice cosa fa il sito — un voto da 0
-a 100 su 222 spot, ogni mattina, e cosa lo decide — perché il titolo da solo non bastava:
+a 100 su 225 spot, ogni mattina, e cosa lo decide — perché il titolo da solo non bastava:
 chi arriva la prima volta vedeva un nome di fiume e un numero, senza sapere di che numero
 si trattasse. È scritta nell'HTML, non generata: si legge prima che parta uno script.
 
 Poi la pagina apre con un solo spot: nome, luogo, indice, il
 pesce del giorno, acqua, portata, prima luce e una frase sul perché. Sotto, la mappa con
-tutti gli spot. Sotto ancora, sei righe con le alternative e un «vedi tutti i 222».
+tutti gli spot. Sotto ancora, sei righe con le alternative e un «vedi tutti i 225».
 Nient'altro: filtri, rilevamenti completi, specie secondarie e regole stanno dietro un
 tocco.
 
 ## Le pagine: un indirizzo per ogni spot
 
 L'applicazione vive a un solo indirizzo e calcola tutto nel browser. Comodo da usare,
-invisibile a un motore di ricerca: 222 spot e 40 specie senza un indirizzo proprio non si
+invisibile a un motore di ricerca: 225 spot e 40 specie senza un indirizzo proprio non si
 possono indicizzare, e chi cerca «dove pescare sul Panaro» non arriva.
 
-Per questo `tools/genera-pagine.py` scrive **278 pagine statiche** a ogni pubblicazione:
+Per questo `tools/genera-pagine.py` scrive **281 pagine statiche** a ogni pubblicazione:
 
 ```
-/spot/<nome>/          222 schede: come arrivare, accessi, fondale, specie, esche, note
+/spot/<nome>/          225 schede: come arrivare, accessi, fondale, specie, esche, note
 /specie/<nome>/         40 schede: misura minima, divieto, temperatura, esche, dove si trova
 /provincia/<nome>/       9 elenchi per corso d'acqua, con le specie più diffuse
 /spot/ /provincia/ /specie/   i tre indici completi
@@ -53,7 +53,7 @@ Per questo `tools/genera-pagine.py` scrive **278 pagine statiche** a ogni pubbli
 sitemap.xml  robots.txt  404.html
 ```
 
-L'elenco di tutti i 278 indirizzi sta anche in fondo all'applicazione, in un `<details>`
+L'elenco di tutti i 281 indirizzi sta anche in fondo all'applicazione, in un `<details>`
 chiuso. Prima stava dentro un `<noscript>`, ed era come non esserci: Googlebot esegue
 JavaScript, e quando lo esegue butta via il contenuto di `<noscript>`. Risultato, la home
 — la pagina con più autorità del sito — passava **dieci** collegamenti, tutti verso
@@ -274,11 +274,11 @@ assets/fonts/                  i woff2 originali (per rigenerare caratteri.css)
 assets/js/
   tavole.js                    16 disegni di pesci a linea + simboli, costruiti in codice
   data-species.js              40 specie: biologia, profondità, esche, regole
-  data-spots-*.js              222 spot in quattro elenchi
+  data-spots-*.js              225 spot in quattro elenchi
   data-index.js                unione, province, categorie, mappa delle rarità
   data-rules.js                licenze, attrezzi, limiti, zone, avvisi, fonti
   geo-regione.js               geometria della mappa regionale (101 KB, mare compreso)
-  geo-locale.js                222 mappe locali (2,1 MB, caricata a richiesta)
+  geo-locale.js                225 mappe locali (2,1 MB, caricata a richiesta)
   geo-accessi.js               dove fermarsi in ogni spot (13 KB, caricata subito)
   api.js                       legge il file delle previsioni, con Open-Meteo di riserva
   engine.js                    modello dell'indice
@@ -286,9 +286,9 @@ assets/js/
   ui.js                        interfaccia
 tools/
   aggiorna-dati.py             scarica meteo e portata e scrive previsioni.json
-  genera-pagine.py             prepara _sito/: applicazione + 278 pagine + sitemap
+  genera-pagine.py             prepara _sito/: applicazione + 281 pagine + sitemap
   bake-geo.py                  la carta regionale, e l'elenco degli spot senz'acqua
-  bake-locale.py               le 222 mini-carte, il mare e l'acqua di ogni scheda
+  bake-locale.py               le 225 mini-carte, il mare e l'acqua di ogni scheda
   geom.py                      la geometria delle mini-carte, in un posto solo
   accessi.py                   il punto in cui fermarsi, da quelle stesse carte
   verifica-accessi.py          misura i punti nuovi contro i vecchi, e contro OSM
@@ -302,9 +302,9 @@ tools/
 
 | Provincia | Spot | | Ambiente | Spot |
 |---|---|---|---|---|
-| Bologna | 46 | | Fiumi | 81 |
+| Bologna | 47 | | Fiumi | 81 |
 | Modena | 36 | | Torrenti | 68 |
-| Ferrara | 30 | | Canali e cavi | 26 |
+| Ferrara | 32 | | Canali e cavi | 29 |
 | Forlì-Cesena | 25 | | Mare, moli e foci | 22 |
 | Parma | 21 | | Laghi | 12 |
 | Reggio Emilia | 20 | | Bacini e dighe | 10 |
@@ -321,6 +321,14 @@ rete d'acqua è più fitta: l'asta del Reno con Idice, Sillaro, Savena, Samoggia
 Santerno; il Panaro e il Secchia dalla collina alla bassa; i canali di bonifica (Emiliano
 Romagnolo, Navile, Naviglio, Diversivo, Burana, Canal Bianco); il Po ferrarese da Stellata
 a Berra e i rami del delta fino al mare.
+
+Sul Cavo Napoleonico e sul Canale Emiliano Romagnolo le schede sono state scelte leggendo i
+calendari ittici 2026/2027 di Ferrara e di Bologna prima della carta. Due punti che
+sembravano buoni sono stati scartati: l'opera di presa sul Reno sta nella zona di
+ripopolamento e frega, dove la pesca è vietata tutto l'anno, e il nodo idraulico di Bondeno
+cade a nove metri da un sottopasso, dentro i 40 m di divieto permanente attorno ai manufatti
+idraulici. Il campo gara del Cavo, che due schede citavano ancora, è stato soppresso dalla
+DGR 514/2024.
 
 ## Come nasce l'indice
 
@@ -351,7 +359,7 @@ raggiungibile**: nessun giorno è perfetto.
 
 Open-Meteo è gratuito, senza chiave e con i limiti contati **per indirizzo IP**: 600
 chiamate al minuto, 10.000 al giorno. Un caricamento completo del sito ne pesa circa 350
-(222 punti × 11 variabili × 17 giorni, più la portata su 149 corsi d'acqua). Se ogni
+(225 punti × 11 variabili × 17 giorni, più la portata su 149 corsi d'acqua). Se ogni
 visitatore chiamasse dal proprio browser funzionerebbe — mille utenti sono mille quote
 diverse — ma chi ricarica spesso, o sta dietro a un IP condiviso (ufficio, scuola, rete
 mobile), si prenderebbe un 429.
@@ -427,7 +435,7 @@ Il sito funziona senza di essi.
 
 ```bash
 python3 tools/bake-geo.py            # mappa regionale; elenca gli spot senz'acqua
-python3 tools/bake-locale.py         # 222 mappe locali (ripresa da cache)
+python3 tools/bake-locale.py         # 225 mappe locali (ripresa da cache)
 python3 tools/bake-locale.py --riscrivi  # rifa' geo-locale.js dalla cache, senza rete
 python3 tools/verifica-coordinate.py # controlla che ogni spot sia sull'acqua
 python3 tools/accessi.py             # dove fermarsi: assets/js/geo-accessi.js
@@ -447,7 +455,8 @@ a rotazione e riprendono da dove si erano fermati.
 
 - **Schede degli spot**: [«Itinerari di pesca sportiva in Emilia-Romagna»](https://agricoltura.regione.emilia-romagna.it/pesca/pubblicazioni/pesca-sportiva/itinerari-di-pesca-sportiva-in-emilia-romagna), Regione Emilia-Romagna — 40 itinerari ufficiali, espansi per località.
 - **Misure minime, divieti, limiti**: Allegato 2 del [Reg. reg. 1/2018](https://demetra.regione.emilia-romagna.it/al/articolo?urn=er%3Aassemblealegislativa%3Aregolamento%3A2018%3B1), come modificato dal Reg. reg. 1/2020.
-- **Zone e regolamenti**: [carta interattiva regionale](https://agricoltura.regione.emilia-romagna.it/pesca/pesca-sportiva-professionale-acque-interne/calendari-ittici/carta-interattiva), Programma ittico regionale 2026/2027, calendari ittici provinciali.
+- **Zone e regolamenti**: [carta interattiva regionale](https://agricoltura.regione.emilia-romagna.it/pesca/pesca-sportiva-professionale-acque-interne/calendari-ittici/carta-interattiva), Programma ittico regionale 2026/2027, [calendari ittici provinciali](https://agricoltura.regione.emilia-romagna.it/pesca/pesca-sportiva-professionale-acque-interne/calendari-ittici) — zone di ripopolamento e frega, zone a regime speciale e fasce di divieto attorno ai manufatti.
+- **Campi gara**: [DGR 514/2024](https://bur.regione.emilia-romagna.it/dettaglio-inserzione?i=196d3c5bed174629bf1c07b1d40d681f), che aggiorna i piani di cui alle DGR 203/2018 e 545/2018.
 - **Meteo e portata**: [Open-Meteo](https://open-meteo.com/) (CC BY 4.0), portata dal modello GloFAS.
 - **Cartografia**: [OpenStreetMap](https://www.openstreetmap.org/copyright), licenza ODbL.
 - **Caratteri**: interfaccia con il carattere di sistema (San Francisco su Apple), Archivo
