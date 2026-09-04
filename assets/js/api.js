@@ -1,5 +1,5 @@
 /* =============================================================================
-   DATI DEL GIORNO — file statico, con Open-Meteo come rete di sicurezza
+   DATI DEL GIORNO: file statico, con Open-Meteo come rete di sicurezza
    -----------------------------------------------------------------------------
    Prima strada: assets/dati/previsioni.json, un file da una quarantina di KB
    compressi che GitHub Actions rigenera ogni quattro ore. Se c'è ed è fresco, il

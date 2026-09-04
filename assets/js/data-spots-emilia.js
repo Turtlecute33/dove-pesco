@@ -1,5 +1,5 @@
 /* =============================================================================
-   SPOT DI PESCA — Emilia (Piacenza, Parma, Reggio Emilia, Modena)
+   SPOT DI PESCA: Emilia (Piacenza, Parma, Reggio Emilia, Modena)
    -----------------------------------------------------------------------------
    Fonte principale dei dati descrittivi: "Itinerari di pesca sportiva in
    Emilia-Romagna", pubblicazione della Regione Emilia-Romagna (Assessorato
@@ -241,7 +241,7 @@ const SPOT_EMILIA = [
   livello: 'facile', bimbi: true, disabili: false, noKill: false, gare: false, notturna: false
 },
 {
-  id: 'pr-taro-san-secondo', nome: 'Taro a San Secondo — le cheppie',
+  id: 'pr-taro-san-secondo', nome: 'Taro a San Secondo, le cheppie',
   comune: 'San Secondo Parmense', prov: 'PR', acqua: 'Fiume Taro',
   tipo: 'fiume', categoria: 'B', lat: 44.9143, lon: 10.2506,
   specie: ['cheppia', 'cavedano', 'carpa', 'siluro'],
@@ -411,7 +411,7 @@ const SPOT_EMILIA = [
 
 /* ============================ REGGIO EMILIA ============================== */
 {
-  id: 're-po-boretto', nome: 'Po a Boretto — spiagge e sassaie',
+  id: 're-po-boretto', nome: 'Po a Boretto, spiagge e sassaie',
   comune: 'Boretto', prov: 'RE', acqua: 'Fiume Po',
   tipo: 'fiume', categoria: 'A', lat: 44.9087, lon: 10.5553,
   specie: ['siluro', 'lucioperca', 'aspio', 'carpa', 'alborella', 'scardola'],
@@ -425,7 +425,7 @@ const SPOT_EMILIA = [
   livello: 'medio', bimbi: false, disabili: false, noKill: false, gare: false, notturna: true
 },
 {
-  id: 're-po-guastalla', nome: 'Po a Guastalla — il pennello',
+  id: 're-po-guastalla', nome: 'Po a Guastalla, il pennello',
   comune: 'Guastalla', prov: 'RE', acqua: 'Fiume Po',
   tipo: 'fiume', categoria: 'A', lat: 44.9306, lon: 10.6335,
   specie: ['siluro', 'lucioperca', 'aspio', 'carpa', 'breme'],
@@ -523,7 +523,7 @@ const SPOT_EMILIA = [
   livello: 'facile', bimbi: true, disabili: true, noKill: false, gare: false, notturna: false
 },
 {
-  id: 're-secchia-cerredolo', nome: 'Secchia a Cerredolo — le briglie',
+  id: 're-secchia-cerredolo', nome: 'Secchia a Cerredolo, le briglie',
   comune: 'Toano / Prignano', prov: 'RE', acqua: 'Fiume Secchia',
   tipo: 'fiume', categoria: 'C', lat: 44.4053, lon: 10.6188,
   specie: ['cavedano', 'barbo', 'lasca', 'barboCanino', 'vairone', 'trotaFario'],
@@ -637,7 +637,7 @@ const SPOT_EMILIA = [
   livello: 'medio', bimbi: true, disabili: false, noKill: false, gare: false, notturna: true
 },
 {
-  id: 'mo-laghi-santanna', nome: 'Casse di espansione del Panaro — laghi S. Anna',
+  id: 'mo-laghi-santanna', nome: 'Casse di espansione del Panaro, laghi S. Anna',
   comune: 'Modena', prov: 'MO', acqua: 'Casse di espansione del Panaro',
   tipo: 'lago', categoria: 'B', lat: 44.6019, lon: 11.0045,
   specie: ['persicoTrota', 'luccio', 'siluro', 'pesceGatto', 'persicoReale', 'carpa', 'scardola'],
@@ -721,7 +721,7 @@ const SPOT_EMILIA = [
   livello: 'esperto', bimbi: false, disabili: false, noKill: true, gare: false, notturna: false
 },
 {
-  id: 'mo-scoltenna-fola', nome: 'Scoltenna — no kill di Ponte della Fola',
+  id: 'mo-scoltenna-fola', nome: 'Scoltenna, no kill di Ponte della Fola',
   comune: 'Riolunato / Pievepelago', prov: 'MO', acqua: 'Torrente Scoltenna',
   tipo: 'torrente', categoria: 'D', lat: 44.2461, lon: 10.6800,
   specie: ['trotaFario', 'cavedano', 'barbo'],

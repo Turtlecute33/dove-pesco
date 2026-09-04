@@ -1,5 +1,5 @@
 /* =============================================================================
-   PAGINE STATICHE — solo le poche regole che style.css non ha gia'.
+   PAGINE STATICHE: solo le poche regole che style.css non ha gia'.
    Le schede degli spot, delle specie e delle province sono pagine normali:
    riusano l'impaginato dell'applicazione e aggiungono le briciole, gli elenchi
    di collegamenti e il richiamo all'indice del giorno.
@@ -13,6 +13,16 @@
 }
 .men-link a:hover{ color:var(--ink); background:var(--carta-2) }
 .men-link a[aria-current]{ color:var(--acc); background:var(--acc-bg) }
+/* Cinque voci, e sul telefono la quinta restava tagliata dal bordo: il menu
+   scorre, ma un menu che scorre nessuno lo cerca. Con meno respiro attorno
+   alle parole entrano tutte, e il bersaglio resta alto 42 px come
+   nell'applicazione. */
+@media (max-width:640px){
+  .men-link a{ padding:11px 9px; font-size:.83rem }
+}
+@media (max-width:430px){
+  .men-link a{ padding:11px 7px; font-size:.81rem }
+}
 
 /* briciole di pane */
 .briciole{

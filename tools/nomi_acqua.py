@@ -7,7 +7,7 @@ scrive "Limentra"; le schede dicono "Collettore Acque Alte", OpenStreetMap
 "Canale Collettore delle Acque Alte". Confrontare le stringhe intere non
 funziona: si confrontano le parole che restano dopo aver buttato i generici
 (fiume, torrente, canale, di, del...). Se una parola coincide, e' la stessa
-acqua — dentro una finestra di pochi chilometri non ci sono omonimi.
+acqua: dentro una finestra di pochi chilometri non ci sono omonimi.
 
 Serve a due script, quindi sta qui e non dentro uno dei due:
   tools/bake-locale.py   disegna in grande l'acqua della scheda

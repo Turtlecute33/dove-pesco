@@ -1,5 +1,5 @@
 /* =============================================================================
-   SPECIE ITTICHE — Emilia-Romagna
+   SPECIE ITTICHE: Emilia-Romagna
    -----------------------------------------------------------------------------
    Misure minime, periodi di divieto e limiti di detenzione: Allegato 2 del
    Regolamento regionale 1/2018, come modificato dal Reg. reg. 1/2020.
@@ -52,7 +52,7 @@ const SPECIE = {
     nome: 'Barbo canino', sci: 'Barbus caninus', gruppo: 'ciprinidi reofili',
     icona: 'fish-barbel', autoctona: true, protetta: true,
     misuraMin: null, limiteGiorno: 0,
-    divieto: [[1, 1, 12, 31]], divietoTesto: 'tutto l\'anno — pesca vietata',
+    divieto: [[1, 1, 12, 31]], divietoTesto: 'tutto l\'anno, pesca vietata',
     tOpt: [12, 20], tLive: [6, 24],
     mesi: [.2, .2, .3, .5, .5, .5, .7, .8, .8, .6, .3, .2],
     luce: 'qualsiasi', torbida: -0.3, portata: 0.2, press: 0,
@@ -107,7 +107,7 @@ const SPECIE = {
     nome: 'Gobione', sci: 'Gobio benacensis', gruppo: 'ciprinidi',
     icona: 'fish-generic', autoctona: true, protetta: true,
     misuraMin: null, limiteGiorno: 0,
-    divieto: [[1, 1, 12, 31]], divietoTesto: 'tutto l\'anno — pesca vietata',
+    divieto: [[1, 1, 12, 31]], divietoTesto: 'tutto l\'anno, pesca vietata',
     tOpt: [12, 22], tLive: [6, 26],
     mesi: [.3, .3, .4, .5, .5, .5, .7, .7, .7, .6, .4, .3],
     luce: 'qualsiasi', torbida: 0.2, portata: 0, press: 0,
@@ -158,7 +158,7 @@ const SPECIE = {
     nome: 'Savetta', sci: 'Chondrostoma soetta', gruppo: 'ciprinidi',
     icona: 'fish-generic', autoctona: true, protetta: true,
     misuraMin: null, limiteGiorno: 0,
-    divieto: [[1, 1, 12, 31]], divietoTesto: 'tutto l\'anno — pesca vietata',
+    divieto: [[1, 1, 12, 31]], divietoTesto: 'tutto l\'anno, pesca vietata',
     tOpt: [14, 23], tLive: [8, 26],
     mesi: [.3, .3, .4, .5, .5, .5, .7, .7, .7, .6, .4, .3],
     luce: 'giorno', torbida: 0, portata: 0, press: 0,
@@ -170,7 +170,7 @@ const SPECIE = {
     nome: 'Pigo', sci: 'Rutilus pigus', gruppo: 'ciprinidi',
     icona: 'fish-generic', autoctona: true, protetta: true,
     misuraMin: null, limiteGiorno: 0,
-    divieto: [[1, 1, 12, 31]], divietoTesto: 'tutto l\'anno — pesca vietata',
+    divieto: [[1, 1, 12, 31]], divietoTesto: 'tutto l\'anno, pesca vietata',
     tOpt: [14, 22], tLive: [7, 25],
     mesi: [.3, .3, .4, .4, .4, .4, .6, .6, .6, .5, .4, .3],
     luce: 'giorno', torbida: 0, portata: 0, press: 0,
@@ -182,7 +182,7 @@ const SPECIE = {
     nome: 'Sanguinerola', sci: 'Phoxinus lumaireul', gruppo: 'ciprinidi',
     icona: 'fish-generic', autoctona: true, protetta: true,
     misuraMin: null, limiteGiorno: 0,
-    divieto: [[1, 1, 12, 31]], divietoTesto: 'tutto l\'anno — pesca vietata',
+    divieto: [[1, 1, 12, 31]], divietoTesto: 'tutto l\'anno, pesca vietata',
     tOpt: [10, 19], tLive: [4, 23],
     mesi: [.3, .3, .4, .5, .5, .5, .7, .7, .7, .6, .4, .3],
     luce: 'giorno', torbida: -0.5, portata: 0, press: 0,
@@ -464,7 +464,7 @@ const SPECIE = {
     nome: 'Cheppia (alosa)', sci: 'Alosa fallax', gruppo: 'migratori',
     icona: 'fish-generic', autoctona: true, protetta: true,
     misuraMin: null, limiteGiorno: 0,
-    divieto: [[1, 1, 12, 31]], divietoTesto: 'tutto l\'anno — pesca vietata; in provincia di Parma va rilasciata immediatamente',
+    divieto: [[1, 1, 12, 31]], divietoTesto: 'tutto l\'anno, pesca vietata; in provincia di Parma va rilasciata immediatamente',
     tOpt: [12, 18], tLive: [8, 22],
     mesi: [0, 0, .2, .9, 1, .3, 0, 0, 0, 0, 0, 0],
     luce: 'giorno', torbida: -0.3, portata: 0.4, press: 0,
@@ -492,7 +492,7 @@ const SPECIE = {
     nome: 'Storioni (cobice, comune, ladano)', sci: 'Acipenser spp. / Huso huso', gruppo: 'migratori',
     icona: 'fish-generic', autoctona: true, protetta: true,
     misuraMin: null, limiteGiorno: 0,
-    divieto: [[1, 1, 12, 31]], divietoTesto: 'tutto l\'anno — pesca vietata (specie estinte o estremamente rare)',
+    divieto: [[1, 1, 12, 31]], divietoTesto: 'tutto l\'anno, pesca vietata (specie estinte o estremamente rare)',
     tOpt: [12, 22], tLive: [6, 26],
     mesi: [.2, .2, .3, .4, .4, .4, .5, .5, .5, .4, .3, .2],
     luce: 'notte', torbida: 0.3, portata: 0.2, press: 0,

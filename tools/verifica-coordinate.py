@@ -3,7 +3,7 @@
 Controlla che ogni stazione sia davvero sull'acqua.
 
 Per ciascuno spot misura, nella sua mini-carta gia' scaricata, la distanza dal
-centro all'acqua che la scheda dichiara — il tratto che bake-locale.py ha
+centro all'acqua che la scheda dichiara: il tratto che bake-locale.py ha
 riconosciuto per nome, o la riva del mare. Solo se la carta non l'ha riconosciuta
 vale il corso d'acqua piu' vicino, qualunque sia. Se la distanza supera la soglia
 la coordinata e' sbagliata: la si aggancia al punto piu' vicino di quell'acqua.
@@ -122,7 +122,7 @@ def main():
     # La sostituzione usa la coordinata *come e' scritta nel file* e la protegge
     # con re.escape. Prima si costruiva il modello da str(float(...)): "44.9040"
     # diventava "44.904" e non combaciava piu'. Su 45 spot su 222 la correzione
-    # falliva in silenzio — e la voce veniva tolta dalla cache lo stesso, quindi
+    # falliva in silenzio, e la voce veniva tolta dalla cache lo stesso, quindi
     # al giro dopo la mini-carta si ridisegnava sul punto vecchio e sembrava
     # tutto a posto. Ora chi non combacia resta anche in cache.
     falliti = set()

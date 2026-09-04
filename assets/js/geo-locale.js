@@ -1,4 +1,4 @@
-/* Mini-carte locali — generate da tools/bake-locale.py
+/* Mini-carte locali: generate da tools/bake-locale.py
    Dati: © OpenStreetMap contributors, licenza ODbL.
    Origine di ogni carta: le coordinate dello spot. Unita: metri.
    wm il corso d'acqua della scheda · ma il suo specchio · ws il mare

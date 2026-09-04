@@ -399,6 +399,6 @@ const TAVOLE = (() => {
   return {
     pesce, pesci: F, segni: S, cielo: C, CIELO,
     seg: (n) => S[n] || S.info,
-    ciel: (w) => { const c = CIELO[w] || ['coperto', '—']; return { svg: C[c[0]], testo: c[1] }; }
+    ciel: (w) => { const c = CIELO[w] || ['coperto', '–']; return { svg: C[c[0]], testo: c[1] }; }
   };
 })();

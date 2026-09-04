@@ -316,7 +316,7 @@ const ENGINE = (() => {
   }
 
   function sposta(hhmm, minuti) {
-    if (!hhmm) return '—';
+    if (!hhmm) return '–';
     const [h, m] = hhmm.split(':').map(Number);
     let t = h * 60 + m + minuti;
     t = ((t % 1440) + 1440) % 1440;

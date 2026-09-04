@@ -222,8 +222,8 @@ def corsi(spot):
 
        Due passi. Prima i nomi di sempre, cercati per nome intero: precisi,
        nessun omonimo. Poi si guarda quali schede sono rimaste senza la loro
-       acqua — le schede dicono «Torrente Limentra di Treppio», la mappa in quel
-       punto scrive «Limentra», e per nome intero non si trovava nulla — e solo
+       acqua (le schede dicono «Torrente Limentra di Treppio», la mappa in quel
+       punto scrive «Limentra», e per nome intero non si trovava nulla), e solo
        per quelle si cerca per parole, tenendo i tratti che passano davvero
        vicino alla scheda che li nomina. Un punto senza il suo fiume sembra un
        errore di coordinate anche quando la coordinata e' giusta."""
@@ -278,8 +278,8 @@ def laghi(chiavi=()):
 
        Gli specchi nominati da una scheda si cercano anche per nome, senza
        chiedere il sottotipo: i laghetti di cava e gli invasi di montagna spesso
-       portano solo `natural=water`, e col filtro sul sottotipo restavano fuori
-       — con loro restava fuori il lago su cui la scheda dice di pescare."""
+       portano solo `natural=water`, e col filtro sul sottotipo restavano fuori,
+       e con loro restava fuori il lago su cui la scheda dice di pescare."""
     parole = '|'.join(sorted({p for k in chiavi for p in k}, key=lambda w: (-len(w), w)))
     per_nome = ("""
   way["natural"="water"]["name"~"(^|[^[:alnum:]])(%s)($|[^[:alnum:]])",i](area.r);
@@ -511,7 +511,7 @@ def main():
     acqua = mare([bbox[0] - 60, bbox[1] - 300, bbox[2] + 60, bbox[3] + 300])
 
     righe = []
-    righe.append('/* Geometria della carta regionale — generata da tools/bake-geo.py')
+    righe.append('/* Geometria della carta regionale: generata da tools/bake-geo.py')
     righe.append('   Dati: © OpenStreetMap contributors, licenza ODbL.')
     righe.append('   Proiezione equirettangolare centrata su %.2f N, %.2f E.' % (LAT0, LON0))
     righe.append('   NON modificare a mano: rilancia lo script. */')
@@ -574,7 +574,7 @@ def main():
         f.write('\n'.join(righe))
 
     kb = os.path.getsize(OUT) / 1024
-    sys.stderr.write('\nScritto %s — %.0f KB\n' % (OUT, kb))
+    sys.stderr.write('\nScritto %s, %.0f KB\n' % (OUT, kb))
     sys.stderr.write('  confine   %d anelli, %d vertici\n' % (len(bordo), sum(len(a) for a in bordo)))
     sys.stderr.write('  mare      %d poligoni\n' % len(acqua))
     sys.stderr.write('  fiumi     %d nomi, %d segmenti\n' % (len(fiumi), n_seg))

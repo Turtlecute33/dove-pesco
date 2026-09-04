@@ -4,12 +4,12 @@
    Due mappe in SVG, disegnate da geometria OpenStreetMap incorporata nel sito:
    nessun server di tile, nessuna libreria, nessuna chiamata di rete.
 
-   1. Regionale — dove sono tutti gli spot. Solo punti: il colore dice come si
+   1. Regionale: dove sono tutti gli spot. Solo punti: il colore dice come si
       presenta la giornata, la scheda rapida compare al passaggio e il clic apre
       lo spot. Nessun numero addosso alla mappa, altrimenti diventa un
       tabellone. Si trascina, si ingrandisce con le dita o con i tasti: punti e
       nomi si contro-scalano e restano leggibili a ogni ingrandimento.
-   2. Locale — il tratto d'acqua, le strade, i parcheggi e i punti in cui una
+   2. Locale: il tratto d'acqua, le strade, i parcheggi e i punti in cui una
       strada arriva a toccare l'acqua. Serve a decidere dove fermarsi.
    ========================================================================== */
 
@@ -41,8 +41,8 @@ const MAPPA = (() => {
 
   /* La regione è larga il doppio di quanto è alta. Su un telefono diventerebbe
      una striscia alta due dita: i punti si accavallano e non se ne centra uno.
-     Sotto i 620 px allarghiamo il riquadro soltanto in verticale — la mappa non
-     si deforma, cresce l'acqua intorno — e i punti tornano toccabili. */
+     Sotto i 620 px allarghiamo il riquadro soltanto in verticale: la mappa non
+     si deforma, cresce l'acqua intorno, e i punti tornano toccabili. */
   const PROPORZIONE_STRETTA = 1.2;
 
   /* La soglia è la stessa che in style.css fa scendere la leggenda sotto la
@@ -342,8 +342,8 @@ const MAPPA = (() => {
   const SCARTO = 380;
 
   /* Il riquadro non è sempre lo stesso quadrato. Se l'acqua su cui si pesca
-     cade lontano dal punto — una coordinata approssimata, un fiume largo, una
-     foce — il riquadro scivola verso l'acqua quel tanto che basta a tenere
+     cade lontano dal punto (una coordinata approssimata, un fiume largo, una
+     foce), il riquadro scivola verso l'acqua quel tanto che basta a tenere
      dentro tutti e due, e si stringe per non uscire dai dati incisi. Così la
      carta mostra sempre lo spot *e* la sua acqua, non uno dei due. */
   /* GEO_RAGGIO arriva con geo-locale.js, che si carica alla prima scheda
@@ -452,7 +452,7 @@ const MAPPA = (() => {
 
   /* Quanti segni numerati la carta disegna davvero. Non g.ac.length: da quello
      disegnaLocale toglie i punti che cadono addosso al punto di accesso, e la
-     didascalia annunciava segni che non c'erano — su quattro spot, tutti. */
+     didascalia annunciava segni che non c'erano: su quattro spot, tutti. */
   const contaAccessi = (id) => {
     const g = (typeof GEO_LOCALE !== 'undefined') ? GEO_LOCALE[id] : null;
     if (!g || !g.ac) return 0;

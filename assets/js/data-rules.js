@@ -1,5 +1,5 @@
 /* =============================================================================
-   REGOLE — Pesca sportiva e ricreativa in Emilia-Romagna
+   REGOLE: pesca sportiva e ricreativa in Emilia-Romagna
    Riferimenti: L.R. 11/2012 · Reg. reg. 1/2018 (Allegato 1 e Allegato 2)
    modificato dal Reg. reg. 1/2020 · Programma ittico regionale annuale ·
    calendari ittici provinciali.
@@ -41,7 +41,7 @@ const REGOLE = {
   ],
 
   avvisi: [
-    { t: 'Fiume Taro — divieto di pesca fino al 31/12/2026', d: 'Per la scarsità idrica è istituita una zona di protezione temporanea della fauna ittica nel tratto tra il punto di derivazione in località Ramiola (Medesano, PR) e la foce, compresi i canali di bonifica alimentati con risorsa prelevata in deroga.', livello: 'alto' },
+    { t: 'Fiume Taro: divieto di pesca fino al 31/12/2026', d: 'Per la scarsità idrica è istituita una zona di protezione temporanea della fauna ittica nel tratto tra il punto di derivazione in località Ramiola (Medesano, PR) e la foce, compresi i canali di bonifica alimentati con risorsa prelevata in deroga.', livello: 'alto' },
     { t: 'Bacini di Suviana, Brasimone e S. Maria', d: 'Nuovo regolamento per il triennio 2026-29 (BUR n. 167 del 01/07/2026). Vietata la pesca e la detenzione di esemplari vivi o morti di vairone, pigo e savetta.', livello: 'medio' },
     { t: 'Provincia di Parma', d: 'Divieto permanente di pesca al barbo canino e alla lasca. Divieto di pesca a cavedano e vairone dal 15 marzo al 30 giugno. Divieto di detenzione di cavedani sotto i 22 cm. Detenzione della cheppia vietata in tutte le acque provinciali.', livello: 'medio' },
     { t: 'Casse di espansione del Secchia', d: 'Misure minime locali per lucci e persici e divieto di utilizzo di esche artificiali dal 15 dicembre al 15 maggio.', livello: 'medio' },
@@ -57,14 +57,14 @@ const REGOLE = {
   ],
 
   fonti: [
-    { t: 'Pesca sportiva — Regione Emilia-Romagna', u: 'https://agricoltura.regione.emilia-romagna.it/pesca/pesca-sportiva-professionale-acque-interne' },
+    { t: 'Pesca sportiva, Regione Emilia-Romagna', u: 'https://agricoltura.regione.emilia-romagna.it/pesca/pesca-sportiva-professionale-acque-interne' },
     { t: 'Carta interattiva delle zone ittiche e dei regolamenti', u: 'https://agricoltura.regione.emilia-romagna.it/pesca/pesca-sportiva-professionale-acque-interne/calendari-ittici/carta-interattiva' },
     { t: 'Aree di pesca regolamentata in Emilia-Romagna', u: 'https://agricoltura.regione.emilia-romagna.it/pesca/pesca-sportiva-professionale-acque-interne/aree-di-pesca-regolamentata-in-emilia-romagna' },
     { t: 'Regolamento regionale n. 1/2018 (testo vigente su Demetra)', u: 'https://demetra.regione.emilia-romagna.it/al/articolo?urn=er%3Aassemblealegislativa%3Aregolamento%3A2018%3B1' },
-    { t: 'Allegato 2 modificato — BUR n. 377 del 29/10/2020', u: 'https://bur.regione.emilia-romagna.it/area-bollettini/bollettini-in-lavorazione/n-377-del-29-10-2020-parte-prima.2020-10-30.1839750467/modifica-dellallegato-2-del-regolamento-regionale-2-febbraio-2018-n-1-di-attuazione-delle-disposizioni-in-materia-di-tutela-della-fauna-ittica-e-dellecosistema-acquatico-e-di-disciplina-della-pesca-dellacquacoltura-e-delle-attivita-connesse-nelle-acque/allegato-regolamento-regionale.2020-10-30.1604064195' },
+    { t: 'Allegato 2 modificato, BUR n. 377 del 29/10/2020', u: 'https://bur.regione.emilia-romagna.it/area-bollettini/bollettini-in-lavorazione/n-377-del-29-10-2020-parte-prima.2020-10-30.1839750467/modifica-dellallegato-2-del-regolamento-regionale-2-febbraio-2018-n-1-di-attuazione-delle-disposizioni-in-materia-di-tutela-della-fauna-ittica-e-dellecosistema-acquatico-e-di-disciplina-della-pesca-dellacquacoltura-e-delle-attivita-connesse-nelle-acque/allegato-regolamento-regionale.2020-10-30.1604064195' },
     { t: 'Programma ittico regionale 2026/2027', u: 'https://bur.regione.emilia-romagna.it/area-bollettini/n-79-del-02-04-2026-parte-seconda/l-r-n-11-2012-art-5-adozione-del-programma-ittico-regionale-2026-2027/allegato1' },
     { t: 'Itinerari di pesca sportiva in Emilia-Romagna (PDF)', u: 'https://agricoltura.regione.emilia-romagna.it/pesca/pubblicazioni/pesca-sportiva/itinerari-di-pesca-sportiva-in-emilia-romagna' },
-    { t: 'Tesserino pesca Suviana, Brasimone e S. Maria — Ente Parchi BO', u: 'https://enteparchi.bo.it/pagina.php?id=42' },
-    { t: 'Previsioni meteo e portata dei fiumi — Open-Meteo (licenza CC BY 4.0)', u: 'https://open-meteo.com/' }
+    { t: 'Tesserino pesca Suviana, Brasimone e S. Maria (Ente Parchi BO)', u: 'https://enteparchi.bo.it/pagina.php?id=42' },
+    { t: 'Previsioni meteo e portata dei fiumi: Open-Meteo (licenza CC BY 4.0)', u: 'https://open-meteo.com/' }
   ]
 };

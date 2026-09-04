@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Dove pescare oggi in Emilia-Romagna — 222 spot | Dove Pesco</title>
+<title>Dove pescare oggi in Emilia-Romagna: 222 spot | Dove Pesco</title>
 <meta name="description" content="Ogni mattina l'indice del giorno per 222 spot dell'Emilia-Romagna: portata dei fiumi, temperatura dell'acqua, meteo e stagione delle specie.">
 <meta name="color-scheme" content="light">
 <meta name="referrer" content="no-referrer">
@@ -52,13 +52,15 @@
       <h1 class="titolo-oggi">Dove pescare oggi in Emilia-Romagna</h1>
       <!-- Una riga sola, scritta qui e non generata: dice cosa fa il sito a chi
            arriva la prima volta, prima ancora che gli script partano. -->
-      <p class="spiega">Ogni mattina do un voto da 0 a 100 a 222 spot della regione —
+      <p class="spiega">Ogni mattina do un voto da 0 a 100 a 222 spot della regione:
         portata del fiume, temperatura dell'acqua, meteo, luna e stagione delle specie.
         <b>Qui sotto quello che oggi promette di più.</b></p>
+      <!-- Vuote: le scrive render(), e finche' sono vuote il foglio di stile le
+           tiene fuori dalla pagina invece di mostrare tre pastiglie senza testo. -->
       <div class="data-riga">
-        <span class="occhio" id="data-oggi">—</span>
-        <span class="occhio tenue" id="data-luna">—</span>
-        <span class="occhio tenue" id="data-fonte" hidden>—</span>
+        <span class="occhio" id="data-oggi"></span>
+        <span class="occhio tenue" id="data-luna"></span>
+        <span class="occhio tenue" id="data-fonte" hidden></span>
       </div>
       <!-- Il riquadro parte già con la sua misura (min-height in style.css) e con
            la riga di attesa scritta qui dentro: la prima schermata dice qualcosa
@@ -98,7 +100,7 @@
           <button type="button" class="spunta" data-f="noKill" aria-pressed="false">Solo no kill</button>
           <button type="button" class="spunta" data-f="bimbi" aria-pressed="false">Con i bambini</button>
           <button type="button" class="spunta" data-f="disabili" aria-pressed="false">Postazioni accessibili</button>
-          <button type="button" class="spunta" id="azzera" style="margin-left:auto">Azzera</button>
+          <button type="button" class="spunta" id="azzera">Azzera</button>
           <button type="button" class="spunta" id="aggiorna">Aggiorna dati</button>
         </div>
       </div>
@@ -148,7 +150,7 @@
       <div class="voce"><h3>Temperatura dell'acqua</h3><div>
         <p>È il fattore che pesa di più, e nessuno la misura su 222 punti. La stimiamo con un
         modello a inerzia termica: l'acqua segue la media dell'aria degli ultimi giorni, smorzata
-        verso la temperatura media annua alla quota dello spot — che è, in pratica, la temperatura
+        verso la temperatura media annua alla quota dello spot, che è, in pratica, la temperatura
         di falda.</p>
         <p>Finestra e smorzamento cambiano con l'ambiente: tre giorni e forte smorzamento per un
         torrente sorgivo, sette e quasi nessuno per un canale di pianura, quattordici per un bacino
@@ -175,14 +177,14 @@
         crepuscolari. La luna conta solo per i predatori notturni.</p></div></div>
 
       <div class="voce"><h3>Divieti e presenza reale</h3><div>
-        <p>Una specie in divieto o protetta non viene esclusa — resta pescabile in catch and
-        release — ma pesa il 34% e la scheda lo dichiara. Dove la guida regionale scrive «rari»,
+        <p>Una specie in divieto o protetta non viene esclusa: resta pescabile in catch and
+        release, ma pesa il 34% e la scheda lo dichiara. Dove la guida regionale scrive «rari»,
         la specie pesa il 42%.</p></div></div>
 
       <div class="voce"><h3>La somma</h3><div>
         <p>62% della specie migliore più 38% della media delle prime tre, poi i modificatori
-        d'ambiente — piena, magra, temporali, vento, mare mosso, acqua fresca in giornata torrida,
-        stagione consigliata — e una compressione esponenziale su 100. <b>Il 100 non è
+        d'ambiente (piena, magra, temporali, vento, mare mosso, acqua fresca in giornata torrida,
+        stagione consigliata) e una compressione esponenziale su 100. <b>Il 100 non è
         raggiungibile</b>: nessun giorno è perfetto.</p></div></div>
     </div>
 
@@ -196,8 +198,8 @@
         <p class="mini" style="margin-top:10px">Ogni spot porta due punti, e non sono lo stesso.
         La <b>coordinata della scheda</b> dice di che pezzo di fiume parlano il meteo e la
         portata: sta sul corso d'acqua, e su un fiume largo cade in mezzo alla corrente. Il
-        <b>punto di accesso</b> — il segno pieno sulla carta, quello che aprono i tasti
-        OpenStreetMap, Google Maps e Naviga — è dove una strada arriva alla sponda e ci si può
+        <b>punto di accesso</b>, il segno pieno sulla carta che aprono i tasti
+        OpenStreetMap, Google Maps e Naviga, è dove una strada arriva alla sponda e ci si può
         fermare. I due possono distare qualche centinaio di metri: la cella della portata è larga
         chilometri, il posto dove si tira è largo dieci metri.</p>
         <p class="mini" style="margin-top:10px">Il punto di accesso è calcolato sulla sponda
@@ -227,8 +229,8 @@
         preparato a monte e servito insieme alla pagina, aggiornato ogni due ore: il tuo browser
         non parla con nessun servizio esterno e il tuo indirizzo IP non esce di qui.
         La tua posizione non viene mai richiesta.</p>
-        <p class="mini" style="margin-top:10px">Se quel file manca o ha più di cinque ore — per
-        esempio aprendo il sito da una cartella, senza server — si torna a chiamare Open-Meteo
+        <p class="mini" style="margin-top:10px">Se quel file manca o ha più di cinque ore (per
+        esempio aprendo il sito da una cartella, senza server) si torna a chiamare Open-Meteo
         direttamente dal browser, a poche richieste per volta e con i dati tenuti in cache 45
         minuti. Anche in quel caso l'unica destinazione è Open-Meteo.</p>
         <p class="mini" style="margin-top:10px">Le schede degli spot derivano da
@@ -280,7 +282,7 @@
       <div>
         <span class="occhio">Fonti</span>
         <ul>
-          <li><a href="https://agricoltura.regione.emilia-romagna.it/pesca/pesca-sportiva-professionale-acque-interne" target="_blank" rel="noopener noreferrer">Pesca sportiva — Regione E-R</a></li>
+          <li><a href="https://agricoltura.regione.emilia-romagna.it/pesca/pesca-sportiva-professionale-acque-interne" target="_blank" rel="noopener noreferrer">Pesca sportiva (Regione E-R)</a></li>
           <li><a href="https://agricoltura.regione.emilia-romagna.it/pesca/pesca-sportiva-professionale-acque-interne/calendari-ittici/carta-interattiva" target="_blank" rel="noopener noreferrer">Carta interattiva delle acque</a></li>
           <li><a href="https://demetra.regione.emilia-romagna.it/al/articolo?urn=er%3Aassemblealegislativa%3Aregolamento%3A2018%3B1" target="_blank" rel="noopener noreferrer">Regolamento regionale 1/2018</a></li>
         </ul>
@@ -288,8 +290,8 @@
       <div>
         <span class="occhio">Dati</span>
         <ul>
-          <li><a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo</a> — meteo e portata</li>
-          <li><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a> — mappe</li>
+          <li><a href="https://open-meteo.com/" target="_blank" rel="noopener noreferrer">Open-Meteo</a>: meteo e portata</li>
+          <li><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener noreferrer">OpenStreetMap</a>: mappe</li>
           <li><a href="#metodo" data-vai="metodo">Come nasce l'indice</a></li>
         </ul>
       </div>

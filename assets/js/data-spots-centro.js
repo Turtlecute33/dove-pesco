@@ -1,5 +1,5 @@
 /* =============================================================================
-   SPOT DI PESCA — Bologna, Modena, Ferrara (secondo elenco)
+   SPOT DI PESCA: Bologna, Modena, Ferrara (secondo elenco)
    -----------------------------------------------------------------------------
    Aggiunta 2026: 51 stazioni in più sui tre territori centrali, dove la rete
    d'acqua è più fitta e la copertura era più magra: l'asta del Reno con i suoi

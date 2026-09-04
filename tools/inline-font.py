@@ -6,7 +6,7 @@ Rilancialo solo se cambi i caratteri."""
 import base64, re, os, sys
 B = os.path.join(os.path.dirname(__file__), '..')
 faces = open(os.path.join(B, 'assets/fonts/_faces.css')).read().strip().split('\n')
-out = ["/* Caratteri incorporati come data URI — generato da tools/inline-font.py",
+out = ["/* Caratteri incorporati come data URI: generato da tools/inline-font.py",
        "   Fraunces e Archivo, licenza SIL Open Font 1.1. */", ""]
 for f in faces:
     m = re.search(r"url\('\.\./fonts/([^']+)'\)", f)
@@ -15,4 +15,4 @@ for f in faces:
     out.append(f.replace(m.group(0), "url('data:font/woff2;base64,%s')" % d))
 p = os.path.join(B, 'assets/css/caratteri.css')
 open(p, 'w').write('\n'.join(out) + '\n')
-sys.stderr.write('scritto %s — %.0f KB\n' % (p, os.path.getsize(p) / 1024))
+sys.stderr.write('scritto %s, %.0f KB\n' % (p, os.path.getsize(p) / 1024))

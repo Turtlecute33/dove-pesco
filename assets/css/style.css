@@ -173,7 +173,7 @@ hr{ border:0; height:1px; background:var(--linea); margin:0 }
 :focus-visible{ outline:2.5px solid var(--acc-2); outline-offset:3px; border-radius:4px }
 
 /* ==========================================================================
-   TESTATA — una pastiglia di vetro che galleggia
+   TESTATA: una pastiglia di vetro che galleggia
    ========================================================================== */
 .top{ position:sticky; top:0; z-index:60; padding:10px 0 4px }
 .top-in{
@@ -219,6 +219,12 @@ nav.men button[aria-current]{
   border-radius:var(--r-pill); background:rgba(252,250,245,.7); box-shadow:var(--sh-1);
   font-size:.72rem;
 }
+/* La pastiglia dell'ora di rilevamento nasce vuota e resta nascosta quando i
+   dati non vengono da un file preparato a monte. La riga sopra dichiara un
+   display, e un display dichiarato dal foglio batte il display:none che il
+   browser da' a [hidden]: senza queste due righe compariva una pastiglia
+   vuota, sul telefono su una riga sua. */
+.data-riga span[hidden],.data-riga span:empty{ display:none }
 
 /* La risposta del giorno la scrive JavaScript, ma il posto glielo tiene il CSS:
    senza, il riquadro nasceva vuoto e, riempiendosi, spingeva in basso mappa,
@@ -239,7 +245,7 @@ nav.men button[aria-current]{
 }
 
 /* Il titolo grande non e' sempre un h1: nell'applicazione l'h1 e' il titolo
-   stabile della pagina, e il nome dello spot — che cambia ogni mattina — e' un
+   stabile della pagina, e il nome dello spot, che cambia ogni mattina, e' un
    h2. La forma resta la stessa, cambia solo il livello. */
 .titolone{
   font-family:var(--serif); font-weight:500; letter-spacing:-.035em;
@@ -307,7 +313,7 @@ nav.men button[aria-current]{
    misura si calcola invece di indovinarla: la larghezza del contenitore diviso
    la proporzione con cui mappa.js disegna il riquadro (1,765 la regione intera,
    1,2 sullo schermo stretto, come PROPORZIONE_STRETTA), piu' il piede della
-   scheda e — sotto i 620px, dove smette di stare sopra la mappa — la leggenda. */
+   scheda e, sotto i 620px dove smette di stare sopra la mappa, la leggenda. */
 .mappa-sez{ padding:clamp(22px,3.4vw,38px) 0 clamp(16px,2.4vw,24px); container-type:inline-size }
 #mappa{ min-height:calc(100cqw / 1.765 + 42px) }
 @media (max-width:620px){ #mappa{ min-height:calc(100cqw / 1.2 + 102px) } }
@@ -549,9 +555,11 @@ details.pieghe .dentro{ padding:2px 18px 18px }
 .spunta:hover{ background:var(--panna-2) }
 .spunta:active{ transform:scale(.97) }
 .spunta[aria-pressed="true"]{ background:var(--acc); color:#fff }
+/* «Azzera» e «Aggiorna dati» non filtrano: stanno in fondo, staccati dagli altri */
+#azzera{ margin-left:auto }
 
 /* ==========================================================================
-   ALTRI SPOT — una riga a testa, che si accende al passaggio
+   ALTRI SPOT: una riga a testa, che si accende al passaggio
    ========================================================================== */
 .altri{ padding:clamp(24px,3.4vw,36px) 0 clamp(28px,4vw,44px) }
 .altri-testa{
@@ -675,7 +683,7 @@ details.pieghe .dentro{ padding:2px 18px 18px }
   vector-effect:non-scaling-stroke }
 /* il mare: OpenStreetMap dà la riva, il colore lo mettiamo noi */
 .l-mare{ fill:#C7DCDE; stroke:none }
-/* l'acqua della scheda — quella su cui si pesca — è l'unica linea in grande */
+/* l'acqua della scheda, quella su cui si pesca, è l'unica linea in grande */
 .l-mia{ fill:none; stroke:var(--acc-2); stroke-width:4.4; stroke-linecap:round;
   stroke-linejoin:round; vector-effect:non-scaling-stroke }
 .l-mia-area{ fill:#A9CFD2; stroke:var(--acc-2); stroke-width:1.4;
@@ -696,10 +704,10 @@ details.pieghe .dentro{ padding:2px 18px 18px }
 .l-pk text{ font-family:var(--sans); font-weight:700; fill:#fff }
 /* Il punto pieno è quello che aprono i tasti: dove ci si ferma davvero. I
    cerchi vuoti numerati sono gli altri tratti in cui una strada arriva alla
-   riva, e il cerchio scuro vuoto è la coordinata della scheda — quella del
+   riva, e il cerchio scuro vuoto è la coordinata della scheda: quella del
    meteo e della portata, che su un fiume largo sta in mezzo alla corrente. */
-/* vector-effect: senza, stroke-width sta nelle unità del viewBox — cioè in
-   METRI di questa carta — e un contorno da 2 diventa 0,2 px a schermo, cioè
+/* vector-effect: senza, stroke-width sta nelle unità del viewBox, cioè in
+   METRI di questa carta, e un contorno da 2 diventa 0,2 px a schermo, cioè
    invisibile. Ogni altra classe della carta locale lo dichiara già. */
 .l-acc circle{ fill:none; stroke:var(--acc); stroke-width:2; vector-effect:non-scaling-stroke }
 .l-acc text{ font-family:var(--sans); font-weight:700; fill:var(--acc) }
@@ -771,6 +779,28 @@ table.dati td:first-child{ color:var(--ink) }
 table.dati .sci{ font-family:var(--sans); font-style:italic; color:var(--ink-3); font-size:.78rem;
   display:block; margin:0 }
 
+/* Sul telefono la tabella delle misure minime non ci sta: quattro colonne in
+   354 px facevano 482, e la colonna del divieto, la piu' lunga, restava fuori
+   dal riquadro dietro uno scorrimento laterale che nessuno vede. Sotto i
+   620 px ogni riga diventa una scheda e l'intestazione di colonna torna
+   accanto al valore, presa da data-eti. */
+@media (max-width:620px){
+  .scorre{ overflow-x:visible; padding:2px 16px }
+  /* display:block, altrimenti un gruppo di intestazione non ritaglia quello
+     che ha dentro e le celle nascoste sporgono dal bordo della pagina */
+  table.dati thead{ display:block; position:absolute; width:1px; height:1px;
+    overflow:hidden; clip-path:inset(50%) }
+  table.dati tr{ display:block; padding:14px 0; border-bottom:1px solid var(--linea) }
+  table.dati tr:last-child{ border-bottom:0 }
+  table.dati td{ display:flex; gap:10px; padding:2px 0; border:0 }
+  table.dati td:first-child{ display:block; margin-bottom:6px }
+  table.dati td[data-eti]::before{
+    content:attr(data-eti); flex:0 0 7.6em; padding-top:.18em;
+    font-size:.65rem; letter-spacing:.08em; text-transform:uppercase;
+    font-weight:700; color:var(--ink-3);
+  }
+}
+
 .nota{
   margin:24px 0; max-width:58ch; padding:18px 22px; border-radius:var(--r-lg);
   background:var(--acc-bg); color:#0C4247; font-family:var(--serif); font-size:1.05rem;
@@ -812,21 +842,68 @@ table.dati .sci{ font-family:var(--sans); font-style:italic; color:var(--ink-3);
   body{ font-size:16px }
   .top{ padding:8px 0 2px }
   .top-in{ height:52px; gap:10px; padding:0 6px 0 14px }
-  nav.men button{ padding:7px 11px; font-size:.84rem }
-  .risposta{ padding-top:14px }
+  /* la pastiglia del menu e' alta 52 px: i tasti dentro la riempiono, cosi'
+     il dito ha 44 px di bersaglio invece di 32 */
+  nav.men button{ padding:11px 12px; font-size:.84rem }
+
+  /* La prima schermata: prima si leggevano un occhiello, quattro righe di
+     spiegazione e due file di pastiglie, e il nome dello spot arrivava sotto
+     il bordo. Stessi contenuti, un poco piu' stretti, e la risposta del
+     giorno entra nella prima schermata. */
+  .risposta{ padding-top:12px }
+  .titolo-oggi{ font-size:.66rem; letter-spacing:.08em }
+  .spiega{ font-size:.98rem; line-height:1.42 }
+  /* Tre pastiglie di vetro, sul telefono, sono tre righe intere: la data, la
+     luna e l'ora del rilevamento sono una didascalia, non tre bottoni. Restano
+     le stesse parole, in fila, senza guscio. */
+  .data-riga{ display:block; margin-bottom:12px; line-height:1.7 }
+  .data-riga span{ display:inline; padding:0; background:none; box-shadow:none; font-size:.68rem }
+  .data-riga span + span::before{ content:'·'; margin:0 7px; color:var(--ink-4) }
+
   .corpo-risposta{ border-radius:var(--r-lg) }
   .fatti{ grid-template-columns:repeat(auto-fit,minmax(112px,1fr)); gap:8px }
   .fatto{ padding:12px 13px }
+  .spunte{ gap:7px; margin-top:14px }
+  #azzera{ margin-left:0 }
+
   .riga{ grid-template-columns:38px 1fr; gap:11px; padding:12px 10px }
   .riga .dx{ display:none }
   .pesce{ grid-template-columns:44px 1fr; gap:11px }
   .mappa-guscio,.piede-in{ border-radius:var(--r-lg) }
+  /* comandi della mappa: 38 px di bersaglio invece di 34 */
+  .mappa-strumenti button{ width:38px; height:36px }
+  .pop-x{ width:30px; height:30px; top:8px; right:8px }
+  /* i riquadri di testo guadagnano la larghezza che serve alle parole */
+  .voci,.scorre{ padding:2px 16px }
+  .voce{ padding:16px 0 }
+  .nota{ padding:16px 18px; font-size:1rem }
 }
-/* sotto i 430 px il marchio resta il solo simbolo: serve spazio per il menu */
+/* Sotto i 430 px la riga porta due colonne, non tre: qui le griglie si
+   dichiarano invece di lasciarle indovinare ad auto-fit, perche' con un numero
+   dispari di piastrelle l'ultima restava sola e stretta accanto a un vuoto.
+   Sopra, dove le colonne tornano tre, auto-fit riempie da solo.
+   Alla stessa misura il marchio resta il solo simbolo: serve spazio al menu. */
 @media (max-width:430px){
   .logo{ font-size:0; gap:0 }
   .logo svg{ width:26px; height:26px }
-  nav.men button{ padding:7px 9px; font-size:.82rem }
+  nav.men button{ padding:11px 10px; font-size:.82rem }
+
+  .fatti{ grid-template-columns:1fr 1fr; gap:8px }
+  .fatti .fatto:last-child:nth-child(odd){ grid-column:1 / -1 }
+  .rilev{ grid-template-columns:1fr 1fr }
+  .rilev .ril:last-child:nth-child(odd){ grid-column:1 / -1 }
+  /* i cinque filtri erano cinque righe intere */
+  .setacci{ grid-template-columns:1fr 1fr; gap:12px }
+
+  /* I tasti verso le mappe di terzi: due per riga invece di uno, e le
+     coordinate a capo da sole. I tasti crescono fino a riempire la riga e
+     vanno a capo per conto loro quando le parole non ci stanno piu': cosi'
+     a 390 px stanno in due, a 320 px in uno, e mai a cavallo del bordo. */
+  .fuori{ gap:7px }
+  .fuori .btn{ flex:1 1 auto; padding:10px 12px; font-size:.81rem; gap:6px;
+    white-space:nowrap }
+  .fuori .btn svg{ flex:0 0 auto }
+  .fuori .coord{ flex:1 0 100%; margin-left:0 }
 }
 
 @media (prefers-reduced-motion:reduce){

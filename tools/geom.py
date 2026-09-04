@@ -10,7 +10,7 @@ Due avvertenze che valgono per chiunque misuri su queste carte.
 
 La prima: un anello che si chiude con una corda lunga non e' un poligono. Il
 ritaglio del riquadro taglia i contorni d'acqua, e d_path li richiude con una
-retta che sul terreno non esiste — su pr-taro-fornovo quella retta e' lunga
+retta che sul terreno non esiste: su pr-taro-fornovo quella retta e' lunga
 16 km. Chiedere "sono dentro l'acqua?" a un poligono cosi' risponde di un lato
 inventato. Qui un anello del genere torna aperto: e' una riva, non un contorno.
 
@@ -74,7 +74,7 @@ def cuci_anelli(pezzi, tol=1.5):
 
     Un lago o un fiume grande, in OpenStreetMap, e' una relazione: il suo
     contorno arriva a pezzi, un membro `outer` per volta. Ogni pezzo, da solo,
-    e' un arco che non si chiude — e il browser, per riempirlo, lo chiude
+    e' un arco che non si chiude, e il browser, per riempirlo, lo chiude
     d'ufficio con una retta. Da li' le macchie d'azzurro larghe chilometri, con
     dentro le strade e il nome di un paese: acqua che non esiste, disegnata
     sopra la terra su cui si va a pescare.
@@ -115,7 +115,7 @@ def riempiti(d):
     SVG, per riempire, chiude d'ufficio ogni sottopercorso: anche un contorno
     che il riquadro ha tagliato e che non si chiude viene dipinto d'azzurro.
     Quindi la macchia d'acqua che si vede sulla carta comprende anche gli archi
-    aperti, e un punto li' dentro *sembra* in mezzo al fiume — che e' esattamente
+    aperti, e un punto li' dentro *sembra* in mezzo al fiume, che e' esattamente
     la cosa di cui ci si lamenta. Per decidere dove mandare chi guida vale
     questa figura, non quella geometricamente pulita: la carta e il tasto devono
     raccontare la stessa cosa.
@@ -188,7 +188,7 @@ def taglia(a, b, c, d):
     risposta dipendeva dal verso in cui la way era disegnata: lo stesso punto
     veniva scartato o tenuto a seconda di come OpenStreetMap aveva orientato la
     linea, e su un fiume la mezzeria tocca il piede della perpendicolare per
-    costruzione — cioe' quasi sempre.
+    costruzione, cioe' quasi sempre.
     """
     def lato(p, q, r):
         return (q[0] - p[0]) * (r[1] - p[1]) - (q[1] - p[1]) * (r[0] - p[0])
@@ -238,7 +238,7 @@ def riva_di_la(p, piede, assi, minimo=20.0, massimo=LOCALE):
         return False
     # Se il piede sta sulla mezzeria, la mezzeria non si puo' attraversare per
     # arrivarci: la domanda non ha oggetto. Senza questa riga la risposta si
-    # decideva sull'ultimo bit del calcolo — lo stesso punto, misurato in due
+    # decideva sull'ultimo bit del calcolo: lo stesso punto, misurato in due
     # modi che danno lo stesso piede, veniva scartato una volta su due.
     if piu_vicino(piede, assi)[0] < 1.0:
         return False
@@ -305,7 +305,7 @@ def riva_di(assi, contorni, largo=200.0):
     OpenStreetMap disegna un fiume grande due volte: la linea di mezzeria, che
     porta il nome, e il contorno delle sponde, quasi sempre senza nome. Il
     contorno senza nome finiva fra gli specchi d'acqua di sfondo e non lo
-    guardava nessuno — ed e' proprio la riva su cui si sta in piedi. Su tutti e
+    guardava nessuno, ed e' proprio la riva su cui si sta in piedi. Su tutti e
     23 gli spot del Po la sponda c'era, e non era mai stata usata.
 
     Non si adotta il contorno intero: sul Po e' un arco da 31 km che il
@@ -337,8 +337,8 @@ def riva_di(assi, contorni, largo=200.0):
 def in_acqua(p, assi, rive, anelli=(), locale=LOCALE):
     """Il punto sta nell'acqua, non sulla riva. Due prove, in quest'ordine.
 
-    Dove il contorno si chiude davvero — un lago, una cava, uno specchio tutto
-    dentro il riquadro — vale il dentro/fuori, che e' esatto.
+    Dove il contorno si chiude davvero (un lago, una cava, uno specchio tutto
+    dentro il riquadro) vale il dentro/fuori, che e' esatto.
 
     Su un fiume no: il contorno e' un arco che il riquadro taglia, e chiuderlo
     per forza inventa un lato lungo chilometri. Li' bastano la mezzeria e la
@@ -355,7 +355,7 @@ def in_acqua(p, assi, rive, anelli=(), locale=LOCALE):
     if anelli and dentro(p, anelli):
         # Sul bordo la domanda non ha una risposta: dentro o fuori dipende
         # dall'arrotondamento, e il bordo e' proprio il posto dove si sta in
-        # piedi a pescare. Sotto BORDO si e' sulla riva, non nell'acqua — con
+        # piedi a pescare. Sotto BORDO si e' sulla riva, non nell'acqua: con
         # una geometria semplificata a 23 m, otto sono una tolleranza prudente.
         if not rive or piu_vicino(p, rive)[0] > BORDO:
             return True

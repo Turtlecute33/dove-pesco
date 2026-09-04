@@ -146,7 +146,7 @@ def normalizza(g):
     Del formato nuovo mancano i manufatti (st), le barriere (xb) e i tag delle
     strade (rv): quello che resta sono le strade per classe e l'acqua, e con
     quelle si fanno la sponda, lo scarto dei punti in acqua e quello della riva
-    opposta — cioe' la parte che raddrizza i pin. Gli attraversamenti non sono
+    opposta, cioe' la parte che raddrizza i pin. Gli attraversamenti non sono
     nel dato vecchio ma si ricavano qui, incrociando strade e acqua.
     """
     g = dict(g)
@@ -154,7 +154,7 @@ def normalizza(g):
         # Nella carta vecchia r1 mescola autostrade e superstrade con le
         # provinciali: quel bake metteva motorway e trunk in classe 1. Non
         # essendo piu' separabili, r1 diventa classe 0 e non produce punti dove
-        # fermarsi — meglio due spot in meno che un pin sulla corsia di
+        # fermarsi: meglio due spot in meno che un pin sulla corsia di
         # emergenza della A1.
         g['rv'] = [[cls, 0, '', g[k]] for k, cls in (('r1', 0), ('r2', 2), ('r3', 3))
                    if g.get(k)]
@@ -218,7 +218,7 @@ def geometrie(s, g):
     if s['tipo'] == 'mare':
         riva += geom.linee(g.get('ws'))
     if not riva and s['tipo'] in ('lago', 'bacino', 'cava'):
-        # Acqua ferma che OpenStreetMap non nomina — una cava, un laghetto. Si
+        # Acqua ferma che OpenStreetMap non nomina: una cava, un laghetto. Si
         # adotta il contorno che circonda il pin; se nessuno lo circonda, il
         # piu' lungo li' attorno, anche se il riquadro l'ha tagliato e non si
         # chiude: una riva tagliata resta una riva.
@@ -237,8 +237,8 @@ def candidati(s, g, assi, riva, anelli, d_riva, r_max, solo_piedi=False):
     solo_asse = not riva
     # Si misura dalla sponda dove la sponda c'e', e dalla mezzeria dove non
     # c'e': le due insieme, non l'una al posto dell'altra. La sponda trovata
-    # accanto all'asse puo' stare a un chilometro da qui — e' la sponda di un
-    # altro tratto — e misurare solo da quella lasciava senza accesso tredici
+    # accanto all'asse puo' stare a un chilometro da qui (e' la sponda di un
+    # altro tratto), e misurare solo da quella lasciava senza accesso tredici
     # spot che avevano la strada a quattro metri dall'acqua.
     # Chi finisce troppo vicino alla mezzeria di un fiume largo e' in acqua, e
     # lo scarta in_acqua() due righe piu' sotto.
@@ -464,7 +464,7 @@ def main():
     if solo:
         return
 
-    righe = ["/* Il punto di accesso di ogni spot — generato da tools/accessi.py",
+    righe = ["/* Il punto di accesso di ogni spot: generato da tools/accessi.py",
              '   Dati: (c) OpenStreetMap contributors, licenza ODbL.',
              '',
              "   Non e' la coordinata della scheda: quella dice di che pezzo di",
@@ -492,7 +492,7 @@ def main():
         fh.write('\n'.join(righe) + '\n')
 
     tot = len(spot)
-    sys.stderr.write('\nScritto %s — %d spot su %d (%.1f KB)\n'
+    sys.stderr.write('\nScritto %s, %d spot su %d (%.1f KB)\n'
                      % (OUT, len(fuori), tot, os.path.getsize(OUT) / 1024))
     sys.stderr.write('  confidenza 3: %d · 2: %d · 1: %d\n'
                      % (conta.get(3, 0), conta.get(2, 0), conta.get(1, 0)))

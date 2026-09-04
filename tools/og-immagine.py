@@ -56,7 +56,7 @@ def main():
         sys.exit('serve cairosvg:  pip install cairosvg')
     cairosvg.svg2png(bytestring=SVG.encode(), write_to=FUORI,
                      output_width=1200, output_height=630)
-    sys.stderr.write('scritto %s — %.0f KB\n'
+    sys.stderr.write('scritto %s, %.0f KB\n'
                      % (FUORI, os.path.getsize(FUORI) / 1024))
 
 

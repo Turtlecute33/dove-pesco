@@ -1,5 +1,5 @@
 /* =============================================================================
-   SPOT — terza tranche
+   SPOT: terza tranche
    Località che gli itinerari regionali nominano esplicitamente ma che meritano
    una scheda propria: un fiume è lungo, e sapere "il Trebbia" non basta.
    Stessa fonte: «Itinerari di pesca sportiva in Emilia-Romagna», Regione E-R.

@@ -1,5 +1,5 @@
 /* =============================================================================
-   INDICE — unisce i quattro elenchi di spot e raccoglie le tabelle di supporto.
+   INDICE: unisce i quattro elenchi di spot e raccoglie le tabelle di supporto.
    Va caricato DOPO data-spots-emilia.js, data-spots-romagna.js,
    data-spots-extra.js e data-spots-centro.js.
    ========================================================================== */

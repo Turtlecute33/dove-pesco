@@ -1,4 +1,4 @@
-# Dove Pesco — Emilia-Romagna
+# Dove Pesco, Emilia-Romagna
 
 **[dovepescare.com](https://dovepescare.com/)**
 
@@ -7,7 +7,7 @@ Sito statico che risponde a una domanda sola: **stamattina, dove vado a pescare?
 225 spot su fiumi, torrenti, laghi, canali e mare. Ogni mattina ognuno riceve un
 *indice del giorno*, calcolato incrociando la portata reale del corso d'acqua, la
 temperatura stimata dell'acqua, la pioggia delle 72 ore precedenti, la pressione, la
-luce, la luna e la finestra stagionale di ogni specie — con i divieti dell'Allegato 2
+luce, la luna e la finestra stagionale di ogni specie, con i divieti dell'Allegato 2
 già applicati.
 
 ## Uso
@@ -25,8 +25,8 @@ chiamata a testa».
 
 ## Come è organizzata
 
-**Una domanda, una risposta.** In cima, una riga sola dice cosa fa il sito — un voto da 0
-a 100 su 225 spot, ogni mattina, e cosa lo decide — perché il titolo da solo non bastava:
+**Una domanda, una risposta.** In cima, una riga sola dice cosa fa il sito (un voto da 0
+a 100 su 225 spot, ogni mattina, e cosa lo decide), perché il titolo da solo non bastava:
 chi arriva la prima volta vedeva un nome di fiume e un numero, senza sapere di che numero
 si trattasse. È scritta nell'HTML, non generata: si legge prima che parta uno script.
 
@@ -56,12 +56,12 @@ sitemap.xml  robots.txt  404.html
 L'elenco di tutti i 281 indirizzi sta anche in fondo all'applicazione, in un `<details>`
 chiuso. Prima stava dentro un `<noscript>`, ed era come non esserci: Googlebot esegue
 JavaScript, e quando lo esegue butta via il contenuto di `<noscript>`. Risultato, la home
-— la pagina con più autorità del sito — passava **dieci** collegamenti, tutti verso
+(la pagina con più autorità del sito) passava **dieci** collegamenti, tutti verso
 l'esterno, e nessuno verso le 277 pagine che deve far trovare. Ora ne passa 291.
 
 Dentro ci vanno **solo i fatti che non cambiano**. L'indice del giorno no: cambia ogni
 quattro ore, e su una pagina statica sarebbe vecchio. C'è invece un link che apre lo spot
-nell'applicazione — `/#spot/<id>`, che l'applicazione riconosce all'avvio — così un
+nell'applicazione (`/#spot/<id>`, che l'applicazione riconosce all'avvio), così un
 indirizzo condiviso porta dritto alla scheda giusta.
 
 Le pagine riusano `assets/css/style.css`: stessa impaginazione, stesse schede, stessi
@@ -89,7 +89,7 @@ successivo. Se il sito non sta alla radice del dominio (per esempio
 Nessuna libreria di mappe e nessun server di tile. La geometria è stata scaricata una
 volta sola da OpenStreetMap, semplificata e incorporata nel sito come percorsi SVG.
 
-**Regionale** — confini, il mare, 107 corsi d'acqua reali, 95 specchi d'acqua, nove città
+**Regionale**: confini, il mare, 107 corsi d'acqua reali, 95 specchi d'acqua, nove città
 per orientarsi. Gli spot sono punti: il colore dice come si presenta la giornata. Nessun
 numero stampato sulla mappa, altrimenti diventa un tabellone. Si trascina, si ingrandisce
 con il pizzico del trackpad, con due dita o con i tasti in alto a destra; punti e nomi si
@@ -97,9 +97,9 @@ contro-scalano e restano della stessa misura a ogni ingrandimento.
 
 Su questa carta ogni spot deve avere **la sua** acqua sotto il punto, e per molti non
 c'era: l'elenco dei corsi da scaricare era scritto a mano in `bake-geo.py` e nessuno lo
-confrontava con i dati. Sessanta spot su 222 stavano su terra vergine — i quattro della
+confrontava con i dati. Sessanta spot su 222 stavano su terra vergine (i quattro della
 Limentra di Treppio, il Dardagna, l'Aveto, il Canal Bianco a Ferrara, il Navile, il
-Naviglio, il Burana, i laghetti di crinale — e i 19 di mare stavano peggio, perché il mare
+Naviglio, il Burana, i laghetti di crinale), e i 19 di mare stavano peggio, perché il mare
 non era disegnato affatto. Ora l'elenco lo decidono le schede: si scarica la rete
 principale per nome intero, si guarda quali punti sono rimasti senz'acqua addosso, e solo
 per quelli si cerca per parole (la scheda dice «Torrente Limentra di Treppio», la mappa
@@ -115,13 +115,13 @@ guarda la mappa.
 | oltre 1,5 km da qualsiasi acqua | 43 | **0** |
 
 La mappa è un comando, non un'illustrazione. Con il mouse il passaggio apre la **scheda
-rapida** — indice, acqua, portata, pesce del giorno — e il clic porta dritto alla scheda
+rapida** (indice, acqua, portata, pesce del giorno) e il clic porta dritto alla scheda
 dello spot. Al tocco, dove il passaggio non esiste, il primo tocco ferma la scheda rapida
 e il secondo apre lo spot; da tastiera il punto si raggiunge con il tabulatore e si apre
 con Invio. Il punto sulla mappa e la riga nell'elenco sono lo stesso spot visto da due
 parti: accendendo l'uno si accende anche l'altra.
 
-**Locale** — per ogni spot un riquadro fino a 3,6 km con il tratto d'acqua, le strade, le
+**Locale**: per ogni spot un riquadro fino a 3,6 km con il tratto d'acqua, le strade, le
 sterrate, i sentieri, i parcheggi, il **punto in cui fermarsi** (segno pieno) e gli altri
 tratti in cui una strada arriva alla riva (segni numerati), calcolati sulla geometria e
 non disegnati a mano. Pesa 2,1 MB e per questo viene caricata solo alla prima scheda
@@ -129,16 +129,16 @@ aperta, non all'avvio.
 
 Un contorno d'acqua, in OpenStreetMap, arriva **a pezzi**: un lago o un fiume grande è una
 relazione, e ogni membro è un arco che da solo non si chiude. Il browser, per riempire,
-chiude d'ufficio anche un arco aperto — e dipingeva d'azzurro chilometri di terra asciutta,
+chiude d'ufficio anche un arco aperto, e dipingeva d'azzurro chilometri di terra asciutta,
 con dentro le strade e il nome di un paese. Ora i pezzi si ricuciono per gli estremi prima
 di scrivere la carta: quello che torna un anello si riempie, quello che il riquadro ha
 tagliato resta una linea di sponda.
 
 Su questa carta si vede **l'acqua su cui si pesca**, non un intrico di righe azzurre
 tutte uguali. In una finestra di 3,6 km di rii e fossi ce ne sono a decine: il generatore
-confronta il nome che ogni scheda dichiara nel campo `acqua` con i nomi di OpenStreetMap —
-per parole, non per stringa intera, perché la scheda dice «Torrente Limentra di Treppio» e
-la mappa dice «Limentra» — e incide quel tratto a parte. È l'unico disegnato in grande, in
+confronta il nome che ogni scheda dichiara nel campo `acqua` con i nomi di OpenStreetMap
+(per parole, non per stringa intera, perché la scheda dice «Torrente Limentra di Treppio» e
+la mappa dice «Limentra»), e incide quel tratto a parte. È l'unico disegnato in grande, in
 tinta piena, col nome scritto in legenda.
 
 Il **mare** OpenStreetMap non lo disegna: disegna la linea di riva, con la terra a sinistra
@@ -150,8 +150,8 @@ della carta e il lato buono lo indica una sonda nell'angolo di nord-est, che lì
 aperto: i portocanali di Cervia, Cesenatico, Riccione e Rimini stavano addosso al nome del
 paese, senza un filo d'acqua intorno.
 
-Il riquadro infine **segue l'acqua**. Se il tratto d'acqua cade lontano dal punto — una
-foce, un fiume largo, una coordinata a mano — la finestra scivola verso l'acqua quel tanto
+Il riquadro infine **segue l'acqua**. Se il tratto d'acqua cade lontano dal punto (una
+foce, un fiume largo, una coordinata a mano), la finestra scivola verso l'acqua quel tanto
 che basta a tenere dentro tutti e due, e si stringe per non uscire dalla geometria incisa.
 Non c'è più una scheda che mostri lo spot senza il suo fiume.
 
@@ -162,7 +162,7 @@ cerca in OpenStreetMap il corso d'acqua che ogni scheda dichiara e sposta la sta
 punto più vicino di **quell'**acqua, non della prima che passa.
 
 Nel secondo giro sono state mosse **42 stazioni**: i 22 spot di mare, che nessuno aveva
-mai agganciato alla riva, e una manciata di punti finiti nel posto sbagliato — il Po a
+mai agganciato alla riva, e una manciata di punti finiti nel posto sbagliato. Il Po a
 Torricella stava in provincia di Cremona, il Po a Luzzara sette chilometri dentro la
 campagna, il Collettore Acque Alte in mezzo a Crevalcore, il porto di Cattolica in centro
 paese. Otto sono state agganciate a mano, verificando a ritroso il comune del punto,
@@ -171,8 +171,8 @@ perché sui fiumi di confine la sponda cambia provincia.
 | | prima | dopo |
 |---|---|---|
 | Spot con la propria acqua nella carta | 0 su 222 | **219 su 222** |
-| di cui entro 100 m | — | **217** |
-| Distanza mediana dall'acqua dichiarata | — | **3 m** |
+| di cui entro 100 m | n/d | **217** |
+| Distanza mediana dall'acqua dichiarata | n/d | **3 m** |
 | Peggior scarto da qualsiasi acqua | 940 m | **423 m** |
 
 Al terzo giro `bake-geo.py` ha trovato **dieci coordinate ancora sbagliate**, che i
@@ -183,7 +183,7 @@ chilometri fuori, il Cavo Napoleonico due volte a sei chilometri dal canale, il 
 otto chilometri dentro la campagna, il Bacino di Santa Maria cinque chilometri dal suo
 invaso, e il Collettore Acque Alte, la Valle Fattibello, il Lago di Ponte e il Lago di
 Pometo più vicini ma comunque fuori. Ognuna è stata riagganciata all'acqua giusta,
-partendo dal paese che il nome della scheda dichiara — Salvatonica, Mirabello, Serravalle —
+partendo dal paese che il nome della scheda dichiara (Salvatonica, Mirabello, Serravalle)
 e non dalla coordinata sbagliata, che avrebbe tirato l'aggancio sul tratto vicino a sé.
 
 Restano tre schede la cui acqua **non esiste in OpenStreetMap con quel nome**: lo Scolo
@@ -200,7 +200,7 @@ che lo rifà contro OpenStreetMap in diretta e stampa l'elenco.
 «Sull'acqua» non vuol dire «dove si pesca». Agganciare la coordinata all'acqua più vicina,
 su un fiume largo, la mette **in mezzo alla corrente**: il tasto «Naviga» mandava dentro
 il Po. Misurato sulla carta che il sito disegna, il pin della scheda cadeva sull'azzurro in
-**80 spot su 222**. Con la misura di allora — dalla mezzeria, e vertice contro vertice — la
+**80 spot su 222**. Con la misura di allora (dalla mezzeria, e vertice contro vertice) la
 distanza dal punto in cui una strada tocca *quell'*acqua aveva mediana 131 m e lasciava
 **53 spot senza nessun accesso**. Rifatta come si deve, la stessa misura dà mediana 62 m e
 **5 spot**: quei 53 erano un artefatto del metro, non un fatto del terreno.
@@ -212,7 +212,7 @@ rettilineo con due vertici a 400 m di distanza non produceva nessun punto. Sul P
 dista 67–138 m dalla linea di mezzo e **0–50 m dalla sponda**; la sponda c'era in tutti e
 23 gli spot del fiume, senza nome in mappa, e non la guardava nessuno.
 
-Perciò le coordinate delle schede **non si toccano** — sono quelle che scelgono la cella di
+Perciò le coordinate delle schede **non si toccano**: sono quelle che scelgono la cella di
 Open-Meteo e quella della portata, e spostarle di 500 m sul Po fa crollare la portata da
 1348 a 0,05 m³/s. `tools/accessi.py` calcola a parte un **secondo punto**, quello in cui
 una strada arriva alla riva, e lo scrive in `assets/js/geo-accessi.js`: lo aprono i tasti
@@ -222,7 +222,7 @@ sulla coordinata della scheda, che è il punto di cui si mostrano meteo e portat
 Il punto pubblicato è quello **sulla strada**, dove ci si ferma, non un punto proiettato
 sull'acqua: i contorni sono semplificati a 23 m, e arretrare di dieci metri da un bordo
 incerto di ventitré è un decimale finto. Si scartano i punti in acqua, quelli sulla riva
-opposta e quelli su un ponte — ma non su un **guado**, una **briglia** o una **diga**, che
+opposta e quelli su un ponte, ma non su un **guado**, una **briglia** o una **diga**, che
 sono attraversamenti anche loro e sono esattamente il posto dove si pesca. Valgono di più
 la briglia, il guado, lo scivolo, il pennello (sul Po è taggato `pier`, non `groyne`), il
 greto e un parcheggio libero a due passi; valgono di meno l'argine con l'acqua lontana, la
@@ -235,7 +235,7 @@ strada privata e la sbarra.
 | Sulla riva opposta a quella da cui si arriva | 18 | **0** |
 | Su un ponte | 23 | **10** |
 | Distanza dalla sponda, mediana / p90 | 13 m / 91 m | **12 m / 37 m** |
-| Spot con un punto di accesso | — | **219 su 222** |
+| Spot con un punto di accesso | n/d | **219 su 222** |
 
 I dodici punti che il conteggio crudo trova ancora «dentro» stanno tutti entro **6,9 m**
 dal bordo: sono sulla riva, che è dove si sta in piedi, e sotto la tolleranza di 23 m con
@@ -245,7 +245,7 @@ OpenStreetMap non esistono con quel nome.
 
 La confidenza esce insieme al punto, con la **causa**: `mezzeria` dove la sponda non è
 disegnata, `ponte`, `strada grossa`, `allargato` dove le soglie sono state aperte per
-trovare qualcosa. La scheda scrive quella, non una frase sola buona per tutte — prima
+trovare qualcosa. La scheda scrive quella, non una frase sola buona per tutte. Prima
 diceva «misurato sulla mezzeria» anche ai trenta spot su cui la misura era sulla sponda.
 
 Le correzioni fatte a mano stanno in `tools/accessi-verificati.json`, sono tracciate da git
@@ -312,9 +312,9 @@ tools/
 | Ravenna | 14 | | | |
 | Rimini | 12 | | **di cui no kill** | **33** |
 
-Comprende i piccoli spot di paese — Viazzano, Bocconi, Giumella, Salsominore, Bedogno,
+Comprende i piccoli spot di paese (Viazzano, Bocconi, Giumella, Salsominore, Bedogno,
 Salvatonica, Isola di Tredozio, Governara, Ponte Organasco, Macerato, Riccovolto,
-Bosconure, Ponte di Bagnana — non solo i tratti famosi.
+Bosconure, Ponte di Bagnana), non solo i tratti famosi.
 
 Nel 2026 sono stati aggiunti 51 spot su Bologna (19), Modena (17) e Ferrara (15), dove la
 rete d'acqua è più fitta: l'asta del Reno con Idice, Sillaro, Savena, Samoggia, Setta e
@@ -334,20 +334,20 @@ DGR 514/2024.
 
 Sei fattori moltiplicati fra loro, specie per specie:
 
-1. **Stagione** — curva di attività mensile per ogni specie.
-2. **Temperatura dell'acqua** — stimata con un modello a inerzia termica: l'acqua segue
+1. **Stagione**: curva di attività mensile per ogni specie.
+2. **Temperatura dell'acqua**, stimata con un modello a inerzia termica: l'acqua segue
    la media dell'aria degli ultimi N giorni, smorzata verso la temperatura media annua
    alla quota dello spot. N e smorzamento cambiano per ambiente (3 giorni per un
    torrente sorgivo, 14 per un bacino profondo), con un tetto per tipo. È una stima
    dichiarata, non una misura.
-3. **Portata** — dato reale dal modello idrologico GloFAS, confrontato con la mediana
+3. **Portata**: dato reale dal modello idrologico GloFAS, confrontato con la mediana
    delle settimane precedenti nello stesso punto. Non usata su laghi, cave, mare e
    canali di bonifica.
-4. **Pioggia e torbidità** — 72 ore precedenti + previsione + scarto di portata,
+4. **Pioggia e torbidità**: 72 ore precedenti + previsione + scarto di portata,
    confrontate con la preferenza di ogni specie.
-5. **Pressione, luce, luna** — variazione barometrica sul giorno prima, copertura
+5. **Pressione, luce, luna**: variazione barometrica sul giorno prima, copertura
    nuvolosa, fase lunare calcolata in locale.
-6. **Divieti e presenza reale** — una specie in divieto o protetta pesa il 34%; dove la
+6. **Divieti e presenza reale**: una specie in divieto o protetta pesa il 34%; dove la
    guida regionale scrive «rari», pesa il 42%.
 
 Indice = 62% della specie migliore + 38% della media delle prime tre, poi modificatori
@@ -360,8 +360,8 @@ raggiungibile**: nessun giorno è perfetto.
 Open-Meteo è gratuito, senza chiave e con i limiti contati **per indirizzo IP**: 600
 chiamate al minuto, 10.000 al giorno. Un caricamento completo del sito ne pesa circa 350
 (225 punti × 11 variabili × 17 giorni, più la portata su 149 corsi d'acqua). Se ogni
-visitatore chiamasse dal proprio browser funzionerebbe — mille utenti sono mille quote
-diverse — ma chi ricarica spesso, o sta dietro a un IP condiviso (ufficio, scuola, rete
+visitatore chiamasse dal proprio browser funzionerebbe: mille utenti sono mille quote
+diverse. Ma chi ricarica spesso, o sta dietro a un IP condiviso (ufficio, scuola, rete
 mobile), si prenderebbe un 429.
 
 Perciò le previsioni le scarica una volta sola GitHub Actions:
@@ -375,7 +375,7 @@ Due richieste in tutto, una per servizio: Open-Meteo accetta tutte le coordinate
 e un giro dura cinque secondi. Prima erano dieci richieste a lotti di 40 spot, e ogni
 lotto dopo il primo si incagliava al primo tentativo per poi riuscire al secondo: con un
 tetto di attesa di 180 secondi un giro arrivava a venti minuti, tenendo occupata la coda
-di pubblicazione. Non era un rifiuto di Open-Meteo — non arriva mai un 429 — ma una
+di pubblicazione. Non era un rifiuto di Open-Meteo (non arriva mai un 429), ma una
 connessione che si apre e non risponde: gli indirizzi di uscita di GitHub Actions sono
 condivisi fra molti, e connessioni ravvicinate dallo stesso indirizzo cadono nel vuoto.
 Ora il tetto è di 25 secondi, il primo ritentativo è immediato e il passo si interrompe da
@@ -385,8 +385,8 @@ Il browser legge quel file e **non chiama nessun servizio esterno**: prima scher
 immediata, nessun limite da superare, nessun indirizzo IP di chi pesca mostrato a terzi.
 Sotto la data compare l'ora del rilevamento.
 
-Se il file manca o ha più di 9 ore — due giri di fila non arrivati, sito aperto con un
-doppio clic, pubblicazione senza il workflow — `api.js` torna da solo a chiamare Open-Meteo
+Se il file manca o ha più di 9 ore (due giri di fila non arrivati, sito aperto con un
+doppio clic, pubblicazione senza il workflow), `api.js` torna da solo a chiamare Open-Meteo
 dal browser,
 come faceva prima: a tre richieste per volta, con ritenta automatica sui 429 e con quello
 che arriva mostrato comunque.
@@ -425,7 +425,7 @@ previsioni servito insieme alla pagina.
 
 Quando invece tocca alla riserva (file assente o vecchio), le chiamate vanno solo a
 Open-Meteo, raggruppate in una decina di richieste e tenute in cache 45 minuti in
-`localStorage` — solo previsioni, nessun dato personale. La posizione dell'utente non
+`localStorage`: solo previsioni, nessun dato personale. La posizione dell'utente non
 viene mai richiesta.
 
 ## Rigenerare i dati
@@ -453,9 +453,9 @@ a rotazione e riprendono da dove si erano fermati.
 
 ## Fonti
 
-- **Schede degli spot**: [«Itinerari di pesca sportiva in Emilia-Romagna»](https://agricoltura.regione.emilia-romagna.it/pesca/pubblicazioni/pesca-sportiva/itinerari-di-pesca-sportiva-in-emilia-romagna), Regione Emilia-Romagna — 40 itinerari ufficiali, espansi per località.
+- **Schede degli spot**: [«Itinerari di pesca sportiva in Emilia-Romagna»](https://agricoltura.regione.emilia-romagna.it/pesca/pubblicazioni/pesca-sportiva/itinerari-di-pesca-sportiva-in-emilia-romagna), Regione Emilia-Romagna (40 itinerari ufficiali, espansi per località).
 - **Misure minime, divieti, limiti**: Allegato 2 del [Reg. reg. 1/2018](https://demetra.regione.emilia-romagna.it/al/articolo?urn=er%3Aassemblealegislativa%3Aregolamento%3A2018%3B1), come modificato dal Reg. reg. 1/2020.
-- **Zone e regolamenti**: [carta interattiva regionale](https://agricoltura.regione.emilia-romagna.it/pesca/pesca-sportiva-professionale-acque-interne/calendari-ittici/carta-interattiva), Programma ittico regionale 2026/2027, [calendari ittici provinciali](https://agricoltura.regione.emilia-romagna.it/pesca/pesca-sportiva-professionale-acque-interne/calendari-ittici) — zone di ripopolamento e frega, zone a regime speciale e fasce di divieto attorno ai manufatti.
+- **Zone e regolamenti**: [carta interattiva regionale](https://agricoltura.regione.emilia-romagna.it/pesca/pesca-sportiva-professionale-acque-interne/calendari-ittici/carta-interattiva), Programma ittico regionale 2026/2027, [calendari ittici provinciali](https://agricoltura.regione.emilia-romagna.it/pesca/pesca-sportiva-professionale-acque-interne/calendari-ittici), con le zone di ripopolamento e frega, le zone a regime speciale e le fasce di divieto attorno ai manufatti.
 - **Campi gara**: [DGR 514/2024](https://bur.regione.emilia-romagna.it/dettaglio-inserzione?i=196d3c5bed174629bf1c07b1d40d681f), che aggiorna i piani di cui alle DGR 203/2018 e 545/2018.
 - **Meteo e portata**: [Open-Meteo](https://open-meteo.com/) (CC BY 4.0), portata dal modello GloFAS.
 - **Cartografia**: [OpenStreetMap](https://www.openstreetmap.org/copyright), licenza ODbL.

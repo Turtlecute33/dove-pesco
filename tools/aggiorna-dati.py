@@ -16,8 +16,8 @@ meno e' una connessione in meno che puo' incagliarsi.
 Due connessioni in tutto, una per servizio. Prima erano dieci, a lotti di 40
 spot: ogni lotto dopo il primo si incagliava al primo tentativo e riusciva solo
 al secondo, e con un tetto di 180 secondi un giro arrivava a venti minuti. La
-causa non e' un rifiuto di Open-Meteo — non arriva mai un 429, arriva sempre un
-URLError esattamente allo scadere del tetto — ma una connessione che si apre e
+causa non e' un rifiuto di Open-Meteo (non arriva mai un 429, arriva sempre un
+URLError esattamente allo scadere del tetto), ma una connessione che si apre e
 non risponde piu'. Gli indirizzi di uscita di GitHub Actions sono condivisi fra
 molti, e connessioni ravvicinate dallo stesso indirizzo vengono lasciate cadere
 senza risposta. Meno connessioni, meno occasioni di incagliarsi; e un tetto
@@ -203,7 +203,7 @@ def main():
     with open(OUT, 'w') as f:
         json.dump(dati, f, separators=(',', ':'))
     kb = os.path.getsize(OUT) / 1024
-    sys.stderr.write('Scritto %s — %.0f KB (%.1f KB per spot)\n' % (OUT, kb, kb / max(1, con_meteo)))
+    sys.stderr.write('Scritto %s, %.0f KB (%.1f KB per spot)\n' % (OUT, kb, kb / max(1, con_meteo)))
     return 0
 
 

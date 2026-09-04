@@ -700,7 +700,7 @@ def main():
             # troppo". Insistere allo stesso passo brucia la quota e allunga il
             # blocco: si rallenta, si riprova una volta, e dopo tre vuoti di
             # fila ci si ferma. La cache e' incrementale, quindi chi rilancia
-            # domani non perde niente — mentre attraversare tutta la lista
+            # domani non perde niente, mentre attraversare tutta la lista
             # dormendo non produce nulla e tiene occupata la macchina un'ora.
             attesa = min(600, 60 * 2 ** vuoti)
             vuoti += 1
@@ -777,7 +777,7 @@ def scrivi(tutto, spot):
             ricucite += prima - len(geom.linee(d[k])) - len(geom.linee(resto))
     sys.stderr.write('Contorni d\'acqua ricuciti: %d pezzi in meno\n' % ricucite)
 
-    righe =['/* Mini-carte locali — generate da tools/bake-locale.py',
+    righe =['/* Mini-carte locali: generate da tools/bake-locale.py',
              '   Dati: © OpenStreetMap contributors, licenza ODbL.',
              '   Origine di ogni carta: le coordinate dello spot. Unita: metri.',
              '   wm il corso d\'acqua della scheda · ma il suo specchio · ws il mare',
@@ -807,7 +807,7 @@ def scrivi(tutto, spot):
     with open(OUT, 'w') as f:
         f.write('\n'.join(righe))
     kb = os.path.getsize(OUT) / 1024
-    sys.stderr.write('\nScritto %s — %.0f KB (%.1f KB per spot)\n' % (OUT, kb, kb / max(1, len(tutto))))
+    sys.stderr.write('\nScritto %s, %.0f KB (%.1f KB per spot)\n' % (OUT, kb, kb / max(1, len(tutto))))
     vuoti = [k for k, v in tutto.items()
              if not any(v.get(c) for c in ('wm', 'ma', 'ws', 'wg', 'wp', 'wa'))]
     if vuoti:

@@ -18,8 +18,8 @@ const APP = (() => {
   const GIORNI = ['domenica', 'lunedì', 'martedì', 'mercoledì', 'giovedì', 'venerdì', 'sabato'];
 
   const iso = (d) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
-  const n1 = (v) => v === null || v === undefined ? '—' : String(Math.round(v * 10) / 10).replace('.', ',');
-  const n0 = (v) => v === null || v === undefined ? '—' : String(Math.round(v));
+  const n1 = (v) => v === null || v === undefined ? '–' : String(Math.round(v * 10) / 10).replace('.', ',');
+  const n0 = (v) => v === null || v === undefined ? '–' : String(Math.round(v));
   const seg = (n) => TAVOLE.seg(n);
   /* le tre bande di colore: gli stessi tagli delle etichette del motore,
      così la parola scritta e il colore del punto non si contraddicono mai */
@@ -328,7 +328,7 @@ const APP = (() => {
 
       <span class="occhio acc">indice ${v.punteggio}/100 · ${esc(ENGINE.etichetta(v.punteggio).t.toLowerCase())}</span>
       <h2 class="titolone">${esc(s.nome)}</h2>
-      <div class="luogo">${esc(s.comune)}, ${esc(PROVINCE[s.prov])} — ${esc(s.acqua)}</div>
+      <div class="luogo">${esc(s.comune)}, ${esc(PROVINCE[s.prov])} · ${esc(s.acqua)}</div>
 
       ${avvisiHTML(v)}
 
@@ -365,8 +365,8 @@ const APP = (() => {
                   <em>nuvole ${n0(m.nuvole)}%</em></div>
                 <div class="ril"><u>aria</u><b>${n0(m.tmax)}<span class="u">°</span></b>
                   <em>min ${n0(m.tmin)}°</em></div>
-                <div class="ril"><u>luce</u><b style="font-size:1rem;line-height:1.35">${esc(m.alba || '—')}</b>
-                  <em>tramonto ${esc(m.tramonto || '—')}</em></div>
+                <div class="ril"><u>luce</u><b style="font-size:1rem;line-height:1.35">${esc(m.alba || '–')}</b>
+                  <em>tramonto ${esc(m.tramonto || '–')}</em></div>
               </div>
               <details class="pieghe" style="margin-top:18px">
                 <summary>Tutti i rilevamenti</summary>
@@ -381,7 +381,7 @@ const APP = (() => {
                     <em>${n0(a.torbidita * 100)} su 100</em></div>
                   ${a.flow !== null && a.flowAssoluto
                     ? `<div class="ril"><u>deflusso</u><b>${n1(a.flow)}<span class="u">m³/s</span></b><em>modello GloFAS</em></div>` : ''}
-                  <div class="ril"><u>quota</u><b>${m.quota === null ? '—' : n0(Math.max(0, m.quota))}<span class="u">m</span></b>
+                  <div class="ril"><u>quota</u><b>${m.quota === null ? '–' : n0(Math.max(0, m.quota))}<span class="u">m</span></b>
                     <em>sul livello del mare</em></div>
                 </div></div>
               </details>
@@ -390,7 +390,7 @@ const APP = (() => {
             ${v.finestre.length ? `<div class="bl">
               <span class="occhio">Le finestre buone</span>
               <ul class="motivi">${v.finestre.slice(0, 3).map(f =>
-                `<li><b>${esc(f.q)}</b>, ${esc(f.o)} — ${esc(f.why)}</li>`).join('')}</ul>
+                `<li><b>${esc(f.q)}</b>, ${esc(f.o)}. ${esc(f.why)}</li>`).join('')}</ul>
             </div>` : ''}
           </div>
         </div>
@@ -410,7 +410,7 @@ const APP = (() => {
               <p class="mini">${esc(s.fondale)}</p>
               <p class="mini" style="margin-top:10px"><b>Tecniche:</b> ${esc((s.tecniche || []).join(' · '))}</p>
               <p class="mini"><b>Esche:</b> ${esc((s.esche || []).join(' · '))}</p>
-              <p class="mini"><b>Stagioni migliori:</b> ${esc((s.stagioniTop || []).join(', ') || '—')} ·
+              <p class="mini"><b>Stagioni migliori:</b> ${esc((s.stagioniTop || []).join(', ') || '–')} ·
                  <b>Difficoltà:</b> ${esc(s.livello)} ·
                  <b>Acque:</b> ${esc(CATEGORIE[s.categoria].nome.toLowerCase())}</p>
             </div>
@@ -435,11 +435,11 @@ const APP = (() => {
           ${f.rara ? `<span class="tag">raro qui</span>` : ''}
           <span class="q">${q}</span></h4>
         <div class="sotto">${esc(f.prof)}</div>
-        <div class="sotto"><b>Esche:</b> ${esc((f.esche || []).slice(0, 4).join(', ') || '—')}</div>
+        <div class="sotto"><b>Esche:</b> ${esc((f.esche || []).slice(0, 4).join(', ') || '–')}</div>
         <details class="pieghe" style="border:0;margin-top:2px">
           <summary style="padding:6px 0;font-size:.84rem">Dettagli e regole</summary>
           <div class="dentro" style="padding-bottom:6px"><dl>
-            <dt>tecniche</dt><dd>${esc((f.tecniche || []).join(', ') || '—')}</dd>
+            <dt>tecniche</dt><dd>${esc((f.tecniche || []).join(', ') || '–')}</dd>
             <dt>acqua</dt><dd>${f.tOpt[0]}–${f.tOpt[1]} °C · ${esc(ore(f.luce))}</dd>
             <dt>regole</dt><dd>${regole(f)}</dd>
             ${f.taglia ? `<dt>taglia</dt><dd>${esc(f.taglia)}</dd>` : ''}
@@ -679,7 +679,7 @@ const APP = (() => {
 
     const larg = pop.offsetWidth, alt = pop.offsetHeight;
     /* sopra al punto se ci sta, altrimenti sotto. Se il riquadro è troppo basso
-       per tutte e due — sul telefono la regione è una striscia larga e bassa —
+       per tutte e due, e sul telefono la regione è una striscia larga e bassa,
        la scheda si appoggia dentro il riquadro e rinuncia alla punta: meglio
        senza punta che tagliata a metà, con il pulsante fuori dal bordo. */
     const staSopra = p.y - alt - 16 >= 0;
@@ -732,12 +732,12 @@ const APP = (() => {
     if (v < 0.18) return 'limpida'; if (v < 0.38) return 'appena velata';
     if (v < 0.6) return 'velata'; if (v < 0.78) return 'torbida'; return 'molto torbida';
   }
-  const rosa = (d) => (d === null || d === undefined) ? '—'
+  const rosa = (d) => (d === null || d === undefined) ? '–'
     : ['N','NNE','NE','ENE','E','ESE','SE','SSE','S','SSO','SO','OSO','O','ONO','NO','NNO'][Math.round(d / 22.5) % 16];
   const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
   const mesiPunta = (m) => {
     const max = Math.max.apply(null, m);
-    return m.map((v, i) => [v, i]).filter(x => x[0] >= max * .85).map(x => MESI[x[1]]).join(', ') || '—';
+    return m.map((v, i) => [v, i]).filter(x => x[0] >= max * .85).map(x => MESI[x[1]]).join(', ') || '–';
   };
 
   /* ======================================================= specie */
@@ -763,9 +763,9 @@ const APP = (() => {
             ${q ? `<span class="tag">${q} spot</span>` : ''}
           </div>
           <dl>
-            <dt>misura</dt><dd>${s.misuraMin ? s.misuraMin + ' cm' : '—'}</dd>
+            <dt>misura</dt><dd>${s.misuraMin ? s.misuraMin + ' cm' : '–'}</dd>
             <dt>al giorno</dt><dd>${s.limiteGiorno === 0 ? 'pesca vietata'
-              : (s.limiteGiorno ? s.limiteGiorno + (s.limiteGiorno === 1 ? ' capo' : ' capi') : '—')}</dd>
+              : (s.limiteGiorno ? s.limiteGiorno + (s.limiteGiorno === 1 ? ' capo' : ' capi') : '–')}</dd>
             <dt>divieto</dt><dd>${esc(s.divietoTesto)}</dd>
             <dt>acqua</dt><dd>${s.tOpt[0]}–${s.tOpt[1]} °C</dd>
             <dt>ore</dt><dd>${esc(ore(s.luce))}</dd>
@@ -788,9 +788,9 @@ const APP = (() => {
     const tab = Object.entries(SPECIE).sort((a, b) => a[1].nome.localeCompare(b[1].nome, 'it'))
       .map(x => { const s = x[1]; return `<tr>
         <td><b>${esc(s.nome)}</b><span class="sci">${esc(s.sci)}</span></td>
-        <td class="num">${s.misuraMin ? s.misuraMin + ' cm' : '—'}</td>
-        <td class="num">${s.limiteGiorno === 0 ? 'vietata' : (s.limiteGiorno || '—')}</td>
-        <td>${esc(s.divietoTesto)}</td></tr>`; }).join('');
+        <td class="num" data-eti="Misura">${s.misuraMin ? s.misuraMin + ' cm' : '–'}</td>
+        <td class="num" data-eti="Al giorno">${s.limiteGiorno === 0 ? 'vietata' : (s.limiteGiorno || '–')}</td>
+        <td data-eti="Divieto">${esc(s.divietoTesto)}</td></tr>`; }).join('');
 
     $('#regole-corpo').innerHTML = `
       <div class="avviso" style="margin-top:22px">${seg('info')}<div>${esc(R.aggiornato)}
@@ -810,7 +810,7 @@ const APP = (() => {
       <div class="voci">
         ${Object.entries(CATEGORIE).map(x => `<div class="voce"><h3>${esc(x[1].nome)}</h3>
           <div><p>${esc(x[1].desc)}</p></div></div>`).join('')}
-        ${R.zone.map(z => `<div class="voce"><h3>${esc(z.sigla)} — ${esc(z.t)}</h3>
+        ${R.zone.map(z => `<div class="voce"><h3>${esc(z.t)} (${esc(z.sigla)})</h3>
           <div><p>${esc(z.d)}</p></div></div>`).join('')}
       </div>
       ${grup('Sicurezza', R.sicurezza)}

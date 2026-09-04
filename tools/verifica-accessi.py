@@ -9,7 +9,7 @@ dice se siamo migliorati.
     python3 tools/verifica-accessi.py
     python3 tools/verifica-accessi.py --rete    # controprova su OpenStreetMap
 
-Esce con codice 1 solo sulle due misure binarie — il punto nell'acqua e il
+Esce con codice 1 solo sulle due misure binarie: il punto nell'acqua e il
 punto sulla riva di la'. Le altre sono distanze misurate su un disegno
 semplificato a 23 m: sotto quella soglia non dicono niente, e trasformarle in
 un cancello vuol dire farsi bloccare dal rumore.
@@ -25,7 +25,7 @@ RIF = os.path.join(os.path.dirname(__file__), '.metrica-accessi.json')
 
 def quantili(v):
     if not v:
-        return '—'
+        return '-'
     v = sorted(v)
     p90 = v[min(len(v) - 1, int(len(v) * 0.9))]
     return 'mediana %4.0f m · p90 %4.0f m · max %5.0f m' % (
@@ -94,8 +94,8 @@ def misura(punti, spot, carte, etichetta):
 def controprova(spot, acc, quanti=40):
     """La prova che non si fa da soli: si chiede a OpenStreetMap.
 
-    Tutto il resto misura il punto contro il nostro disegno semplificato a 23 m
-    — cioe' contro la stessa geometria che il punteggio ha scelto di
+    Tutto il resto misura il punto contro il nostro disegno semplificato a
+    23 m, cioe' contro la stessa geometria che il punteggio ha scelto di
     minimizzare. Qui invece si chiede al server, per il punto vero in gradi,
     dentro quali aree cade: se fra queste c'e' natural=water, il punto e'
     nell'acqua e la nostra copia semplificata stava mentendo.
@@ -162,7 +162,7 @@ def main():
 
     # il pin della scheda, in metri locali, e' l'origine di ogni carta
     prima = misura({s['id']: (0.0, 0.0) for s in spot}, spot, carte,
-                   'PRIMA — la coordinata della scheda (quella che i tasti aprivano)')
+                   'PRIMA: la coordinata della scheda (quella che i tasti aprivano)')
 
     dopo_punti = {}
     for s in spot:
@@ -170,7 +170,7 @@ def main():
         if a:
             dopo_punti[s['id']] = geom.in_metri(a[0], a[1], s['lat'], s['lon'])
     dopo = misura(dopo_punti, spot, carte,
-                  'DOPO — il punto di accesso di assets/js/geo-accessi.js')
+                  'DOPO: il punto di accesso di assets/js/geo-accessi.js')
 
     # copertura e spostamento
     conta = {1: 0, 2: 0, 3: 0}
@@ -183,8 +183,8 @@ def main():
     print('  spostamento dal pin della scheda:           %s' % quantili(sposta))
 
     # Accordo col testo: la sola prova che non riusa la geometria su cui il
-    # punteggio e' stato costruito. Si guardano i manufatti con un nome — la
-    # diga, la chiusa, il pontile che la scheda cita — e non le etichette dei
+    # punteggio e' stato costruito. Si guardano i manufatti con un nome (la
+    # diga, la chiusa, il pontile che la scheda cita) e non le etichette dei
     # paesi: un paese sta legittimamente a un chilometro dalla riva, e
     # contarlo trasformerebbe la misura in rumore.
     def accordo(punti):

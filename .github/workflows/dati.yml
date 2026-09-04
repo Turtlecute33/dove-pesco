@@ -78,7 +78,7 @@ jobs:
       - name: Prepara la cartella da pubblicare
         # genera-pagine.py copia l'applicazione, scrive le 277 pagine statiche
         # (222 spot, 40 specie, 9 province e le pagine fisse), la sitemap, il
-        # robots.txt, la 404 e — se la variabile DOMINIO c'è — il file CNAME.
+        # robots.txt, la 404 e, se la variabile DOMINIO c'è, il file CNAME.
         # Dominio personalizzato: Settings → Secrets and variables → Actions →
         # Variables → New variable → DOMINIO.
         env:

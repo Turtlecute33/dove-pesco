@@ -1,5 +1,5 @@
 /* =============================================================================
-   SPOT DI PESCA — Bologna, Ferrara, Romagna (RA, FC, RN)
+   SPOT DI PESCA: Bologna, Ferrara, Romagna (RA, FC, RN)
    Fonte principale: "Itinerari di pesca sportiva in Emilia-Romagna",
    Regione Emilia-Romagna. Integrazioni da regolamenti locali e relazioni
    di pesca.
@@ -163,7 +163,7 @@ const SPOT_ROMAGNA = [
   livello: 'medio', bimbi: false, disabili: false, noKill: false, gare: false, notturna: false
 },
 {
-  id: 'bo-limentra-castrola', nome: 'Limentra — Gole di Castrola',
+  id: 'bo-limentra-castrola', nome: 'Limentra, Gole di Castrola',
   comune: 'Camugnano', prov: 'BO', acqua: 'Torrente Limentra di Treppio',
   tipo: 'torrente', categoria: 'D', lat: 44.1707, lon: 11.0511,
   specie: ['trotaFario', 'trotaIridea', 'barbo', 'cavedano'],
@@ -603,7 +603,7 @@ const SPOT_ROMAGNA = [
   livello: 'medio', bimbi: false, disabili: false, noKill: true, gare: false, notturna: false
 },
 {
-  id: 'fc-montone-bocconi', nome: 'Montone a Bocconi — Ponte della Brusia',
+  id: 'fc-montone-bocconi', nome: 'Montone a Bocconi, Ponte della Brusia',
   comune: 'Portico e San Benedetto', prov: 'FC', acqua: 'Fiume Montone',
   tipo: 'fiume', categoria: 'D', lat: 44.0127, lon: 11.7562,
   specie: ['trotaFario', 'barbo', 'cavedano', 'vairone'],
@@ -645,7 +645,7 @@ const SPOT_ROMAGNA = [
   livello: 'facile', bimbi: true, disabili: false, noKill: false, gare: false, notturna: false
 },
 {
-  id: 'fc-rabbi-premilcuore', nome: 'Rabbi a Premilcuore — le gorghe',
+  id: 'fc-rabbi-premilcuore', nome: 'Rabbi a Premilcuore, le gorghe',
   comune: 'Premilcuore', prov: 'FC', acqua: 'Torrente Rabbi',
   tipo: 'torrente', categoria: 'D', lat: 43.9906, lon: 11.7947,
   specie: ['trotaFario'],
@@ -659,7 +659,7 @@ const SPOT_ROMAGNA = [
   livello: 'esperto', bimbi: false, disabili: false, noKill: true, gare: false, notturna: false
 },
 {
-  id: 'fc-rabbi-giumella', nome: 'Rabbi a Giumella — Cascata Urlante',
+  id: 'fc-rabbi-giumella', nome: 'Rabbi a Giumella, Cascata Urlante',
   comune: 'Premilcuore', prov: 'FC', acqua: 'Torrente Rabbi',
   tipo: 'torrente', categoria: 'D', lat: 43.9804, lon: 11.7843,
   specie: ['trotaFario'],
@@ -785,7 +785,7 @@ const SPOT_ROMAGNA = [
   livello: 'esperto', bimbi: false, disabili: false, noKill: false, gare: false, notturna: false
 },
 {
-  id: 'fc-savio-san-piero', nome: 'Savio — no kill di San Piero in Bagno',
+  id: 'fc-savio-san-piero', nome: 'Savio, no kill di San Piero in Bagno',
   comune: 'Bagno di Romagna', prov: 'FC', acqua: 'Fiume Savio',
   tipo: 'fiume', categoria: 'D', lat: 43.8565, lon: 11.9784,
   specie: ['trotaFario', 'cavedano', 'barbo'],

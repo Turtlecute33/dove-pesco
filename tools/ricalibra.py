@@ -2,12 +2,12 @@
 """
 Ricalibra le coordinate delle stazioni in due passi, incrociando due fonti.
 
-  1. ANCORA — Nominatim, cercando la localita' che il nome della stazione
+  1. ANCORA: Nominatim, cercando la localita' che il nome della stazione
      dichiara ("Trebbia a Bobbio" → Bobbio). Se Nominatim ha risposto solo col
      centro del comune, l'ancora resta la coordinata scritta a mano: il
      municipio e' quasi sempre piu' lontano dall'acqua della mia stima.
 
-  2. AGGANCIO — Overpass, cercando la geometria del corso d'acqua che la scheda
+  2. AGGANCIO: Overpass, cercando la geometria del corso d'acqua che la scheda
      dichiara nel campo "acqua", e spostando la stazione sul punto piu' vicino
      di QUELL'acqua. Se il punto piu' vicino e' oltre il limite, non si muove
      nulla e lo spot finisce nell'elenco da guardare a mano.

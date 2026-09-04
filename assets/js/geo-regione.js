@@ -1,4 +1,4 @@
-/* Geometria della carta regionale — generata da tools/bake-geo.py
+/* Geometria della carta regionale: generata da tools/bake-geo.py
    Dati: © OpenStreetMap contributors, licenza ODbL.
    Proiezione equirettangolare centrata su 44.50 N, 11.05 E.
    NON modificare a mano: rilancia lo script. */

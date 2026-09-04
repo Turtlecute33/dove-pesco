@@ -1,4 +1,4 @@
-/* Il punto di accesso di ogni spot — generato da tools/accessi.py
+/* Il punto di accesso di ogni spot: generato da tools/accessi.py
    Dati: (c) OpenStreetMap contributors, licenza ODbL.
 
    Non e' la coordinata della scheda: quella dice di che pezzo di
