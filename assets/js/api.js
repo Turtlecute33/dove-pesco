@@ -10,8 +10,8 @@
    pubblicazione senza il workflow, aggiornamento fermo): si chiama Open-Meteo
    dal browser come prima.
 
-   Nessuna chiave, nessun tracciamento, nessun cookie. Le chiamate dal vivo
-   vengono raggruppate: 222 spot in una decina di richieste.
+   Nessuna chiave, nessun cookie. Le chiamate dal vivo vengono raggruppate:
+   tutti gli spot in una decina di richieste.
 
    Open-Meteo è gratuito ma pone un limite al minuto, e una pagina intera ci va
    vicino. Perciò qui dentro ci sono tre accorgimenti:
@@ -288,5 +288,9 @@ const API = (() => {
   /* l'interfaccia registra qui la funzione con cui raccontare l'attesa */
   const suStato = (fn) => { avvisa = fn; };
 
-  return { tutto, meteo, portata, svuotaCache, suStato };
+  /* espandi esce anche da qui perche' lo usa tools/genera-pagine.py: al momento
+     della pubblicazione legge lo stesso previsioni.json e calcola l'indice del
+     giorno da scrivere nelle pagine statiche. Copiare quelle quindici righe in
+     Python voleva dire due letture dello stesso formato che possono divergere. */
+  return { tutto, meteo, portata, svuotaCache, suStato, espandi };
 })();

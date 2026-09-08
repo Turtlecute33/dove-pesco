@@ -743,7 +743,10 @@ details.pieghe .dentro{ padding:2px 18px 18px }
 @media (max-width:760px){ .voce{ grid-template-columns:1fr; gap:4px } }
 .voce h3{ font-size:1rem }
 .voce p{ margin:0 0 .5em; font-size:.94rem; color:var(--ink-2) }
-.voce .att{ font-size:.88rem; color:var(--allarme) }
+/* l'avviso stava solo dentro una voce; le pagine statiche lo usano anche da
+   solo, sopra l'indice del giorno («portata in piena», «temporali»), e li'
+   restava testo normale invece che rosso */
+.att{ font-size:.88rem; color:var(--allarme) }
 
 .griglia{ display:grid; gap:14px; grid-template-columns:repeat(auto-fill,minmax(250px,1fr));
   margin-top:clamp(20px,3vw,30px) }

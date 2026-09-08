@@ -10,8 +10,11 @@ name: Dati e pubblicazione
 # numeri sono gli stessi, cambia solo l'ora del rilevamento. Prima erano due
 # ore, dodici giri al giorno; sei bastano, e ogni giro in meno è una
 # connessione in meno che può incagliarsi verso Open-Meteo (vedi la nota in
-# tools/aggiorna-dati.py). Il tetto di 5 ore oltre il quale il browser va in
-# rete da solo sta in assets/js/api.js: se cambi il cron, cambia anche quello.
+# tools/aggiorna-dati.py). Il tetto di 9 ore oltre il quale il browser va in
+# rete da solo sta in assets/js/api.js (ETA_MAX), ed è ripetuto in
+# tools/genera-pagine.py (ETA_MAX_ORE) perché anche la pubblicazione scarta un
+# file vecchio invece di scrivere in pagina un indice che l'applicazione non
+# mostrerebbe più. Se cambi il cron, cambia tutti e due.
 
 on:
   push:
@@ -76,9 +79,16 @@ jobs:
             || echo "Nessun file precedente: il sito chiamerà Open-Meteo dal browser."
 
       - name: Prepara la cartella da pubblicare
-        # genera-pagine.py copia l'applicazione, scrive le 277 pagine statiche
-        # (222 spot, 40 specie, 9 province e le pagine fisse), la sitemap, il
+        # genera-pagine.py copia l'applicazione e scrive le pagine statiche: una
+        # per spot, una per specie, una per corso d'acqua, una per comune, una
+        # per provincia, più gli indici e le pagine fisse. Poi la sitemap, il
         # robots.txt, la 404 e, se la variabile DOMINIO c'è, il file CNAME.
+        #
+        # Legge anche assets/dati/previsioni.json, scaricato dal passo prima, e
+        # scrive l'indice del giorno dentro ogni scheda: per questo il passo va
+        # dopo «Scarica meteo e portata» e non prima. Se il file manca o è
+        # vecchio le pagine escono lo stesso, senza quel blocco.
+        #
         # Dominio personalizzato: Settings → Secrets and variables → Actions →
         # Variables → New variable → DOMINIO.
         env:
