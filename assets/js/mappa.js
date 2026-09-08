@@ -58,7 +58,7 @@ const MAPPA = (() => {
     const alt = stretta ? Math.max(nat, larg / PROPORZIONE_STRETTA) : nat;
     const base = [x0 - MARGINE, y0 - MARGINE - (alt - nat) / 2, larg, alt];
 
-    const banda = (p) => p >= 62 ? 'buono' : p >= 30 ? 'medio' : 'scarso';
+    const banda = ENGINE.banda;
 
     /* Il mare sta sotto la terra: dove i due poligoni si sovrappongono deve
        vincere la costa vera, non il taglio del rettangolo. */

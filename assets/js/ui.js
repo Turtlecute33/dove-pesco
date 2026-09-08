@@ -23,7 +23,7 @@ const APP = (() => {
   const seg = (n) => TAVOLE.seg(n);
   /* le tre bande di colore: gli stessi tagli delle etichette del motore,
      così la parola scritta e il colore del punto non si contraddicono mai */
-  const banda = (p) => p >= 62 ? 'buono' : p >= 30 ? 'medio' : 'scarso';
+  const banda = ENGINE.banda;
 
   let dati = null;
   let dataSel = iso(new Date());

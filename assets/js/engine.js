@@ -407,5 +407,12 @@ const ENGINE = (() => {
     return { t: 'Da evitare', c: 'low' };
   }
 
-  return { valuta, classifica, etichetta, faseLunare, inDivieto, tempAcqua, STAGIONE, passa };
+  /* Le tre fasce di colore. Stava in ui.js come costante locale, ma adesso il
+     punteggio lo disegnano in due: l'applicazione e le pagine statiche scritte
+     da tools/genera-pagine.py. Due soglie uguali scritte in due posti diversi
+     restano uguali finche' qualcuno non ne cambia una sola. */
+  const banda = (p) => p >= 62 ? 'buono' : p >= 30 ? 'medio' : 'scarso';
+
+  return { valuta, classifica, etichetta, banda, faseLunare, inDivieto, tempAcqua,
+           STAGIONE, passa };
 })();

@@ -42,27 +42,55 @@ L'applicazione vive a un solo indirizzo e calcola tutto nel browser. Comodo da u
 invisibile a un motore di ricerca: 225 spot e 40 specie senza un indirizzo proprio non si
 possono indicizzare, e chi cerca «dove pescare sul Panaro» non arriva.
 
-Per questo `tools/genera-pagine.py` scrive **281 pagine statiche** a ogni pubblicazione:
+Per questo `tools/genera-pagine.py` scrive **367 pagine statiche** a ogni pubblicazione:
 
 ```
 /spot/<nome>/          225 schede: come arrivare, accessi, fondale, specie, esche, note
-/specie/<nome>/         40 schede: misura minima, divieto, temperatura, esche, dove si trova
+/specie/<nome>/         40 schede: misura minima, divieto, mese per mese, dove si trova
+/acqua/<nome>/          37 corsi d'acqua con più di uno spot: tutti i tratti insieme
+/comune/<nome>/         47 comuni con più di uno spot
 /provincia/<nome>/       9 elenchi per corso d'acqua, con le specie più diffuse
-/spot/ /provincia/ /specie/   i tre indici completi
+/spot/ /acqua/ /comune/ /provincia/ /specie/   i cinque indici completi
 /regole/ /metodo/ /privacy/
 sitemap.xml  robots.txt  404.html
 ```
 
-L'elenco di tutti i 281 indirizzi sta anche in fondo all'applicazione, in un `<details>`
+`/acqua/` e `/comune/` sono nate leggendo Search Console. Le ricerche che il sito
+intercettava di più erano nomi di corsi d'acqua («torrente leo», «cavo napoleonico»,
+«fiume ceno»): 307 impressioni in 28 giorni, in posizione media 12,6, e per nessuna
+c'era una pagina. Rispondevano due o tre schede di tratti diversi dello stesso fiume, che
+si toglievano posizione a vicenda. Simmetricamente, «dove pescare a \<comune\>» è la
+domanda per cui il sito esiste e raccoglieva **30** impressioni in tutto: c'erano le nove
+province, troppo larghe, e le singole schede, troppo strette.
+
+La soglia è **due spot**. Con uno solo la pagina d'insieme sarebbe il doppione della
+scheda: stesso titolo, stesso elenco, un link dentro.
+
+L'elenco di tutti gli indirizzi sta anche in fondo all'applicazione, in un `<details>`
 chiuso. Prima stava dentro un `<noscript>`, ed era come non esserci: Googlebot esegue
 JavaScript, e quando lo esegue butta via il contenuto di `<noscript>`. Risultato, la home
 (la pagina con più autorità del sito) passava **dieci** collegamenti, tutti verso
-l'esterno, e nessuno verso le 277 pagine che deve far trovare. Ora ne passa 291.
+l'esterno, e nessuno verso le pagine che deve far trovare.
 
-Dentro ci vanno **solo i fatti che non cambiano**. L'indice del giorno no: cambia ogni
-quattro ore, e su una pagina statica sarebbe vecchio. C'è invece un link che apre lo spot
-nell'applicazione (`/#spot/<id>`, che l'applicazione riconosce all'avvio), così un
-indirizzo condiviso porta dritto alla scheda giusta.
+### L'indice del giorno sta anche nelle pagine
+
+Prima no, e per un motivo ragionevole: l'indice cambia, le pagine statiche stanno ferme.
+Il risultato però era che le schede pubblicavano **solo** i fatti fermi (accessi, fondale,
+specie, esche, regole), cioè quello che sta in qualunque guida cartacea, mentre l'unica
+cosa che qui si sappia e nessun altro dica viveva solo dentro il browser, dove nessun
+motore di ricerca la vede.
+
+Adesso `genera-pagine.py` carica `assets/js/engine.js` e `assets/js/api.js` in node, legge
+lo stesso `assets/dati/previsioni.json` che legge la pagina e chiama `ENGINE.valuta()` spot
+per spot. Non c'è una seconda formula in Python: sarebbe divergere al primo ritocco del
+motore. Nella scheda entra il punteggio, l'acqua stimata, lo scarto di portata, la finestra
+migliore, le specie del giorno e il perché, con **la data e l'ora del rilevamento accanto**
+e `dateModified` nei dati strutturati. Un indice senza la sua data non vuole dire niente.
+
+Il file si rigenera ogni quattro ore insieme alle previsioni, quindi le pagine dicono
+sempre la stessa cosa che dice l'applicazione. Se `previsioni.json` manca o ha più di nove
+ore (lo stesso tetto di `api.js`, oltre il quale anche il browser lo scarta) il blocco si
+omette e le pagine escono come prima. `--senza-indice` lo salta a mano.
 
 Le pagine riusano `assets/css/style.css`: stessa impaginazione, stesse schede, stessi
 colori. `assets/css/pagina.css` aggiunge solo le briciole di pane, gli elenchi di
@@ -286,7 +314,7 @@ assets/js/
   ui.js                        interfaccia
 tools/
   aggiorna-dati.py             scarica meteo e portata e scrive previsioni.json
-  genera-pagine.py             prepara _sito/: applicazione + 281 pagine + sitemap
+  genera-pagine.py             prepara _sito/: applicazione + 367 pagine + sitemap
   bake-geo.py                  la carta regionale, e l'elenco degli spot senz'acqua
   bake-locale.py               le 225 mini-carte, il mare e l'acqua di ogni scheda
   geom.py                      la geometria delle mini-carte, in un posto solo
@@ -419,9 +447,16 @@ nel file stesso e nel piede del sito.
 
 ## Privacy
 
-Nessun account, cookie, tracciamento, font o script di terze parti. Pubblicato con il
-workflow, il browser non fa **nessuna chiamata fuori dal sito**: legge il file delle
-previsioni servito insieme alla pagina.
+Nessun account, nessun cookie, nessun profilo, nessuna pubblicità, nessun font e nessuna
+libreria di terze parti. C'è **un** conteggio delle visite: Umami, quello libero, ospitato
+su `s.dovepescare.com`, cioè su questo stesso dominio. Manda indirizzo e titolo della
+pagina, referente, lingua e misura dello schermo; non scrive cookie e non conserva
+l'indirizzo IP accanto alla visita. La pagina `/privacy/` lo dichiara per esteso: prima
+diceva «nessuna statistica» mentre lo script era in fondo a ogni pagina, ed era la pagina
+a essere sbagliata, non lo script.
+
+Per il resto, pubblicato con il workflow il browser non fa **nessuna chiamata fuori dal
+sito**: legge il file delle previsioni servito insieme alla pagina.
 
 Quando invece tocca alla riserva (file assente o vecchio), le chiamate vanno solo a
 Open-Meteo, raggruppate in una decina di richieste e tenute in cache 45 minuti in

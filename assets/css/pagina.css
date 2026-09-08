@@ -72,6 +72,44 @@ main.sez h2.sotto-tit{ font-size:clamp(1.2rem,2vw,1.45rem) }
 .fonti-elenco{ list-style:none; margin:16px 0 0; padding:0; display:grid; gap:10px }
 .fonti-elenco li{ font-size:.9rem }
 
+/* il titolo porta anche il luogo, o la specie porta «pesca in Emilia-Romagna»:
+   e' la parte che risponde alla ricerca, ma non deve gridare quanto il nome */
+.h1-luogo{
+  display:block; margin-top:6px; font-family:var(--sans);
+  font-size:clamp(.82rem,1.6vw,.95rem); font-weight:500; letter-spacing:0;
+  color:var(--ink-3); text-transform:none;
+}
+
+/* «come si presenta oggi»: l'indice del giorno gia' scritto nella pagina */
+.oggi{ display:flex; align-items:baseline; flex-wrap:wrap; gap:12px; margin-top:16px }
+.oggi .indice b{ font-size:clamp(2.2rem,6vw,3rem); line-height:1 }
+.oggi em{ font-style:normal; font-size:.95rem; color:var(--ink-2) }
+.oggi em a{ color:var(--acc); font-weight:600 }
+
+/* l'attivita' di una specie nei dodici mesi: una striscia, non una tabella */
+.calendario{
+  list-style:none; margin:18px 0 0; padding:0;
+  display:grid; grid-template-columns:repeat(12,1fr); gap:clamp(2px,.8vw,6px);
+}
+.calendario li{ display:flex; flex-direction:column; align-items:center; gap:5px }
+.calendario .asta{
+  display:flex; align-items:flex-end; width:100%; height:62px;
+  background:var(--carta-2); border-radius:5px; overflow:hidden;
+}
+.calendario i{ display:block; width:100%; background:var(--acc); opacity:.3; border-radius:5px }
+/* i mesi di punta si staccano: sono la risposta a «quando si pesca» */
+.calendario li.punta i{ opacity:1 }
+.calendario li.punta b{ color:var(--acc) }
+.calendario b{ font-size:.7rem; font-weight:600; color:var(--ink-2); letter-spacing:-.01em }
+.calendario s{ text-decoration:none; font-size:.62rem; color:var(--ink-3) }
+@media (max-width:430px){
+  .calendario .asta{ height:52px }
+  .calendario s{ display:none }
+}
+
+/* la data del contenuto, in fondo alla pagina */
+.firma{ margin:clamp(30px,4vw,42px) 0 0; padding-top:14px; border-top:1px solid var(--linea) }
+
 /* rifugio senza JavaScript, in fondo all'applicazione */
 .senza-js{ padding-block:clamp(30px,5vw,54px) }
 .senza-js h3{ margin:22px 0 4px; font-size:.95rem }

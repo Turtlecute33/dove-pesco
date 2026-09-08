@@ -1,22 +1,28 @@
 #!/usr/bin/env python3
 """Prepara la cartella da pubblicare: pagine statiche, sitemap e robots.txt.
 
-Il sito resta l'applicazione a pagina singola. L'indice del giorno si calcola
-nel browser, come prima. Queste pagine servono a dare un indirizzo proprio a
-ogni spot, a ogni specie e a ogni provincia: un motore di ricerca non puo'
-indicizzare uno stato interno del programma, quindi con il solo index.html i
-222 spot restano invisibili.
+Il sito resta l'applicazione a pagina singola. Queste pagine servono a dare un
+indirizzo proprio a ogni spot, a ogni specie, a ogni corso d'acqua, a ogni
+comune e a ogni provincia: un motore di ricerca non puo' indicizzare uno stato
+interno del programma, quindi con il solo index.html gli spot restano
+invisibili.
 
-In ogni pagina entrano solo i fatti che non cambiano: acqua, fondale, accessi,
-specie, esche, regole. L'indice del giorno non entra, perche' cambia ogni ora:
-c'e' un link che apre lo spot nell'applicazione.
+Ogni pagina porta i fatti che non cambiano (acqua, fondale, accessi, specie,
+esche, regole) e, in coda, l'indice del giorno gia' calcolato. L'indice lo
+calcola qui lo stesso motore che gira nel browser, sullo stesso
+previsioni.json: e' l'unica cosa che questo sito sappia e nessun altro dica,
+e finche' viveva solo nel browser nessun motore di ricerca la vedeva. Se il
+file delle previsioni manca o e' vecchio il blocco si omette e basta.
 
   python3 tools/genera-pagine.py                    # scrive in _sito/
   python3 tools/genera-pagine.py --out /tmp/prova
   python3 tools/genera-pagine.py --base https://esempio.it
+  python3 tools/genera-pagine.py --senza-indice     # salta l'indice del giorno
 """
 
 import argparse
+import collections
+import datetime
 import html
 import json
 import math
@@ -27,6 +33,14 @@ import subprocess
 import sys
 import unicodedata
 import urllib.parse
+import zoneinfo
+
+# Le previsioni sono chieste a Open-Meteo con timezone=Europe/Rome (vedi
+# tools/aggiorna-dati.py), quindi le giornate del file sono giornate italiane.
+# La pubblicazione pero' gira in UTC: `on: push` puo' scattare a qualsiasi ora,
+# e fra le 22 e mezzanotte UTC (cioe' dopo mezzanotte a Roma) prendere la data
+# in UTC voleva dire scrivere su ogni pagina il punteggio di ieri.
+FUSO = zoneinfo.ZoneInfo('Europe/Rome')
 
 BASE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DATI = ['data-species.js', 'data-spots-emilia.js', 'data-spots-romagna.js',
@@ -66,6 +80,97 @@ def leggi_dati():
     return json.loads(raw)
 
 
+# Quanto puo' essere vecchio previsioni.json perche' l'indice finisca nelle
+# pagine. Lo stesso tetto di assets/js/api.js: oltre, nel browser il file viene
+# scartato e si va in rete, quindi scriverlo qui vorrebbe dire pubblicare un
+# numero che l'applicazione non mostrerebbe piu'.
+ETA_MAX_ORE = 9
+
+
+def leggi_indice(quando=None):
+    """L'indice del giorno di ogni spot, calcolato con il motore del browser.
+
+    Non c'e' una seconda formula: si caricano assets/js/engine.js e api.js in
+    node, si legge lo stesso assets/dati/previsioni.json che legge la pagina e
+    si chiama ENGINE.valuta(), spot per spot. Una copia in Python del punteggio
+    sarebbe divergere al primo ritocco del motore.
+
+    Torna {} quando il file non c'e', e' piu' vecchio di ETA_MAX_ORE o node non
+    risponde: in quel caso le pagine escono senza il blocco del giorno, che e'
+    esattamente come uscivano prima.
+    """
+    # Un solo runInContext, come in leggi_dati(): gli elenchi, api.js e engine.js
+    # si dichiarano con const, e un const in cima a uno script non finisce fra le
+    # proprieta' del contesto. Visto da fuori, ctx.SPOT non esiste; valutato
+    # nello stesso script, SPOT c'e'. Percio' anche l'espressione finale sta li'
+    # dentro, e quello che torna e' gia' la stringa JSON.
+    js = r"""
+      const fs = require('fs'), vm = require('vm'), p = require('path');
+      const cartella = p.join(process.env.RADICE, 'assets/js');
+      const leggi = f => fs.readFileSync(p.join(cartella, f), 'utf8');
+
+      const f = p.join(process.env.RADICE, 'assets/dati/previsioni.json');
+      if (!fs.existsSync(f)) { process.stdout.write('{}'); return; }
+      const prev = JSON.parse(fs.readFileSync(f, 'utf8'));
+      const eta = Date.now() - Date.parse(prev.generato);
+      if (!(eta >= 0) || eta > %d * 3600 * 1000) { process.stdout.write('{}'); return; }
+
+      // en-CA da AAAA-MM-GG, ed e' l'unico modo breve per avere la data di Roma
+      // e non quella di UTC: i giorni del file sono giorni italiani.
+      const giorno = process.env.GIORNO
+        || new Date().toLocaleDateString('en-CA', { timeZone: 'Europe/Rome' });
+      const ctx = vm.createContext({ PREV: prev, GIORNO: giorno, module: { exports: {} } });
+      const src = [...%s, 'api.js', 'engine.js'].map(leggi).join('\n');
+
+      const coda = `
+        const dati = API.espandi(PREV);
+        const fuori = {};
+        const persi = [];
+        SPOT.forEach(s => {
+          let v;
+          // Uno spot che fa saltare il motore non deve portarsi dietro gli
+          // altri duecento: senza questo, una sola eccezione faceva uscire node
+          // con errore, e tutte le pagine restavano senza indice del giorno con
+          // il flusso verde e una riga sola su stderr a dirlo.
+          try {
+            v = ENGINE.valuta(s, dati.meteo[s.id], dati.portata[s.id], GIORNO);
+          } catch (err) {
+            persi.push(s.id + ': ' + err.message);
+            return;
+          }
+          if (!v) return;
+          fuori[s.id] = {
+            punteggio: v.punteggio,
+            etichetta: ENGINE.etichetta(v.punteggio).t,
+            banda: ENGINE.banda(v.punteggio),
+            specie: v.specie.filter(x => !x.soloRilascio).slice(0, 3)
+                     .map(x => ({ nome: x.nome, id: x.id })),
+            tAcqua: v.acqua.temp, flowRatio: v.acqua.flowRatio,
+            alba: v.meteo.alba, tramonto: v.meteo.tramonto,
+            finestre: v.finestre.slice(0, 2).map(x => ({ q: x.q, o: x.o })),
+            spiegazione: v.spiegazione.slice(0, 3),
+            mod: v.mod.map(x => ({ t: x.t, v: x.v }))
+          };
+        });
+        JSON.stringify({ generato: PREV.generato, giorno: GIORNO, spot: fuori, persi });
+      `;
+      process.stdout.write(vm.runInContext(src + '\n' + coda, ctx));
+    """ % (ETA_MAX_ORE, json.dumps(DATI))
+    amb = {**os.environ, 'RADICE': BASE}
+    if quando:
+        amb['GIORNO'] = quando
+    try:
+        raw = subprocess.run(['node', '-e', '(() => {%s})()' % js], check=True,
+                             capture_output=True, text=True, env=amb, timeout=180).stdout
+    except FileNotFoundError:
+        sys.exit('serve node per leggere gli elenchi in assets/js')
+    except (subprocess.CalledProcessError, subprocess.TimeoutExpired) as err:
+        sys.stderr.write('indice del giorno non calcolato: %s\n'
+                         % (getattr(err, 'stderr', '') or err))
+        return {}
+    return json.loads(raw or '{}')
+
+
 # ---------------------------------------------------------------- date
 
 # Le fonti da cui ogni sezione del sito dipende davvero. Servono al <lastmod>
@@ -80,6 +185,14 @@ FONTI = {
     'fisse': ['tools/genera-pagine.py'],
     'app': ['index.html', 'assets/js/engine.js', 'assets/js/ui.js'],
 }
+
+# genera-pagine.py stava dentro ogni sezione, non solo dentro 'fisse': bastava
+# spostare una virgola nel generatore perche' tutti i 281 <lastmod> passassero
+# alla stessa data, e infatti erano tutti uguali. Una data che si muove quando
+# il contenuto non si muove e' esattamente il campo che il crawler impara a non
+# leggere piu'. Ora ogni sezione guarda solo i dati da cui dipende; a dire
+# quando cambia davvero una scheda ci pensa l'indice del giorno, che ha una
+# data sua.
 
 
 def data_commit(rel):
@@ -101,23 +214,34 @@ def date_sezioni():
     cambierebbe a ogni giro di cron senza che nulla sia cambiato) insegna al
     crawler che il campo mente, e da quel momento lo ignora.
     """
-    gen = FONTI['fisse']
     date = {}
     for sez, file in FONTI.items():
-        v = [d for d in (data_commit(f) for f in file + gen) if d]
+        v = [d for d in (data_commit(f) for f in file) if d]
         date[sez] = max(v) if v else None
     v = [d for d in date.values() if d]
     date['home'] = max(v) if v else None
     return date
 
 
-def lastmod(u, date):
-    """La data da mettere in sitemap per questo indirizzo."""
+def lastmod(u, date, freschi=None):
+    """La data da mettere in sitemap per questo indirizzo.
+
+    Dove la pagina porta davvero l'indice del giorno, la data e' quella
+    dell'indice: e' il pezzo che cambia, e cambia una volta al giorno. Le altre
+    tengono la data dell'ultimo commit che ne ha toccato i dati.
+
+    `freschi` sono gli indirizzi che il blocco lo hanno per davvero, non quelli
+    che potrebbero averlo: tre spot mancano dal file delle previsioni, escono
+    senza indice, e marcarli comunque come cambiati ogni giorno sarebbe la
+    stessa data che si muove a vuoto che questa funzione vuole togliere.
+    """
+    if u in (freschi or {}):
+        return freschi[u]
     if u == '/':
         return date['home']
     if u.startswith('/specie'):
         return date['specie']
-    if u.startswith('/spot') or u.startswith('/provincia'):
+    if u.startswith(('/spot', '/provincia', '/acqua', '/comune')):
         return date['spot']
     if u.startswith('/regole'):
         return date['regole']
@@ -137,6 +261,9 @@ def slug(t):
     return t.strip('-')
 
 
+MARCHIO = ' | Dove Pesco'
+
+
 def taglia(t, n):
     """Accorcia a n caratteri senza spezzare una parola."""
     t = re.sub(r'\s+', ' ', t).strip()
@@ -145,14 +272,48 @@ def taglia(t, n):
     return t[:n].rsplit(' ', 1)[0].rstrip(' ,.;:–-') + '…'
 
 
+def titolo(testa, n=62):
+    """Il titolo con il marchio in coda, se ci sta.
+
+    taglia() su una stringa che finisce con «| Dove Pesco» taglia dentro il
+    marchio, e nel risultato di ricerca «... | Dove…» sembra una pagina rotta.
+    Il richiamo o c'e' tutto o non c'e': prima si prova con, poi senza, e solo
+    all'ultimo si accorcia quello che resta.
+    """
+    testa = re.sub(r'\s+', ' ', testa).strip()
+    if len(testa) + len(MARCHIO) <= n:
+        return testa + MARCHIO
+    return testa if len(testa) <= n else taglia(testa, n)
+
+
+def cresci(testa, code, tetto=158):
+    """La descrizione parte dai fatti e si allunga finche' ci sta.
+
+    Tagliare a 158 lasciava la frase a meta' con i puntini: chi legge il
+    risultato di ricerca vede una frase mozzata, non un testo denso. Meglio
+    perdere l'ultima aggiunta per intero che mostrarne mezza.
+    """
+    fuori = testa
+    for coda in code:
+        if coda and len(fuori) + len(coda) + 1 <= tetto:
+            fuori += ' ' + coda
+    return fuori
+
+
 def elenco(v, cong='e'):
-    """['a','b','c'] -> 'a, b e c'"""
+    """['a','b','c'] -> 'a, b e c'
+
+    Quando una voce contiene gia' una virgola si separa con il punto e virgola:
+    tre nomi di specie come «Sgombro, palamita, aguglia» uniti dalle virgole
+    diventano sei pesci invece di tre, e chi legge non ha modo di accorgersene.
+    """
     v = [x for x in v if x]
     if not v:
         return ''
     if len(v) == 1:
         return v[0]
-    return ', '.join(v[:-1]) + ' ' + cong + ' ' + v[-1]
+    sep = '; ' if any(',' in x for x in v) else ', '
+    return sep.join(v[:-1]) + ' ' + cong + ' ' + v[-1]
 
 
 def distanza(a, b):
@@ -233,6 +394,17 @@ NAVIGATORE = SEGNO % '<path d="M20.8 3.2 3.6 10.4l7.2 2.8 2.8 7.2Z"/>'
 MENU = [('/', 'Oggi'), ('/spot/', 'Spot'), ('/specie/', 'Specie'),
         ('/regole/', 'Regole'), ('/metodo/', 'Metodo')]
 
+# Quanti spot ci sono davvero. Era scritto a mano, 222, in undici punti fra
+# pagine, piede, sitemap e og: gli spot nel frattempo sono diventati 225, e
+# /spot/ e /provincia/ arrivavano a dire due numeri diversi nella stessa
+# navigata. Lo conta main() una volta sola e lo leggono tutti.
+CONTA = {'spot': 0, 'specie': 0}
+
+# Gli indirizzi che hanno scritto davvero l'indice del giorno, con la sua data.
+# Lo riempie pagina() mentre impagina, e lo legge la sitemap: cosi' il <lastmod>
+# dice quello che e' successo e non quello che si sperava succedesse.
+FRESCHI = {}
+
 
 def leggi_accessi():
     """I punti di accesso calcolati da tools/accessi.py. Il file e' generato e
@@ -293,8 +465,14 @@ def fuori_html(s, accessi=None):
 </div>"""
 
 
-def pagina(base, url, titolo, desc, corpo, ld=None, briciole=None, indicizza=True):
-    """Impagina una pagina statica. url comincia e finisce con /."""
+def pagina(base, url, tit, desc, corpo, ld=None, briciole=None, indicizza=True,
+           modificato=None):
+    """Impagina una pagina statica. url comincia e finisce con /.
+
+    `modificato` e' la data del contenuto che cambia davvero, cioe' quella
+    dell'indice del giorno. Va nel <time> visibile e in dateModified: senza,
+    una pagina che si riscrive ogni quattro ore non ha modo di dire quando.
+    """
     testa_ind = ('<link rel="canonical" href="%s">' % e(base + url) if indicizza
                  else '<meta name="robots" content="noindex, follow">')
     nav = ''.join('<a href="%s"%s>%s</a>' % (u, ' aria-current="page"' if u == url else '', t)
@@ -310,18 +488,35 @@ def pagina(base, url, titolo, desc, corpo, ld=None, briciole=None, indicizza=Tru
               % '<i aria-hidden="true">/</i>'.join(voci))
     ldjson = ''
     if ld:
-        blocchi = ld if isinstance(ld, list) else [ld]
+        blocchi = [b for b in (ld if isinstance(ld, list) else [ld]) if b]
+        if modificato:
+            # dateModified esiste su CreativeWork, non su Place e non su
+            # ItemList: appenderlo li' e' una proprieta' che il vocabolario non
+            # prevede, quindi un campo che nessuno legge. La data va su un nodo
+            # WebPage, che descrive la pagina e non la cosa di cui parla.
+            blocchi.insert(0, {
+                '@context': 'https://schema.org', '@type': 'WebPage',
+                '@id': base + url + '#pagina',
+                'url': base + url, 'name': tit, 'inLanguage': 'it',
+                'dateModified': modificato,
+                'isPartOf': {'@type': 'WebSite', '@id': base + '/#sito'},
+            })
         ldjson = ''.join(
             '<script type="application/ld+json">%s</script>\n'
             % json.dumps(b, ensure_ascii=False, separators=(',', ':')).replace('</', '<\\/')
             for b in blocchi)
+    firma = ''
+    if modificato:
+        FRESCHI[url] = modificato
+        firma = ('<p class="firma mini tenue">Aggiornato il <time datetime="%s">%s</time></p>'
+                 % (e(modificato), e(data_lunga(modificato))))
 
     return f"""<!DOCTYPE html>
 <html lang="it">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{e(titolo)}</title>
+<title>{e(tit)}</title>
 <meta name="description" content="{e(desc)}">
 {testa_ind}
 <meta name="color-scheme" content="light">
@@ -330,12 +525,13 @@ def pagina(base, url, titolo, desc, corpo, ld=None, briciole=None, indicizza=Tru
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Dove Pesco">
 <meta property="og:locale" content="it_IT">
-<meta property="og:title" content="{e(titolo)}">
+<meta property="og:title" content="{e(tit)}">
 <meta property="og:description" content="{e(desc)}">
 <meta property="og:url" content="{e(base + url)}">
 <meta property="og:image" content="{e(base)}/assets/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Dove Pesco: l'indice del giorno per gli spot di pesca dell'Emilia-Romagna">
 <meta name="twitter:card" content="summary_large_image">
 <link rel="icon" href="{ICONA}">
 {CSS}
@@ -355,6 +551,7 @@ def pagina(base, url, titolo, desc, corpo, ld=None, briciole=None, indicizza=Tru
  <div class="col">
 {br}
 {corpo}
+{firma}
  </div>
 </main>
 
@@ -364,11 +561,13 @@ def pagina(base, url, titolo, desc, corpo, ld=None, briciole=None, indicizza=Tru
     <div class="piede-g">
       <div>
         <span class="occhio">Dove Pesco</span>
-        <p class="mini tenue" style="margin-top:9px">222 spot in Emilia-Romagna, ordinati ogni
-          mattina sui dati del giorno. Dati aperti, nessun tracciamento.</p>
+        <p class="mini tenue" style="margin-top:9px">{CONTA['spot']} spot in Emilia-Romagna,
+          ordinati ogni mattina sui dati del giorno. Dati aperti, licenze in chiaro.</p>
         <ul>
           <li><a href="/">Indice del giorno</a></li>
           <li><a href="/spot/">Tutti gli spot</a></li>
+          <li><a href="/acqua/">Fiume per fiume</a></li>
+          <li><a href="/comune/">Comune per comune</a></li>
           <li><a href="/provincia/">Provincia per provincia</a></li>
           <li><a href="/specie/">Tutte le specie</a></li>
         </ul>
@@ -425,33 +624,180 @@ def righe(voci):
         for u, t, s in voci))
 
 
+def voci_html(coppie):
+    """Il blocco <div class="voci"> di definizioni, usato da tutte le pagine.
+
+    Ogni voce e' (titolo, valore) oppure (titolo, valore, True) quando il valore
+    e' gia' HTML e non va riscappato. Le voci vuote spariscono.
+    """
+    fuori = []
+    for c in coppie:
+        t, v, grezzo = c[0], c[1], (len(c) > 2 and c[2])
+        if v:
+            fuori.append('<div class="voce"><h3>%s</h3><div><p>%s</p></div></div>'
+                         % (e(t), v if grezzo else e(v)))
+    return ''.join(fuori)
+
+
+def faq_ld(voci):
+    """Le domande e risposte di una pagina, in forma leggibile da una macchina.
+
+    Sono le stesse che la pagina scrive per esteso: schema.org vuole che la
+    risposta compaia anche nel testo visibile, e marcare qualcosa che il
+    visitatore non vede e' proprio il caso che le linee guida vietano.
+    """
+    return {
+        '@context': 'https://schema.org', '@type': 'FAQPage',
+        'mainEntity': [{'@type': 'Question', 'name': dom,
+                        'acceptedAnswer': {'@type': 'Answer', 'text': ris}}
+                       for dom, ris in voci if ris],
+    }
+
+
+def faq_html(voci):
+    return ('<h2>Domande frequenti</h2><div class="voci">%s</div>'
+            % ''.join('<div class="voce"><h3>%s</h3><div><p>%s</p></div></div>'
+                      % (e(dom), e(ris)) for dom, ris in voci if ris))
+
+
+# ---------------------------------------------------------------- indice del giorno
+
+def num(v, dec=1):
+    """Un numero come lo scrive un italiano: virgola, non punto."""
+    return ('%.*f' % (dec, v)).replace('.', ',')
+
+
+def data_lunga(iso):
+    """'2026-08-23' -> '23 agosto 2026'."""
+    a, m, g = iso.split('-')
+    return '%d %s %s' % (int(g), MESI[int(m) - 1], a)
+
+
+def ora_di(generato):
+    """L'ora del rilevamento nel fuso di chi pesca, non in UTC.
+
+    aggiorna-dati.py scrive `generato` in UTC, e l'applicazione lo mostra con
+    getHours(), cioe' nel fuso del browser. Affettare la stringa e basta faceva
+    dire alla pagina «rilevamento delle 09:15» e al piede dell'applicazione
+    «rilevati alle 11:15» per lo stesso identico file.
+    """
+    try:
+        t = datetime.datetime.fromisoformat(generato)
+    except (TypeError, ValueError):
+        return None
+    if t.tzinfo is None:
+        t = t.replace(tzinfo=datetime.timezone.utc)
+    return t.astimezone(FUSO).strftime('%H:%M')
+
+
+def blocco_oggi(s, oggi, d):
+    """Come si presenta questo spot oggi: il pezzo che prima viveva solo nel browser.
+
+    E' l'unica cosa che il sito sappia e che nessun altro dica, e finche' si
+    calcolava solo nel browser nessun motore di ricerca la vedeva: le 225 schede
+    pubblicavano gli stessi fatti fermi che stanno in qualunque guida. Qui il
+    numero e' gia' scritto nella pagina, con la data e l'ora del rilevamento
+    accanto, perche' un indice senza la sua data non vuol dire niente.
+    """
+    v = (oggi.get('spot') or {}).get(s['id'])
+    if not v:
+        return '', None
+    ora = ora_di(oggi.get('generato'))
+    voci = [('Acqua stimata', '%s °C' % num(v['tAcqua']) if v.get('tAcqua') is not None else '')]
+    if v.get('flowRatio') is not None:
+        pc = round((v['flowRatio'] - 1) * 100)
+        voci.append(('Portata', '%+d%% sulla mediana recente' % pc))
+    if v.get('finestre'):
+        f = v['finestre'][0]
+        voci.append(('Finestra migliore', '%s, %s' % (f['q'].lower(), f['o'])))
+    if v.get('specie'):
+        voci.append(('Specie del giorno', ' · '.join(
+            '<a href="/specie/%s/">%s</a>' % (d['SPECIE'][x['id']]['slug'], e(x['nome']))
+            for x in v['specie'] if x['id'] in d['SPECIE']), True))
+
+    avvisi = ''.join('<p class="att">%s</p>' % e(m['t'])
+                     for m in v.get('mod', []) if m.get('v', 0) < 0)
+    perche = ''.join('<li>%s</li>' % e(x) for x in v.get('spiegazione', []))
+
+    return f"""<h2>Come si presenta oggi</h2>
+<p class="mini tenue" style="margin-top:8px;max-width:66ch">Indice del
+  {e(data_lunga(oggi['giorno']))}{', rilevamento delle ' + e(ora) if ora else ''}. Si ricalcola a
+  ogni pubblicazione, sei volte al giorno. Come nasce il numero è spiegato nel
+  <a href="/metodo/">metodo</a>.</p>
+<div class="oggi">
+  <span class="indice {e(v.get('banda') or 'medio')}"><b>{v['punteggio']}</b><s>/100</s></span>
+  <em>{e((v.get('etichetta') or '').lower())}</em>
+</div>
+{avvisi}
+<div class="voci">{voci_html(voci)}</div>
+{('<ul class="lista-limiti">' + perche + '</ul>') if perche else ''}
+{cta('/#spot/' + s['id'], 'Apri lo spot con la mappa e i sette giorni')}""", v
+
+
+def migliore_oggi(spots, oggi):
+    """Lo spot con l'indice piu' alto fra quelli passati, per le pagine d'insieme."""
+    v = [(oggi['spot'][s['id']], s) for s in spots if s['id'] in (oggi.get('spot') or {})]
+    return max(v, key=lambda x: x[0]['punteggio']) if v else (None, None)
+
+
+def riga_oggi(spots, oggi, dove):
+    """Una riga sola: qual e' il posto migliore oggi in questo insieme."""
+    v, s = migliore_oggi(spots, oggi)
+    if not v:
+        return ''
+    ora = ora_di(oggi.get('generato'))
+    return f"""<h2>Come si presenta oggi</h2>
+<p class="mini tenue" style="margin-top:8px;max-width:66ch">Indice del
+  {e(data_lunga(oggi['giorno']))}{', rilevamento delle ' + e(ora) if ora else ''}, ricalcolato a
+  ogni pubblicazione.</p>
+<div class="oggi">
+  <span class="indice {e(v.get('banda') or 'medio')}"><b>{v['punteggio']}</b><s>/100</s></span>
+  <em>{e((v.get('etichetta') or '').lower())} a
+    <a href="/spot/{e(s['slug'])}/">{e(s['nome'])}</a></em>
+</div>
+<p class="mini" style="margin-top:12px;max-width:66ch">È il valore più alto {dove} oggi.
+  {e(v['spiegazione'][0]) if v.get('spiegazione') else ''}</p>"""
+
+
 # ---------------------------------------------------------------- pagine spot
 
-def pagina_spot(d, s, base, accessi=None):
+def pagina_spot(d, s, base, accessi=None, oggi=None, hub=None):
     prov = d['PROVINCE'][s['prov']]
     cat = d['CATEGORIE'][s['categoria']]
     tipo = TIPI.get(s['tipo'], s['tipo'].capitalize())
     rari = set(d['RARITA'].get(s['id'], []))
     sp_ids = [x for x in s.get('specie', []) if x in d['SPECIE']]
+    oggi = oggi or {}
+    hub = hub or {'acqua': {}, 'comune': {}}
 
-    titolo = '%s: dove pescare a %s | Dove Pesco' % (s['nome'], s['comune'])
-    if len(titolo) > 62:
-        titolo = '%s: pesca a %s (%s)' % (s['nome'], s['comune'], s['prov'])
-    if len(titolo) > 62:
-        titolo = taglia('%s: pesca (%s)' % (s['nome'], s['prov']), 62)
+    # Il taglio dell'ultimo ripiego finiva con i puntini in mezzo al nome dello
+    # spot: un titolo che si interrompe («Bidente a Santa Sofia (area
+    # regolamentata Treponti): pesca…») nel risultato di ricerca sembra rotto.
+    # Meglio perdere il richiamo che il nome, quindi si scala fino al nome nudo.
+    for testa in ('%s: dove pescare a %s' % (s['nome'], s['comune']),
+                  '%s: pesca a %s (%s)' % (s['nome'], s['comune'], s['prov']),
+                  '%s: pesca a %s' % (s['nome'], s['comune']),
+                  '%s: dove pescare (%s)' % (s['nome'], s['prov']),
+                  s['nome']):
+        if len(testa) <= 62:
+            break
+    tit = titolo(testa)
 
-    # la descrizione si accorcia dalla coda: prima i fatti, poi i richiami
+    # la descrizione si allunga dalla coda: prima i fatti, poi i richiami
     nomi = [d['SPECIE'][x]['nome'] for x in sp_ids]
-    testa = 'Pescare a %s, %s (%s): accessi, fondale, esche e regole.' % (
-        s['nome'], s['comune'], prov)
-    desc = testa
-    for coda in (' Le %d specie dichiarate: %s.' % (len(nomi), elenco(nomi[:3]).lower())
-                 if nomi else '', ' Indice del giorno su portata e meteo.'):
-        if coda and len(desc) + len(coda) <= 158:
-            desc += coda
+    desc = cresci('Pescare a %s, %s (%s): accessi, fondale, esche e regole.'
+                  % (s['nome'], s['comune'], prov),
+                  ['Le %d specie dichiarate: %s.' % (len(nomi), elenco(nomi[:3]).lower())
+                   if nomi else '',
+                   'Indice del giorno su portata e meteo.'])
 
+    # Il comune entra nelle briciole solo dove ha una pagina propria, cioe' dove
+    # ha piu' di uno spot: altrimenti la briciola porterebbe a se stessa.
     briciole = [('/', 'Oggi'), ('/spot/', 'Spot'),
-                ('/provincia/%s/' % slug(prov), prov), (None, s['nome'])]
+                ('/provincia/%s/' % slug(prov), prov)]
+    if s['comune'] in hub['comune']:
+        briciole.append(('/comune/%s/' % hub['comune'][s['comune']], s['comune']))
+    briciole.append((None, s['nome']))
 
     # apertura: solo fatti dichiarati negli elenchi, nessuna aggiunta
     categoria = (cat['nome'].replace('Zona ', 'categoria ')
@@ -536,12 +882,52 @@ def pagina_spot(d, s, base, accessi=None):
                        '%s, %s · %s' % (o['comune'], d['PROVINCE'][o['prov']], perche))
                       for o, perche in altri[:8]])
 
+    # Il luogo era testo morto. Adesso porta al corso d'acqua e al comune, che
+    # sono le due domande che la gente scrive per intero («torrente leo», «dove
+    # pescare a Cesenatico») e a cui prima rispondevano due schede in
+    # concorrenza fra loro invece di una pagina d'insieme.
+    luogo = []
+    if s['comune'] in hub['comune']:
+        luogo.append('<a href="/comune/%s/">%s</a>' % (hub['comune'][s['comune']], e(s['comune'])))
+    else:
+        luogo.append(e(s['comune']))
+    luogo.append('<a href="/provincia/%s/">%s</a>' % (slug(prov), e(prov)))
+    acqua_link = ('<a href="/acqua/%s/">%s</a>' % (hub['acqua'][s['acqua']], e(s['acqua']))
+                  if s['acqua'] in hub['acqua'] else e(s['acqua']))
+
+    oggi_html, v_oggi = blocco_oggi(s, oggi, d)
+
+    faq = [
+        ('Dove si trova %s?' % s['nome'],
+         '%s si trova sul %s, nel comune di %s, in provincia di %s. %s'
+         % (s['nome'], s['acqua'], s['comune'], prov,
+            detto_accesso(s, accessi))),
+        ('Che pesci ci sono a %s?' % s['nome'],
+         ('Le specie dichiarate sono %d: %s. Misure minime e periodi di divieto seguono '
+          'l\'Allegato 2 del Regolamento regionale 1/2018.' % (len(nomi), elenco(nomi)))
+         if nomi else ''),
+        ('Con che esche si pesca a %s?' % s['nome'],
+         ('Le esche indicate per questo spot sono: %s. Le tecniche: %s.'
+          % (elenco(s['esche']), elenco(s.get('tecniche') or ['nessuna indicata'])))
+         if s.get('esche') else ''),
+        ('Serve la licenza per pescare a %s?' % s['nome'],
+         'Sì. In Emilia-Romagna serve la licenza di tipo B e il versamento annuale. %s è in %s: %s'
+         % (s['nome'], cat['nome'].lower(), cat['desc'])),
+    ]
+    if v_oggi:
+        faq.insert(0, (
+            'Si pesca bene a %s oggi?' % s['nome'],
+            'L\'indice del %s è %d su 100 (%s). %s'
+            % (data_lunga(oggi['giorno']), v_oggi['punteggio'],
+               (v_oggi.get('etichetta') or '').lower(),
+               ' '.join(v_oggi.get('spiegazione', [])))))
+
     corpo = f"""<span class="occhio acc">{e(tipo)} · {e(prov)}</span>
-<h1>{e(s['nome'])}</h1>
-<div class="luogo">{e(s['comune'])}, {e(prov)} · {e(s['acqua'])}</div>
+<h1>{e(s['nome'])} <span class="h1-luogo">dove pescare a {e(s['comune'])}</span></h1>
+<div class="luogo">{', '.join(luogo)} · {acqua_link}</div>
 <div class="segni">{''.join(segni)}</div>
 <div class="intro">{' '.join(apre)}</div>
-{cta('/#spot/' + s['id'], "Vedi l'indice di oggi per questo spot")}
+{oggi_html or cta('/#spot/' + s['id'], "Vedi l'indice di oggi per questo spot")}
 <h2>Il posto</h2>
 <div class="voci">{posto_html}</div>
 {sp_html}
@@ -554,6 +940,7 @@ def pagina_spot(d, s, base, accessi=None):
 {fuori_html(s, accessi)}
 <h2>Altri spot vicini</h2>
 {vic_html}
+{faq_html(faq)}
 <p class="mini tenue" style="margin-top:26px;max-width:72ch">Scheda ricavata da
   «Itinerari di pesca sportiva in Emilia-Romagna» della Regione Emilia-Romagna, espansa per
   località. Prima di uscire controlla il
@@ -565,6 +952,7 @@ def pagina_spot(d, s, base, accessi=None):
         '@id': base + '/spot/%s/#place' % s['slug'],
         'name': s['nome'], 'url': base + '/spot/%s/' % s['slug'],
         'description': taglia(s.get('fondale') or desc, 300),
+        'image': base + '/assets/og.png',
         'geo': {'@type': 'GeoCoordinates', 'latitude': round(s['lat'], 5),
                 'longitude': round(s['lon'], 5)},
         'address': {'@type': 'PostalAddress', 'addressLocality': s['comune'],
@@ -574,19 +962,31 @@ def pagina_spot(d, s, base, accessi=None):
         **({'amenityFeature': [{'@type': 'LocationFeatureSpecification',
                                 'name': 'Postazioni accessibili', 'value': True}]}
            if s.get('disabili') else {}),
-    }]
-    return '/spot/%s/' % s['slug'], pagina(base, '/spot/%s/' % s['slug'], titolo, desc,
-                                           corpo, ld, briciole)
+    }, faq_ld(faq)]
+    u = '/spot/%s/' % s['slug']
+    return u, pagina(base, u, tit, desc, corpo, ld, briciole,
+                     modificato=oggi.get('giorno') if v_oggi else None)
 
 
 # ---------------------------------------------------------------- pagine specie
 
-def pagina_specie(d, sp, base):
+def pagina_specie(d, sp, base, hub=None):
     dove = [s for s in d['SPOT'] if sp['id'] in (s.get('specie') or [])]
-    titolo = taglia('%s: pesca in Emilia-Romagna | Dove Pesco' % sp['nome'], 62)
-    desc = taglia('%s (%s): misura minima, periodo di divieto, temperatura, esche e tecniche. '
-                  '%d spot in Emilia-Romagna dove si trova.'
-                  % (sp['nome'], sp['sci'], len(dove)), 158)
+    hub = hub or {'acqua': {}, 'comune': {}}
+
+    # Il titolo si accorciava tagliando dentro «| Dove Pesco», e quattro pagine
+    # uscivano con il marchio spezzato a meta'. Il richiamo si perde tutto o non
+    # si perde: mezzo marchio nel risultato di ricerca sembra un errore.
+    tit = titolo('%s: pesca in Emilia-Romagna' % sp['nome'])
+
+    # La coda diceva «0 spot in Emilia-Romagna dove si trova», e su cinque specie
+    # veniva pure troncata a meta' frase. Una specie che nessuno spot dichiara
+    # non e' una specie senza pagina: e' una specie che sta nella regione ma non
+    # nelle schede, e la descrizione ora lo dice invece di contare zero.
+    coda = ('%d spot in Emilia-Romagna dove si trova.' % len(dove) if dove
+            else 'Presente nelle acque della regione, non dichiarata negli spot descritti.')
+    desc = cresci('%s (%s): misura minima, periodo di divieto, temperatura, esche e tecniche.'
+                  % (sp['nome'], sp['sci']), [coda])
     briciole = [('/', 'Oggi'), ('/specie/', 'Specie'), (None, sp['nome'])]
 
     segni = ['<span class="tag acc">autoctona</span>' if sp.get('autoctona')
@@ -650,6 +1050,85 @@ def pagina_specie(d, sp, base):
                      '<p class="mini tenue" style="margin-top:8px">%d spot dichiarano la presenza '
                      'di questa specie.</p>%s' % (len(dove), ''.join(blocchi)))
 
+    # In quali acque sta, non solo in quali schede. «Dove si trova il luccio in
+    # Emilia-Romagna» e' una domanda sui fiumi, e l'elenco di spot da solo non
+    # la stava rispondendo: qui i corsi d'acqua stanno per nome, e portano alla
+    # pagina del corso d'acqua invece che a un tratto solo.
+    acque_html = ''
+    if dove:
+        per_acqua = {}
+        for s in dove:
+            per_acqua.setdefault(s['acqua'], []).append(s)
+        ordinate = sorted(per_acqua.items(), key=lambda x: (-len(x[1]), x[0]))
+        per_tipo = {}
+        for s in dove:
+            per_tipo.setdefault(s['tipo'], set()).add(s['acqua'])
+        conte = elenco(['%d %s' % (len(v), TIPI.get(k, k).lower() + ('i' if len(v) > 1 else ''))
+                        for k, v in sorted(per_tipo.items(), key=lambda x: -len(x[1]))])
+        acque_html = (
+            '<h2>In quali acque si trova</h2>'
+            '<p class="mini tenue" style="margin-top:8px;max-width:66ch">%s dichiarano questa '
+            'specie: %s.</p><p class="mini" style="margin-top:12px;max-width:72ch">%s</p>'
+            % ('%d corsi d\'acqua' % len(ordinate) if len(ordinate) > 1 else 'Un corso d\'acqua',
+               conte,
+               ' · '.join(
+                   ('<a href="/acqua/%s/">%s</a> <span class="tenue">(%d)</span>'
+                    % (hub['acqua'][a], e(a), len(v))) if a in hub['acqua']
+                   else '%s <span class="tenue">(%d)</span>' % (e(a), len(v))
+                   for a, v in ordinate)))
+
+    # La curva mensile era gia' nei dati e non usciva da nessuna parte: si vedeva
+    # solo il picco, in «Mesi di punta». E' l'unica cosa che qui si sappia sulla
+    # stagione e vale piu' di tre nomi di mese.
+    # Dodici mesi in una tabella diventano dodici schede impilate sul telefono,
+    # e da li' passa l'ottanta per cento di chi legge: mezzo schermo a testa per
+    # dire un numero, e il resto della pagina spinto sotto. Una striscia di
+    # dodici colonne dice la stessa cosa in un colpo d'occhio e sta in una riga.
+    picco = max(sp['mesi']) or 1
+    quote = [(m, round(100 * v / picco)) for m, v in zip(MESI, sp['mesi'])]
+    punta = set(mesi_punta(sp['mesi']))
+    mesi_html = ('<h2>Mese per mese</h2>'
+                 '<p class="mini tenue" style="margin-top:8px;max-width:66ch">Quanto è attiva nel '
+                 'corso dell\'anno, sul suo massimo: %s il periodo migliore. La curva entra '
+                 'nell\'indice del giorno insieme a temperatura, portata e meteo.</p>'
+                 '<ol class="calendario">%s</ol>'
+                 % (elenco(mesi_punta(sp['mesi'])),
+                    ''.join('<li%s aria-label="%s: %d%% dell\'attività massima">'
+                            '<span class="asta"><i style="height:%d%%"></i></span>'
+                            '<b>%s</b><s>%d%%</s></li>'
+                            % (' class="punta"' if m in punta else '', m, q, max(q, 2), m[:3], q)
+                            for m, q in quote)))
+
+    # Le domande cominciano dal nome, invece di infilarlo dentro la frase: negli
+    # elenchi non c'e' il genere, e «la misura minima del cheppia» o «della
+    # muggine» sarebbero due errori scritti da un programma che tira a indovinare
+    # sull'ultima lettera. Cosi' la domanda e' giusta per tutte e quaranta.
+    nome = sp['nome']
+    faq = [
+        ('%s: qual è la misura minima in Emilia-Romagna?' % nome,
+         ('%d cm, dall\'Allegato 2 del Regolamento regionale 1/2018.' % sp['misuraMin'])
+         if sp.get('misuraMin')
+         else 'Il regolamento regionale non fissa una misura minima per questa specie. I '
+              'calendari ittici provinciali possono aggiungerne una.'),
+        ('%s: quando è vietata la pesca?' % nome,
+         'Periodo di divieto: %s. Fuori da quel periodo il limite è %s.'
+         % (sp['divietoTesto'],
+            'la pesca resta vietata' if sp.get('limiteGiorno') == 0
+            else ('%d capi al giorno' % sp['limiteGiorno'] if sp.get('limiteGiorno')
+                  else 'quello generale, senza un tetto per specie'))),
+        ('%s: dove si trova in Emilia-Romagna?' % nome,
+         ('%d spot descritti dichiarano questa specie, su %s.'
+          % (len(dove), elenco(sorted({s['acqua'] for s in dove})[:6]))) if dove else ''),
+        ('%s: con che esche si pesca?' % nome,
+         ('Le esche indicate sono: %s. Le tecniche: %s.'
+          % (elenco(sp['esche']), elenco(sp.get('tecniche') or ['nessuna indicata'])))
+         if sp.get('esche') else ''),
+        ('%s: a che temperatura dell\'acqua si alimenta?' % nome,
+         'Fra %d e %d °C, con la massima attività fra %d e %d °C. Le ore migliori sono %s, i mesi '
+         'di punta %s.' % (sp['tLive'][0], sp['tLive'][1], sp['tOpt'][0], sp['tOpt'][1],
+                           ORE.get(sp['luce'], sp['luce']), elenco(mesi_punta(sp['mesi'])))),
+    ]
+
     # Collegamenti fra specie: prima quelle dello stesso gruppo, poi si completa
     # scorrendo l'elenco alfabetico in cerchio. Serve a garantire un minimo di
     # collegamenti in entrata anche alle specie che quasi nessuno spot dichiara:
@@ -673,16 +1152,19 @@ def pagina_specie(d, sp, base):
                              for o in simili)) if simili else ''
 
     corpo = f"""<span class="occhio acc">{e(sp['gruppo'])}</span>
-<h1>{e(sp['nome'])}</h1>
+<h1>{e(sp['nome'])} <span class="h1-luogo">pesca in Emilia-Romagna</span></h1>
 <div class="luogo sci-tit">{e(sp['sci'])}</div>
 <div class="segni">{''.join(segni)}</div>
 {cta('/#specie', 'Apri la scheda con il disegno e i confronti')}
 <h2>Regole e biologia</h2>
 <div class="voci">{dati_html}</div>
+{mesi_html}
 {prof_html}
 {modo_html}
 {dritte_html}
+{acque_html}
 {dove_html}
+{faq_html(faq)}
 {sim_html}
 <p class="mini tenue" style="margin-top:26px;max-width:72ch">Misure minime, limiti e periodi di
   divieto dall'Allegato 2 del <a href="/regole/">Regolamento regionale 1/2018</a>, come modificato
@@ -693,22 +1175,257 @@ def pagina_specie(d, sp, base):
         'headline': '%s (%s): regole, biologia e spot in Emilia-Romagna' % (sp['nome'], sp['sci']),
         'description': desc,
         'url': base + '/specie/%s/' % sp['slug'],
+        'image': base + '/assets/og.png',
         'inLanguage': 'it',
         'isPartOf': {'@type': 'WebSite', '@id': base + '/#sito'},
         'about': {'@type': 'Thing', 'name': sp['nome'],
                   'alternateName': sp['sci']},
-    }]
+    }, faq_ld(faq)]
     u = '/specie/%s/' % sp['slug']
-    return u, pagina(base, u, titolo, desc, corpo, ld, briciole)
+    return u, pagina(base, u, tit, desc, corpo, ld, briciole)
+
+
+# ---------------------------------------------------------------- corsi d'acqua e comuni
+
+# Quante schede servono perche' un corso d'acqua o un comune meriti una pagina
+# propria. Con una sola la pagina sarebbe il doppione della scheda: stesso
+# titolo, stesso elenco, un solo link dentro. Da due in su c'e' qualcosa da
+# mettere insieme che nella singola scheda non c'e'.
+SOGLIA_HUB = 2
+
+# Quasi tutti i nomi d'acqua sono maschili (il fiume, il torrente, il cavo, il
+# canale, il lago, il mare, il collettore, il Po). Le eccezioni sono poche e
+# note, e restano qui invece che in un indovinello sulla desinenza.
+ACQUE_FEMMINILI = ('sacca', 'valle', 'foce', 'cava', 'darsena', 'fossa', 'roggia',
+                   'chiusa', 'diga', 'lanca')
+
+
+def nel(nome):
+    """«nel Fiume Po», «nella Sacca di Goro»."""
+    return 'nella' if nome.split()[0].lower() in ACQUE_FEMMINILI else 'nel'
+
+
+def raggruppa(spot, chiave):
+    """Gli spot per corso d'acqua o per comune, solo dove sono almeno SOGLIA_HUB."""
+    g = {}
+    for s in spot:
+        g.setdefault(s[chiave], []).append(s)
+    return {k: sorted(v, key=lambda s: s['nome'])
+            for k, v in g.items() if len(v) >= SOGLIA_HUB}
+
+
+def specie_diffuse(d, spot, quante=10):
+    """Le specie piu' dichiarate da un gruppo di spot, con quante volte."""
+    freq = {}
+    for s in spot:
+        for x in s.get('specie', []):
+            if x in d['SPECIE']:
+                freq[x] = freq.get(x, 0) + 1
+    return sorted(freq.items(), key=lambda x: (-x[1], d['SPECIE'][x[0]]['nome']))[:quante]
+
+
+def pagina_acqua(d, nome, spot, base, oggi=None, hub=None):
+    """Un corso d'acqua intero, con tutti i suoi spot.
+
+    Le ricerche che il sito prendeva di piu' erano i nomi delle acque
+    («torrente leo», «cavo napoleonico», «fiume ceno»), e non c'era una pagina
+    per nessuna: rispondevano due o tre schede di tratti diversi, che si
+    toglievano posizione a vicenda. Questa e' la pagina che mancava.
+    """
+    oggi = oggi or {}
+    hub = hub or {'acqua': {}, 'comune': {}}
+    sg = slug(nome)
+    u = '/acqua/%s/' % sg
+    # Il tipo e' quello della maggioranza dei tratti, non quello del primo in
+    # ordine alfabetico: il Po di Volano ha due tratti di fiume e uno di canale,
+    # e chiamarlo «Canale» dipendeva da come si ordinavano i nomi.
+    conte_tipo = collections.Counter(s['tipo'] for s in spot)
+    comune_tipo = min(conte_tipo, key=lambda t: (-conte_tipo[t], t))
+    tipo = TIPI.get(comune_tipo, comune_tipo.capitalize())
+    prov = sorted({d['PROVINCE'][s['prov']] for s in spot})
+    comuni = sorted({s['comune'] for s in spot})
+
+    tit = titolo('%s: dove pescare, %d spot' % (nome, len(spot)))
+    desc = cresci('I %d spot di pesca sul %s.' % (len(spot), nome),
+                  ['A %s.' % elenco(comuni[:4]) if len(comuni) > 1
+                   else 'A %s.' % comuni[0],
+                   'Accessi, fondale, specie dichiarate, esche e regole.',
+                   'Con l\'indice del giorno.'])
+    briciole = [('/', 'Oggi'), ('/acqua/', 'Corsi d\'acqua'), (None, nome)]
+
+    # «da Fanano a Fanano» quando il corso d'acqua sta in un comune solo, e
+    # «da Bardi a Varsi» quando ce ne sono due: la seconda sembra dire monte e
+    # valle, ma l'ordine e' alfabetico e non sa da che parte scorre l'acqua.
+    dove_comuni = ('nel comune di %s' % e(comuni[0]) if len(comuni) == 1
+                   else 'in %d comuni: %s' % (len(comuni), e(elenco(comuni))))
+
+    top = specie_diffuse(d, spot)
+    cat = sorted({d['CATEGORIE'][s['categoria']]['nome'] for s in spot})
+    nk = [s for s in spot if s.get('noKill')]
+
+    dati = [
+        ('Spot', '%d, in %s' % (len(spot), elenco(['provincia di ' + p for p in prov]))),
+        ('Comuni attraversati', elenco(comuni)),
+        ('Categorie delle acque', elenco(cat)),
+        ('Tratti no kill', elenco([s['nome'] for s in nk]) if nk else ''),
+    ]
+
+    per_prov = {}
+    for s in spot:
+        per_prov.setdefault(s['prov'], []).append(s)
+    blocchi = []
+    for pv in [k for k in d['PROVINCE'] if k in per_prov]:
+        v = per_prov[pv]
+        blocchi.append(
+            '<h3 class="sotto-tit"><a href="/provincia/%s/">%s</a> '
+            '<span class="tenue">%d spot</span></h3>%s'
+            % (slug(d['PROVINCE'][pv]), e(d['PROVINCE'][pv]), len(v),
+               righe([('/spot/%s/' % s['slug'], s['nome'],
+                       '%s · %s' % (s['comune'], TIPI.get(s['tipo'], s['tipo']).lower()))
+                      for s in v])))
+
+    faq = [
+        ('Dove si pesca %s %s?' % (nel(nome), nome),
+         'Su questo corso d\'acqua ci sono %d spot descritti, in %s: %s.'
+         % (len(spot), elenco(comuni), elenco([s['nome'] for s in spot]))),
+        ('Che pesci ci sono %s %s?' % (nel(nome), nome),
+         ('Le specie piu\' dichiarate sono: %s.'
+          % elenco(['%s (%d spot)' % (d['SPECIE'][x]['nome'].lower(), n) for x, n in top[:6]]))
+         if top else ''),
+        ('Ci sono tratti no kill %s %s?' % (nel(nome), nome),
+         ('Sì: %s.' % elenco([s['nome'] for s in nk])) if nk
+         else 'Fra gli spot descritti su questo corso d\'acqua non ce ne sono di no kill. '
+              'I calendari ittici provinciali cambiano ogni anno: verifica prima di uscire.'),
+    ]
+
+    corpo = f"""<span class="occhio acc">{e(tipo)} · Emilia-Romagna</span>
+<h1>{e(nome)} <span class="h1-luogo">dove pescare, spot per spot</span></h1>
+<div class="luogo">{e(elenco(prov))}</div>
+<div class="intro">{len(spot)} spot descritti {nel(nome)} {e(nome)}, {dove_comuni}. Per ognuno:
+  come arrivare, i punti di accesso, il fondale, le specie dichiarate, le esche e le regole
+  locali.</div>
+{riga_oggi(spot, oggi, 'su questo corso d\'acqua')}
+<h2>Il corso d'acqua</h2>
+<div class="voci">{voci_html(dati)}</div>
+<h2>Le specie più diffuse</h2>
+{righe([('/specie/%s/' % d['SPECIE'][x]['slug'], d['SPECIE'][x]['nome'],
+         '%d spot su %d · %s' % (n, len(spot), d['SPECIE'][x]['sci'])) for x, n in top])}
+<h2>Tutti gli spot, provincia per provincia</h2>
+{''.join(blocchi)}
+{faq_html(faq)}
+<p class="mini tenue" style="margin-top:26px;max-width:72ch">Le categorie delle acque e i periodi
+  di divieto le fissa la Regione, ma il calendario ittico della provincia può essere più
+  restrittivo: prima di partire, il <a href="/regole/">quadro delle regole</a>.</p>"""
+
+    ld = [briciola_ld(base, briciole), {
+        '@context': 'https://schema.org', '@type': 'ItemList',
+        'name': 'Spot di pesca %s %s' % (nel(nome), nome),
+        'description': desc, 'url': base + u,
+        'numberOfItems': len(spot),
+        'itemListElement': [{'@type': 'ListItem', 'position': i + 1, 'name': s['nome'],
+                             'url': base + '/spot/%s/' % s['slug']}
+                            for i, s in enumerate(spot)],
+    }, faq_ld(faq)]
+    return u, pagina(base, u, tit, desc, corpo, ld, briciole,
+                     modificato=oggi.get('giorno') if migliore_oggi(spot, oggi)[0] else None)
+
+
+def pagina_comune(d, nome, spot, base, oggi=None, hub=None):
+    """Un comune con piu' di uno spot.
+
+    «dove pescare a <comune>» e' la domanda per cui il sito esiste, ed era
+    l'unica a cui non rispondeva nessuna pagina: c'erano le nove province, che
+    sono troppo larghe, e le singole schede, che sono troppo strette.
+    """
+    oggi = oggi or {}
+    hub = hub or {'acqua': {}, 'comune': {}}
+    sg = slug(nome)
+    u = '/comune/%s/' % sg
+    prov = d['PROVINCE'][spot[0]['prov']]
+    acque = sorted({s['acqua'] for s in spot})
+
+    # Nove comuni su dieci portano il nome del capoluogo di provincia, e per
+    # quelli «nel comune di Rimini, in provincia di Rimini» e una briciola
+    # «Rimini / Rimini» dicono due volte la stessa parola.
+    omonimo = nome == prov
+    tit = titolo('Dove pescare a %s: %d spot' % (nome, len(spot)))
+    desc = cresci('I %d spot di pesca nel comune di %s%s.'
+                  % (len(spot), nome, '' if omonimo else ' (%s)' % prov),
+                  ['Su %s.' % elenco(acque[:3]),
+                   'Accessi, specie dichiarate, esche e regole.',
+                   'Con l\'indice del giorno.'])
+    briciole = [('/', 'Oggi'), ('/comune/', 'Comuni')]
+    if not omonimo:
+        briciole.append(('/provincia/%s/' % slug(prov), prov))
+    briciole.append((None, nome))
+
+    top = specie_diffuse(d, spot)
+    scorci = []
+    for t, k in (('No kill', 'noKill'), ('Con i bambini', 'bimbi'),
+                 ('Postazioni accessibili', 'disabili'), ('Pesca notturna ammessa', 'notturna')):
+        v = [s for s in spot if s.get(k)]
+        if v:
+            scorci.append((t, ' · '.join('<a href="/spot/%s/">%s</a>'
+                                         % (s['slug'], e(s['nome'])) for s in v), True))
+
+    acque_html = ' · '.join(
+        ('<a href="/acqua/%s/">%s</a>' % (hub['acqua'][a], e(a))) if a in hub['acqua'] else e(a)
+        for a in acque)
+
+    faq = [
+        ('Dove si pesca a %s?' % nome,
+         'Nel comune di %s ci sono %d spot descritti: %s. Le acque sono %s.'
+         % (nome, len(spot), elenco([s['nome'] for s in spot]), elenco(acque))),
+        ('Che pesci si prendono a %s?' % nome,
+         ('Le specie piu\' dichiarate sono: %s.'
+          % elenco(['%s (%d spot)' % (d['SPECIE'][x]['nome'].lower(), n) for x, n in top[:6]]))
+         if top else ''),
+        ('Serve la licenza per pescare a %s?' % nome,
+         'Sì. In Emilia-Romagna serve la licenza di tipo B con il versamento annuale, valida in '
+         'tutta la regione. Il calendario ittico della provincia di %s può aggiungere divieti '
+         'locali.' % prov),
+    ]
+
+    corpo = f"""<span class="occhio acc">{e(prov)} · Emilia-Romagna</span>
+<h1>Dove pescare a {e(nome)}</h1>
+<div class="luogo">{acque_html}</div>
+<div class="intro">{len(spot)} spot nel comune di {e(nome)}, in
+  <a href="/provincia/{slug(prov)}/">provincia di {e(prov)}</a>. Per ognuno: come arrivare, i punti
+  di accesso, il fondale, le specie dichiarate, le esche e le regole locali.</div>
+{riga_oggi(spot, oggi, 'nel comune')}
+{('<h2>Scorciatoie</h2><div class="voci">' + voci_html(scorci) + '</div>') if scorci else ''}
+<h2>Gli spot</h2>
+{righe([('/spot/%s/' % s['slug'], s['nome'],
+         '%s · %s' % (s['acqua'], TIPI.get(s['tipo'], s['tipo']).lower())) for s in spot])}
+<h2>Le specie più diffuse</h2>
+{righe([('/specie/%s/' % d['SPECIE'][x]['slug'], d['SPECIE'][x]['nome'],
+         '%d spot su %d · %s' % (n, len(spot), d['SPECIE'][x]['sci'])) for x, n in top])}
+{faq_html(faq)}
+<p class="mini tenue" style="margin-top:26px;max-width:72ch">Zone, divieti e categorie delle acque
+  cambiano ogni anno: controlla il calendario ittico della provincia di {e(prov)} e il
+  <a href="/regole/">quadro delle regole</a>.</p>"""
+
+    ld = [briciola_ld(base, briciole), {
+        '@context': 'https://schema.org', '@type': 'ItemList',
+        'name': 'Spot di pesca a %s' % nome, 'description': desc, 'url': base + u,
+        'numberOfItems': len(spot),
+        'itemListElement': [{'@type': 'ListItem', 'position': i + 1, 'name': s['nome'],
+                             'url': base + '/spot/%s/' % s['slug']}
+                            for i, s in enumerate(spot)],
+    }, faq_ld(faq)]
+    return u, pagina(base, u, tit, desc, corpo, ld, briciole,
+                     modificato=oggi.get('giorno') if migliore_oggi(spot, oggi)[0] else None)
 
 
 # ---------------------------------------------------------------- province
 
-def pagina_provincia(d, sigla, base):
+def pagina_provincia(d, sigla, base, oggi=None, hub=None):
+    oggi = oggi or {}
+    hub = hub or {'acqua': {}, 'comune': {}}
     nome = d['PROVINCE'][sigla]
     sp = sorted((s for s in d['SPOT'] if s['prov'] == sigla), key=lambda s: s['nome'])
     u = '/provincia/%s/' % slug(nome)
-    titolo = taglia('Dove pescare in provincia di %s: %d spot' % (nome, len(sp)), 62)
+    tit = titolo('Dove pescare in provincia di %s: %d spot' % (nome, len(sp)))
     desc = taglia('I %d spot di pesca della provincia di %s: fiumi, torrenti, laghi e canali, '
                   'con accessi, specie e regole. Indice del giorno su portata e meteo.'
                   % (len(sp), nome), 158)
@@ -733,15 +1450,27 @@ def pagina_provincia(d, sigla, base):
     acque = {}
     for s in sp:
         acque.setdefault(s['acqua'], []).append(s)
+    # Il nome del corso d'acqua era testo morto: adesso, dove esiste, porta alla
+    # pagina che raccoglie tutti i suoi tratti, anche quelli fuori provincia.
     blocchi = []
     for a in sorted(acque, key=lambda a: (-len(acque[a]), a)):
         v = acque[a]
+        eti = ('<a href="/acqua/%s/">%s</a>' % (hub['acqua'][a], e(a))
+               if a in hub['acqua'] else e(a))
         blocchi.append('<h3 class="sotto-tit">%s <span class="tenue">%d</span></h3>%s'
-                       % (e(a), len(v), righe([
+                       % (eti, len(v), righe([
                            ('/spot/%s/' % s['slug'], s['nome'],
                             '%s · %s%s' % (s['comune'], TIPI.get(s['tipo'], s['tipo']).lower(),
                                            ', no kill' if s.get('noKill') else ''))
                            for s in sorted(v, key=lambda s: s['nome'])])))
+
+    com = sorted({s['comune'] for s in sp if s['comune'] in hub['comune']})
+    com_html = (('<h2>Comune per comune</h2>'
+                 '<p class="mini tenue" style="margin-top:8px;max-width:66ch">I comuni della '
+                 'provincia con più di uno spot descritto.</p>'
+                 '<p class="mini" style="margin-top:12px;max-width:72ch">%s</p>')
+                % ' · '.join('<a href="/comune/%s/">%s</a>' % (hub['comune'][c], e(c))
+                             for c in com)) if com else ''
 
     nk = [s for s in sp if s.get('noKill')]
     bimbi = [s for s in sp if s.get('bimbi')]
@@ -753,17 +1482,33 @@ def pagina_provincia(d, sigla, base):
                           % (e(t), ' · '.join('<a href="/spot/%s/">%s</a>'
                                               % (s['slug'], e(s['nome'])) for s in v)))
 
+    faq = [
+        ('Dove si pesca in provincia di %s?' % nome,
+         '%d spot descritti, su %s. I corsi d\'acqua con più tratti sono %s.'
+         % (len(sp), conte, elenco(sorted(acque, key=lambda a: (-len(acque[a]), a))[:5]))),
+        ('Che pesci ci sono in provincia di %s?' % nome,
+         ('Le specie più dichiarate sono: %s.'
+          % elenco(['%s (%d spot)' % (d['SPECIE'][x]['nome'].lower(), n) for x, n in top[:6]]))
+         if top else ''),
+        ('Ci sono tratti no kill in provincia di %s?' % nome,
+         ('Sì: %s.' % elenco([s['nome'] for s in nk])) if nk
+         else 'Fra gli spot descritti in questa provincia non ce ne sono di no kill. I calendari '
+              'ittici provinciali cambiano ogni anno: verifica prima di uscire.'),
+    ]
+
     corpo = f"""<span class="occhio acc">Emilia-Romagna</span>
 <h1>Dove pescare in provincia di {e(nome)}</h1>
 <div class="intro">{len(sp)} spot in provincia di {e(nome)}: {e(conte)}.
   Per ognuno: come arrivare, i punti di accesso, il fondale, le specie dichiarate, le esche e le
   regole locali.</div>
-{cta('/', "Vedi l'indice di oggi, spot per spot")}
+{riga_oggi(sp, oggi, 'in provincia') or cta('/', "Vedi l'indice di oggi, spot per spot")}
 {('<h2>Scorciatoie</h2><div class="voci">' + ''.join(scorci) + '</div>') if scorci else ''}
-<h2>Le specie piu diffuse</h2>
+<h2>Le specie più diffuse</h2>
 {top_html}
+{com_html}
 <h2>Tutti gli spot, per corso d'acqua</h2>
 {''.join(blocchi)}
+{faq_html(faq)}
 <p class="mini tenue" style="margin-top:26px;max-width:72ch">Zone, divieti e categorie delle acque
   cambiano ogni anno: controlla il calendario ittico della provincia di {e(nome)} e il
   <a href="/regole/">quadro delle regole</a>.</p>"""
@@ -771,12 +1516,14 @@ def pagina_provincia(d, sigla, base):
     ld = [briciola_ld(base, briciole), {
         '@context': 'https://schema.org', '@type': 'ItemList',
         'name': 'Spot di pesca in provincia di %s' % nome,
+        'description': desc, 'url': base + u,
         'numberOfItems': len(sp),
         'itemListElement': [
             {'@type': 'ListItem', 'position': i + 1, 'name': s['nome'],
              'url': base + '/spot/%s/' % s['slug']} for i, s in enumerate(sp)],
-    }]
-    return u, pagina(base, u, titolo, desc, corpo, ld, briciole)
+    }, faq_ld(faq)]
+    return u, pagina(base, u, tit, desc, corpo, ld, briciole,
+                     modificato=oggi.get('giorno') if migliore_oggi(sp, oggi)[0] else None)
 
 
 # ---------------------------------------------------------------- indici
@@ -786,7 +1533,7 @@ def pagina_indice_provincia(d, base):
        l'indirizzo a mano, e chi lo indovinava, trovava un 404. Le nove
        province, invece, sono una domanda che la gente fa."""
     u = '/provincia/'
-    titolo = 'Dove pescare in Emilia-Romagna, provincia per provincia | Dove Pesco'
+    tit = titolo('Dove pescare provincia per provincia')
     desc = ('Le nove province dell\'Emilia-Romagna: %d spot di pesca su fiumi, torrenti, laghi, '
             'canali e mare, con accessi, specie dichiarate e regole locali.' % len(d['SPOT']))
     briciole = [('/', 'Oggi'), ('/spot/', 'Spot'), (None, 'Province')]
@@ -819,14 +1566,74 @@ def pagina_indice_provincia(d, base):
         'itemListElement': [{'@type': 'ListItem', 'position': i + 1, 'name': t,
                              'url': base + uu}
                             for i, (uu, t, _) in enumerate(voci)]}]
-    return u, pagina(base, u, titolo, desc, corpo, ld, briciole)
+    return u, pagina(base, u, tit, desc, corpo, ld, briciole)
+
+
+def pagina_indice_acqua(d, base, gruppi, hub):
+    """/acqua/: l'elenco dei corsi d'acqua che hanno una pagina propria."""
+    u = '/acqua/'
+    n = len(gruppi)
+    tit = titolo('Dove pescare, fiume per fiume: %d corsi d\'acqua' % n)
+    desc = taglia('I %d corsi d\'acqua dell\'Emilia-Romagna con più di uno spot descritto: Po, '
+                  'Reno, Trebbia, Secchia, Panaro, Marecchia e gli altri, con gli spot di ogni '
+                  'tratto.' % n, 158)
+    briciole = [('/', 'Oggi'), (None, 'Corsi d\'acqua')]
+    voci = []
+    for nome in sorted(gruppi, key=lambda a: (-len(gruppi[a]), a)):
+        v = gruppi[nome]
+        prov = sorted({d['PROVINCE'][s['prov']] for s in v})
+        voci.append(('/acqua/%s/' % hub['acqua'][nome], nome,
+                     '%d spot · %s' % (len(v), elenco(prov))))
+    corpo = f"""<span class="occhio acc">Emilia-Romagna</span>
+<h1>Dove pescare, fiume per fiume</h1>
+<div class="intro">I {n} corsi d'acqua con più di uno spot descritto, dal Po al Marecchia. Ogni
+  pagina raccoglie tutti i tratti di quel fiume, torrente o canale, con le specie più diffuse e
+  l'indice del giorno. Gli altri corsi d'acqua hanno un solo spot: si trovano
+  <a href="/spot/">nell'elenco completo</a>.</div>
+{righe(voci)}"""
+    ld = [briciola_ld(base, briciole), {
+        '@context': 'https://schema.org', '@type': 'ItemList',
+        'name': 'Corsi d\'acqua dell\'Emilia-Romagna', 'numberOfItems': len(voci),
+        'itemListElement': [{'@type': 'ListItem', 'position': i + 1, 'name': t,
+                             'url': base + uu} for i, (uu, t, _) in enumerate(voci)]}]
+    return u, pagina(base, u, tit, desc, corpo, ld, briciole)
+
+
+def pagina_indice_comune(d, base, gruppi, hub):
+    """/comune/: l'elenco dei comuni che hanno una pagina propria."""
+    u = '/comune/'
+    n = len(gruppi)
+    tit = titolo('Dove pescare, comune per comune: %d comuni' % n)
+    desc = taglia('I %d comuni dell\'Emilia-Romagna con più di uno spot di pesca descritto, da '
+                  'Ravenna a Comacchio: accessi, specie e regole di ognuno.' % n, 158)
+    briciole = [('/', 'Oggi'), (None, 'Comuni')]
+    voci = []
+    for nome in sorted(gruppi, key=lambda c: (-len(gruppi[c]), c)):
+        v = gruppi[nome]
+        voci.append(('/comune/%s/' % hub['comune'][nome], nome,
+                     '%d spot · %s' % (len(v), d['PROVINCE'][v[0]['prov']])))
+    corpo = f"""<span class="occhio acc">Emilia-Romagna</span>
+<h1>Dove pescare, comune per comune</h1>
+<div class="intro">I {n} comuni con più di uno spot descritto. Ogni pagina raccoglie gli spot di
+  quel comune, le acque che lo attraversano, le specie più diffuse e l'indice del giorno. I comuni
+  con un solo spot si trovano <a href="/spot/">nell'elenco completo</a> e
+  <a href="/provincia/">provincia per provincia</a>.</div>
+{righe(voci)}"""
+    ld = [briciola_ld(base, briciole), {
+        '@context': 'https://schema.org', '@type': 'ItemList',
+        'name': 'Comuni dell\'Emilia-Romagna con spot di pesca', 'numberOfItems': len(voci),
+        'itemListElement': [{'@type': 'ListItem', 'position': i + 1, 'name': t,
+                             'url': base + uu} for i, (uu, t, _) in enumerate(voci)]}]
+    return u, pagina(base, u, tit, desc, corpo, ld, briciole)
 
 
 def pagina_indice_spot(d, base):
     u = '/spot/'
-    titolo = 'Tutti i 222 spot di pesca in Emilia-Romagna | Dove Pesco'
-    desc = ('L\'elenco completo: 222 spot di pesca in Emilia-Romagna su fiumi, torrenti, laghi, '
-            'canali e mare, provincia per provincia, con accessi, specie e regole.')
+    n = len(d['SPOT'])
+    tit = titolo('Tutti i %d spot di pesca in Emilia-Romagna' % n)
+    desc = taglia('L\'elenco completo: %d spot di pesca in Emilia-Romagna su fiumi, torrenti, '
+                  'laghi, canali e mare, provincia per provincia, con accessi, specie e regole.'
+                  % n, 158)
     briciole = [('/', 'Oggi'), (None, 'Spot')]
     blocchi = []
     for sig, nome in d['PROVINCE'].items():
@@ -851,12 +1658,12 @@ def pagina_indice_spot(d, base):
         'itemListElement': [{'@type': 'ListItem', 'position': i + 1, 'name': s['nome'],
                              'url': base + '/spot/%s/' % s['slug']}
                             for i, s in enumerate(d['SPOT'])]}]
-    return u, pagina(base, u, titolo, desc, corpo, ld, briciole)
+    return u, pagina(base, u, tit, desc, corpo, ld, briciole)
 
 
 def pagina_indice_specie(d, base):
     u = '/specie/'
-    titolo = 'Le 40 specie ittiche dell\'Emilia-Romagna | Dove Pesco'
+    tit = titolo('Le %d specie ittiche dell\'Emilia-Romagna' % len(d['SPECIE']))
     desc = ('Le specie di pesce delle acque dell\'Emilia-Romagna: misura minima, periodo di '
             'divieto, capi al giorno, esche e tecniche, con gli spot dove si trovano.')
     briciole = [('/', 'Oggi'), (None, 'Specie')]
@@ -882,7 +1689,7 @@ def pagina_indice_specie(d, base):
                              'url': base + '/specie/%s/' % s['slug']}
                             for i, s in enumerate(sorted(d['SPECIE'].values(),
                                                          key=lambda s: s['nome']))]}]
-    return u, pagina(base, u, titolo, desc, corpo, ld, briciole)
+    return u, pagina(base, u, tit, desc, corpo, ld, briciole)
 
 
 # ---------------------------------------------------------------- regole
@@ -890,7 +1697,7 @@ def pagina_indice_specie(d, base):
 def pagina_regole(d, base):
     R = d['REGOLE']
     u = '/regole/'
-    titolo = 'Regole della pesca sportiva in Emilia-Romagna | Dove Pesco'
+    tit = titolo('Regole della pesca sportiva in Emilia-Romagna')
     desc = ('Licenze, attrezzi, limiti di prelievo, misure minime, periodi di divieto e zone '
             'delle acque in Emilia-Romagna, con i link ai testi ufficiali.')
     briciole = [('/', 'Oggi'), (None, 'Regole')]
@@ -944,7 +1751,7 @@ def pagina_regole(d, base):
 {gruppo('Sicurezza', R['sicurezza'])}
 <h2>Fonti ufficiali</h2>
 <ul class="fonti-elenco">{fonti}</ul>
-{cta('/spot/', 'Vedi i 222 spot, provincia per provincia')}"""
+{cta('/spot/', 'Vedi tutti gli spot, provincia per provincia')}"""
 
     ld = [briciola_ld(base, briciole), {
         '@context': 'https://schema.org', '@type': 'Article',
@@ -953,7 +1760,7 @@ def pagina_regole(d, base):
         'isPartOf': {'@type': 'WebSite', '@id': base + '/#sito'},
         'citation': [f['t'] for f in R['fonti']],
     }]
-    return u, pagina(base, u, titolo, desc, corpo, ld, briciole)
+    return u, pagina(base, u, tit, desc, corpo, ld, briciole)
 
 
 # ---------------------------------------------------------------- metodo e privacy
@@ -962,7 +1769,7 @@ VOCI_METODO = [
     ('Stagione', "Ogni specie ha una curva di attività mensile costruita sulla sua biologia e sui "
      "periodi indicati dalla guida regionale. Un cavedano a settembre e un cavedano a gennaio non "
      "sono lo stesso pesce."),
-    ("Temperatura dell'acqua", "È il fattore che pesa di più, e nessuno la misura su 222 punti. "
+    ("Temperatura dell'acqua", "È il fattore che pesa di più, e nessuno la misura spot per spot. "
      "La stimiamo con un modello a inerzia termica: l'acqua segue la media dell'aria degli ultimi "
      "giorni, smorzata verso la temperatura media annua alla quota dello spot. Finestra e "
      "smorzamento cambiano con l'ambiente: tre giorni e forte smorzamento per un torrente sorgivo, "
@@ -998,8 +1805,8 @@ NON_SA = [
 
 def pagina_metodo(d, base):
     u = '/metodo/'
-    titolo = "Come nasce l'indice del giorno | Dove Pesco"
-    desc = ("I sei fattori che ordinano i 222 spot: stagione, temperatura dell'acqua, portata "
+    tit = titolo("Come nasce l'indice del giorno")
+    desc = ("I sei fattori che ordinano gli spot: stagione, temperatura dell'acqua, portata "
             "GloFAS, pioggia, pressione e divieti. Con i limiti dichiarati del modello.")
     briciole = [('/', 'Oggi'), (None, 'Metodo')]
     voci = ''.join('<div class="voce"><h3>%s</h3><div><p>%s</p></div></div>' % (e(t), e(v))
@@ -1031,43 +1838,70 @@ def pagina_metodo(d, base):
 <p class="mini" style="max-width:72ch;margin-top:12px">Le previsioni non le chiama il tuo browser:
   le scarica un flusso automatico ogni due ore e finiscono in un file servito insieme alla pagina.
   Prima schermata immediata, nessun limite di richieste da superare, e il tuo indirizzo IP non
-  arriva a nessun servizio esterno. Se quel file manca o ha più di cinque ore, si torna a chiamare
+  arriva a nessun servizio esterno. Se quel file manca o ha più di nove ore, si torna a chiamare
   Open-Meteo dal browser. Vedi la <a href="/privacy/">pagina privacy</a>.</p>
+<h2>Dove compare l'indice</h2>
+<p class="mini" style="max-width:72ch;margin-top:12px">In due posti, e viene dallo stesso calcolo.
+  Qui nell'applicazione si aggiorna mentre la usi, con i sette giorni e la mappa. Nella scheda di
+  ogni spot è scritto direttamente nella pagina al momento della pubblicazione, con accanto la data
+  e l'ora del rilevamento: una pagina statica non può ricalcolare niente da sola, quindi dice
+  quando è stata scritta invece di far finta di essere di adesso. Le due strade caricano lo stesso
+  motore e lo stesso file di previsioni: se i numeri non coincidessero, sarebbe un errore.</p>
 {cta('/', "Vedi l'indice di oggi")}"""
     ld = [briciola_ld(base, briciole), {
         '@context': 'https://schema.org', '@type': 'Article',
         'headline': "Come nasce l'indice del giorno di Dove Pesco",
         'description': desc, 'url': base + u, 'inLanguage': 'it',
         'isPartOf': {'@type': 'WebSite', '@id': base + '/#sito'}}]
-    return u, pagina(base, u, titolo, desc, corpo, ld, briciole)
+    return u, pagina(base, u, tit, desc, corpo, ld, briciole)
 
 
 def pagina_privacy(d, base):
     u = '/privacy/'
-    titolo = 'Privacy e dati | Dove Pesco'
-    desc = ('Nessun account, cookie, tracciamento, font o script di terze parti. Il browser non '
-            'chiama nessun servizio esterno e la posizione non viene mai richiesta.')
+    tit = titolo('Privacy e dati')
+    desc = ('Nessun account, nessun cookie, nessun profilo. Un solo conteggio delle visite, '
+            'anonimo e ospitato qui. Ecco cosa viene raccolto e cosa no.')
     briciole = [('/', 'Oggi'), (None, 'Privacy')]
+    # Questa pagina diceva «non ci sono statistiche o strumenti di analisi»
+    # mentre in fondo a ogni pagina, questa compresa, c'era il conteggio delle
+    # visite. Il conteggio e' rimasto, perche' serve e non profila nessuno; a
+    # cambiare e' la pagina, che adesso lo dichiara. Una promessa che il codice
+    # smentisce vale meno di nessuna promessa.
     corpo = """<h1>Privacy e dati</h1>
-<div class="intro">Nessun account, nessun cookie, nessun tracciamento, nessun font e nessuno script
-  di terze parti. Non c'è niente da accettare perché non viene raccolto niente.</div>
+<div class="intro">Nessun account, nessun cookie, nessun profilo, nessuna pubblicità e nessun dato
+  venduto. C'è una cosa sola che viene contata, ed è scritta qui sotto per intero.</div>
 <h2>Cosa non succede</h2>
 <div class="voci">
-  <div class="voce"><h3>Nessun tracciamento</h3><div><p>Non ci sono cookie, pixel, statistiche,
-    identificatori o strumenti di analisi. Il sito non sa chi sei e non prova a scoprirlo.</p></div></div>
-  <div class="voce"><h3>Nessuna terza parte</h3><div><p>I caratteri sono serviti dalla cartella del
-    sito, incorporati nel foglio di stile. Non c'è nessuna libreria esterna e nessun server di
-    mappe: la geometria è incorporata nel sito come percorsi SVG.</p></div></div>
+  <div class="voce"><h3>Nessun cookie e nessun profilo</h3><div><p>Non viene scritto nessun cookie,
+    non viene assegnato nessun identificatore che ti segua da una visita all'altra e non viene
+    costruito nessun profilo. Non c'è niente da accettare perché non c'è niente che ti
+    riconosca.</p></div></div>
+  <div class="voce"><h3>Nessuna pubblicità</h3><div><p>Nessun inserzionista, nessun pixel di
+    remarketing, nessuno scambio di dati con terzi. Il sito non ha nulla da vendere e i dati di chi
+    lo apre non sono in vendita.</p></div></div>
+  <div class="voce"><h3>Nessuna libreria di terze parti</h3><div><p>I caratteri sono serviti dalla
+    cartella del sito, incorporati nel foglio di stile. Non c'è nessuna libreria esterna e nessun
+    server di mappe: la geometria è incorporata nel sito come percorsi SVG.</p></div></div>
   <div class="voce"><h3>Nessuna posizione</h3><div><p>La posizione del dispositivo non viene mai
     richiesta. Le mappe funzionano senza saperla.</p></div></div>
 </div>
 <h2>Cosa succede</h2>
 <div class="voci">
-  <div class="voce"><h3>Le previsioni</h3><div><p>Meteo e portata arrivano da un file preparato a
-    monte e servito insieme alla pagina, aggiornato ogni due ore. Il tuo browser legge quel file e
-    non parla con nessun servizio esterno: il tuo indirizzo IP non esce di qui. Sotto la data compare
-    l'ora del rilevamento.</p></div></div>
-  <div class="voce"><h3>La riserva</h3><div><p>Se quel file manca o ha più di cinque ore (per
+  <div class="voce"><h3>Il conteggio delle visite</h3><div><p>C'è un solo script di statistiche, ed
+    è <a href="https://umami.is/" target="_blank" rel="noopener noreferrer">Umami</a>, il programma
+    libero che conta le visite. Non gira su un servizio di terzi: sta su
+    <span class="num">s.dovepescare.com</span>, che è questo dominio, e i numeri restano lì. Manda
+    l'indirizzo della pagina aperta, il suo titolo, la pagina da cui arrivi, la lingua del browser
+    e la misura dello schermo. Non scrive cookie: usa il deposito locale per una cosa sola, cioè
+    ricordare che hai chiesto di non essere contato. Per distinguere i visitatori di una giornata
+    calcola un'impronta e la getta ogni notte, e l'indirizzo IP non viene conservato accanto alla
+    visita. Serve a sapere quali spot la gente cerca e quali pagine non vale la pena scrivere. Un
+    blocco pubblicità lo ferma e il sito funziona identico.</p></div></div>
+  <div class="voce"><h3>Le previsioni</h3><div><p>Meteo e portata arrivano da un file preparato
+    a monte e servito insieme alla pagina, aggiornato ogni quattro ore. Il tuo browser legge quel
+    file e non parla con nessun servizio esterno: il tuo indirizzo IP non esce di qui. Sotto la
+    data compare l'ora del rilevamento.</p></div></div>
+  <div class="voce"><h3>La riserva</h3><div><p>Se quel file manca o ha più di nove ore (per
     esempio aprendo il sito da una cartella, senza server) si torna a chiamare Open-Meteo
     direttamente dal browser, a poche richieste per volta, con i dati tenuti in cache 45 minuti nel
     deposito locale del browser. Anche in quel caso l'unica destinazione è Open-Meteo, e passano
@@ -1083,8 +1917,10 @@ def pagina_privacy(d, base):
     scelti nel proprio deposito locale, sul tuo dispositivo. Non vengono inviati da nessuna parte e
     si cancellano svuotando i dati del sito.</p></div></div>
   <div class="voce"><h3>I registri del server</h3><div><p>Il sito è pubblicato su GitHub Pages, che
-    tiene i propri registri di accesso secondo le sue condizioni. Su questo non abbiamo controllo:
-    è l'unico punto in cui passa qualcosa di tuo.</p></div></div>
+    tiene i propri registri di accesso secondo le sue condizioni, e su questo non abbiamo
+    controllo. Come ogni server del mondo, anche quello che riceve il conteggio vede l'indirizzo IP
+    da cui arriva la richiesta nel momento in cui la riceve: la differenza è che non lo scrive
+    accanto alla visita.</p></div></div>
 </div>
 <h2>Le fonti dei dati</h2>
 <div class="voci">
@@ -1099,12 +1935,12 @@ def pagina_privacy(d, base):
     target="_blank" rel="noopener noreferrer">OpenStreetMap</a>, licenza ODbL.</p></div></div>
 </div>"""
     ld = [briciola_ld(base, briciole)]
-    return u, pagina(base, u, titolo, desc, corpo, ld, briciole)
+    return u, pagina(base, u, tit, desc, corpo, ld, briciole)
 
 
 # ---------------------------------------------------------------- index.html
 
-def ritocca_indice(testo, d, base):
+def ritocca_indice(testo, d, base, hub=None):
     """Mette nell'applicazione il canonico, le schede social e il rifugio senza JS."""
     # Il titolo di ogni provincia porta alla sua pagina, non e' piu' testo morto:
     # da qui passa l'unico collegamento che le pagine /provincia/ ricevono dalla
@@ -1124,6 +1960,16 @@ def ritocca_indice(testo, d, base):
                         for sp in sorted(d['SPECIE'].values(), key=lambda s: s['nome']))
     voci.append('<h3><a href="specie/">Le specie</a></h3><p>%s</p>' % specie)
 
+    # e le pagine d'insieme, che sono quelle che rispondono alle ricerche per
+    # nome di fiume e per comune
+    hub = hub or {'acqua': {}, 'comune': {}}
+    for chiave, eti, tit in (('acqua', 'acqua/', 'I corsi d\'acqua'),
+                             ('comune', 'comune/', 'I comuni')):
+        if hub[chiave]:
+            voci.append('<h3><a href="%s">%s</a></h3><p>%s</p>' % (eti, tit, ' · '.join(
+                '<a href="%s%s/">%s</a>' % (eti, sg, e(nome))
+                for nome, sg in sorted(hub[chiave].items()))))
+
     # Dentro <noscript> resta solo l'avviso. L'elenco dei 277 indirizzi sta in
     # un <details>, cioe' nel documento vero: <noscript> il motore di ricerca lo
     # butta appena vede che JavaScript gira, e cosi' la home, la pagina con piu'
@@ -1133,7 +1979,7 @@ def ritocca_indice(testo, d, base):
   <div class="col senza-js">
     <h2>Serve JavaScript per l'indice del giorno</h2>
     <p class="mini">L'indice si calcola nel browser sui dati di oggi, quindi senza JavaScript non
-      compare. Le schede dei 222 spot sono pagine normali e si leggono comunque.</p>
+      compare. Le schede degli spot sono pagine normali e si leggono comunque.</p>
   </div>
 </noscript>
 
@@ -1182,21 +2028,37 @@ def ritocca_indice(testo, d, base):
                   % json.dumps(b, ensure_ascii=False, separators=(',', ':')).replace('</', '<\\/')
                   for b in ld)
 
+    # og:description diceva una cosa e la meta description un'altra, sulla stessa
+    # pagina: chi condivideva il link leggeva un testo che nel risultato di
+    # ricerca non compariva. Ora e' la stessa frase, presa da index.html.
+    n = len(d['SPOT'])
     testa = f"""<link rel="canonical" href="{base}/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Dove Pesco">
 <meta property="og:locale" content="it_IT">
-<meta property="og:title" content="Dove pescare oggi in Emilia-Romagna: 222 spot">
-<meta property="og:description" content="Ogni mattina l'indice del giorno per 222 spot, su portata dei fiumi, temperatura dell'acqua, meteo e stagionalita' delle specie.">
+<meta property="og:title" content="Dove pescare oggi in Emilia-Romagna: {n} spot">
+<meta property="og:description" content="Ogni mattina l'indice del giorno per {n} spot dell'Emilia-Romagna: portata dei fiumi, temperatura dell'acqua, meteo e stagione delle specie.">
 <meta property="og:url" content="{base}/">
 <meta property="og:image" content="{base}/assets/og.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Dove Pesco: l'indice del giorno per gli spot di pesca dell'Emilia-Romagna">
 <meta name="twitter:card" content="summary_large_image">
 {tag}</head>"""
 
     if '<link rel="canonical"' in testo:
         sys.exit('index.html ha gia\' un canonico: il ritocco andrebbe applicato due volte')
+
+    # index.html e' scritto a mano, perche' deve funzionare anche aperto con un
+    # doppio clic: il numero degli spot ci sta per esteso, non come segnaposto.
+    # Per questo era rimasto a 222 mentre gli spot erano 225, in quattro punti.
+    # Un segnaposto si vedrebbe a doppio clic, quindi il numero resta scritto e
+    # la pubblicazione si ferma quando non torna: e' l'unico modo per accorgersi
+    # dello scarto senza contarli a mano.
+    sbagliati = {int(x) for x in re.findall(r'(\d+)\s+spot', testo)} - {n}
+    if sbagliati:
+        sys.exit('index.html dice %s spot, ma gli spot sono %d: correggi index.html'
+                 % (elenco([str(x) for x in sorted(sbagliati)], 'e'), n))
     testo = testo.replace('</head>', testa, 1)
     return testo.replace('</body>', rifugio + '\n\n</body>', 1)
 
@@ -1228,6 +2090,8 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--out', default=os.path.join(BASE, '_sito'))
     ap.add_argument('--base', default=os.environ.get('DOMINIO', 'dovepescare.com'))
+    ap.add_argument('--senza-indice', action='store_true', dest='senza_indice',
+                    help="non calcolare l'indice del giorno (build piu' rapida)")
     a = ap.parse_args()
     base = a.base.strip().rstrip('/')
     if not base.startswith('http'):
@@ -1238,6 +2102,34 @@ def main():
 
     d = leggi_dati()
     indirizzi(d)
+    CONTA['spot'], CONTA['specie'] = len(d['SPOT']), len(d['SPECIE'])
+
+    # I gruppi che meritano una pagina propria, e l'indirizzo di ognuno. Servono
+    # prima di scrivere qualsiasi pagina, perche' le schede degli spot, le
+    # province e le specie ci rimandano.
+    g_acqua = raggruppa(d['SPOT'], 'acqua')
+    g_comune = raggruppa(d['SPOT'], 'comune')
+    hub = {'acqua': {k: slug(k) for k in g_acqua},
+           'comune': {k: slug(k) for k in g_comune}}
+    # Gli spot e le specie passano da indirizzi(), che gli scarti li risolve.
+    # Questi no: due nomi che danno lo stesso slug scriverebbero nella stessa
+    # cartella, e la seconda pagina cancellerebbe la prima senza dire niente.
+    # Oggi non succede; il giorno che succede, meglio saperlo qui.
+    for chiave, gruppo in hub.items():
+        doppi = [s for s, n in collections.Counter(gruppo.values()).items() if n > 1]
+        if doppi:
+            sys.exit('due nomi di %s danno lo stesso indirizzo: %s'
+                     % (chiave, elenco(sorted(doppi))))
+
+    oggi = {} if a.senza_indice else leggi_indice()
+    if oggi.get('spot'):
+        sys.stderr.write('indice del giorno: %d spot su %d, giornata %s, rilevamento %s\n'
+                         % (len(oggi['spot']), len(d['SPOT']), oggi['giorno'], oggi['generato']))
+        for x in oggi.get('persi') or []:
+            sys.stderr.write('  il motore si e\' fermato su %s\n' % x)
+    else:
+        sys.stderr.write('indice del giorno assente: le pagine escono senza il '
+                         'blocco «come si presenta oggi».\n')
 
     if os.path.isdir(out):
         shutil.rmtree(out)
@@ -1248,7 +2140,12 @@ def main():
     with open(os.path.join(BASE, 'index.html'), encoding='utf-8') as f:
         shutil.copytree(os.path.join(BASE, 'assets'), os.path.join(out, 'assets'))
         with open(os.path.join(out, 'index.html'), 'w', encoding='utf-8') as g:
-            g.write(ritocca_indice(f.read(), d, base))
+            g.write(ritocca_indice(f.read(), d, base, hub))
+    # La home non passa da pagina(), quindi si segna a mano. La sua classifica
+    # si rifa' ogni giorno nel browser, e Googlebot il JavaScript lo esegue:
+    # quello che vede cambia davvero da un giorno all'altro.
+    if oggi.get('spot'):
+        FRESCHI['/'] = oggi['giorno']
     open(os.path.join(out, '.nojekyll'), 'w').close()
 
     # le pagine
@@ -1258,21 +2155,32 @@ def main():
         sys.stderr.write('Nessun punto di accesso: i tasti mappa useranno la '
                          'coordinata della scheda. Lancia tools/accessi.py.\n')
     for s in d['SPOT']:
-        u, t = pagina_spot(d, s, base, accessi)
+        u, t = pagina_spot(d, s, base, accessi, oggi, hub)
         scrivi(out, u, t, pre)
         urls.append(u)
     for sp in sorted(d['SPECIE'].values(), key=lambda s: s['nome']):
-        u, t = pagina_specie(d, sp, base)
+        u, t = pagina_specie(d, sp, base, hub)
+        scrivi(out, u, t, pre)
+        urls.append(u)
+    for nome in sorted(g_acqua):
+        u, t = pagina_acqua(d, nome, g_acqua[nome], base, oggi, hub)
+        scrivi(out, u, t, pre)
+        urls.append(u)
+    for nome in sorted(g_comune):
+        u, t = pagina_comune(d, nome, g_comune[nome], base, oggi, hub)
         scrivi(out, u, t, pre)
         urls.append(u)
     for sig in d['PROVINCE']:
         if any(s['prov'] == sig for s in d['SPOT']):
-            u, t = pagina_provincia(d, sig, base)
+            u, t = pagina_provincia(d, sig, base, oggi, hub)
             scrivi(out, u, t, pre)
             urls.append(u)
-    for fn in (pagina_indice_spot, pagina_indice_provincia, pagina_indice_specie,
-               pagina_regole, pagina_metodo, pagina_privacy):
-        u, t = fn(d, base)
+    for u, t in (pagina_indice_spot(d, base),
+                 pagina_indice_acqua(d, base, g_acqua, hub),
+                 pagina_indice_comune(d, base, g_comune, hub),
+                 pagina_indice_provincia(d, base),
+                 pagina_indice_specie(d, base),
+                 pagina_regole(d, base), pagina_metodo(d, base), pagina_privacy(d, base)):
         scrivi(out, u, t, pre)
         urls.append(u)
 
@@ -1282,11 +2190,11 @@ def main():
         f.write(con_prefisso(pagina(
             base, '/404.html', 'Pagina non trovata | Dove Pesco',
             'La pagina cercata non esiste. Torna all\'indice del giorno o all\'elenco '
-            'dei 222 spot.',
+            'degli spot.',
             '<h1>Questa pagina non c\'è</h1>'
             '<div class="intro">L\'indirizzo non esiste, o non esiste più. '
             'Da qui si riparte:</div>'
-            + righe([('/', 'Indice del giorno', 'i 222 spot ordinati sui dati di oggi'),
+            + righe([('/', 'Indice del giorno', 'gli spot ordinati sui dati di oggi'),
                      ('/spot/', 'Tutti gli spot', 'provincia per provincia'),
                      ('/specie/', 'Le specie', 'misure, divieti, esche'),
                      ('/regole/', 'Le regole', 'licenze, limiti, zone')]),
@@ -1301,13 +2209,16 @@ def main():
         f.write('<?xml version="1.0" encoding="UTF-8"?>\n'
                 '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n')
         for u in urls:
-            pr = '1.0' if u == '/' else ('0.8' if u.count('/') == 2 else '0.6')
-            fr = 'daily' if u == '/' else 'monthly'
-            lm = lastmod(u, date)
-            # l'ordine degli elementi lo impone lo schema: loc, lastmod, changefreq, priority
-            f.write('<url><loc>%s%s</loc>%s<changefreq>%s</changefreq>'
-                    '<priority>%s</priority></url>\n'
-                    % (base, u, '<lastmod>%s</lastmod>' % lm if lm else '', fr, pr))
+            lm = lastmod(u, date, FRESCHI)
+            # <changefreq> e <priority> non ci sono piu': Google li dichiara
+            # ignorati da anni, e la regola che li scriveva era pure al
+            # contrario. Contava le barre dell'indirizzo, quindi dava 0.8 a
+            # /privacy/ e /metodo/ e 0.6 a tutte le schede degli spot: le pagine
+            # che portano le visite valevano meno della pagina della privacy.
+            # Un campo ignorato scritto male non fa danno, ma tenerlo voleva dire
+            # tramandare l'errore.
+            f.write('<url><loc>%s%s</loc>%s</url>\n'
+                    % (base, u, '<lastmod>%s</lastmod>' % lm if lm else ''))
         f.write('</urlset>\n')
 
     with open(os.path.join(out, 'robots.txt'), 'w', encoding='utf-8') as f:
