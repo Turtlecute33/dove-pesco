@@ -51,6 +51,16 @@ TIPI = {
     'fiume': 'Fiume', 'torrente': 'Torrente', 'lago': 'Lago',
     'bacino': 'Bacino', 'canale': 'Canale', 'cava': 'Cava', 'mare': 'Mare',
 }
+# Il plurale italiano non si fa aggiungendo una lettera: «lago» fa «laghi» e
+# «fiume» fa «fiumi». La regola scritta a mano dava «13 fiumei, 9 canalei, 2
+# lago», e stava nella prima riga delle nove pagine di provincia.
+# Il mare e' uno solo: contarne otto vuol dire otto tratti di costa.
+TIPI_CONTA = {
+    'fiume': ('fiume', 'fiumi'), 'torrente': ('torrente', 'torrenti'),
+    'lago': ('lago', 'laghi'), 'bacino': ('bacino', 'bacini'),
+    'canale': ('canale', 'canali'), 'cava': ('cava', 'cave'),
+    'mare': ('tratto di mare', 'tratti di mare'),
+}
 MESI = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio',
         'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre']
 ORE = {'alba': 'prime luci', 'crepuscolo': 'alba e tramonto', 'notte': 'notte',
@@ -314,6 +324,12 @@ def elenco(v, cong='e'):
         return v[0]
     sep = '; ' if any(',' in x for x in v) else ', '
     return sep.join(v[:-1]) + ' ' + cong + ' ' + v[-1]
+
+
+def conta_tipo(n, tipo):
+    """13 -> '13 fiumi', 1 -> '1 fiume'."""
+    uno = TIPI.get(tipo, tipo).lower()
+    return '%d %s' % (n, TIPI_CONTA.get(tipo, (uno, uno))[0 if n == 1 else 1])
 
 
 def distanza(a, b):
@@ -1063,7 +1079,7 @@ def pagina_specie(d, sp, base, hub=None):
         per_tipo = {}
         for s in dove:
             per_tipo.setdefault(s['tipo'], set()).add(s['acqua'])
-        conte = elenco(['%d %s' % (len(v), TIPI.get(k, k).lower() + ('i' if len(v) > 1 else ''))
+        conte = elenco([conta_tipo(len(v), k)
                         for k, v in sorted(per_tipo.items(), key=lambda x: -len(x[1]))])
         acque_html = (
             '<h2>In quali acque si trova</h2>'
@@ -1434,8 +1450,7 @@ def pagina_provincia(d, sigla, base, oggi=None, hub=None):
     per_tipo = {}
     for s in sp:
         per_tipo.setdefault(s['tipo'], []).append(s)
-    conte = elenco(['%d %s' % (len(v), TIPI.get(k, k).lower() + ('i' if len(v) > 1
-                    and TIPI.get(k, k).lower().endswith('e') else ''))
+    conte = elenco([conta_tipo(len(v), k)
                     for k, v in sorted(per_tipo.items(), key=lambda x: -len(x[1]))])
 
     freq = {}
