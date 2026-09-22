@@ -20,13 +20,14 @@ che l'avviso venga davvero dal proprietario del dominio.
 
     DOMINIO=dovepescare.com python3 tools/avvisa-motori.py
 """
-import json, os, re, sys, urllib.error, urllib.request
+import json, os, re, sys, time, urllib.error, urllib.request
 
 BASE = os.path.join(os.path.dirname(__file__), '..')
 PUNTO = 'https://api.indexnow.org/indexnow'
 UA = {'User-Agent': 'dove-pesco-static-site/1.0 (avviso IndexNow dopo la pubblicazione)'}
 TETTO = 30
 MASSIMO = 10000     # il protocollo accetta fino a 10.000 indirizzi per richiesta
+RIPROVE = [0, 60, 120]  # secondi prima di ogni tentativo, solo se la risposta e' 403
 
 
 def leggi(url):
@@ -67,10 +68,25 @@ def main():
     req = urllib.request.Request(PUNTO, data=corpo, method='POST', headers={
         **UA, 'Content-Type': 'application/json; charset=utf-8'})
     # 200 vuol dire ricevuto, 202 ricevuto con la chiave ancora da verificare.
-    # Qualsiasi errore esce da urlopen come eccezione e ferma il passo, che nel
-    # workflow ha continue-on-error: il sito e' gia' pubblicato comunque.
-    with urllib.request.urlopen(req, timeout=TETTO) as r:
-        print('IndexNow: %d indirizzi mandati, risposta %d' % (len(urls), r.status))
+    # 403 e' la chiave che il motore non ha trovato. Al primo avviso e' successo
+    # subito dopo la pubblicazione, con il file gia' al suo posto, e la stessa
+    # richiesta pochi minuti dopo ha preso 202: il motore aveva letto la chiave
+    # prima che la cache la servisse. Quindi sul 403 si riprova, ma poco: il
+    # workflow tiene occupato il gruppo «pages» finche' questo passo non
+    # finisce, e un'attesa lunga qui ritarderebbe la pubblicazione successiva.
+    # Ogni altro errore ferma il passo, che ha continue-on-error: il sito e'
+    # gia' pubblicato comunque.
+    for attesa in RIPROVE:
+        time.sleep(attesa)
+        try:
+            with urllib.request.urlopen(req, timeout=TETTO) as r:
+                print('IndexNow: %d indirizzi mandati, risposta %d' % (len(urls), r.status))
+                return
+        except urllib.error.HTTPError as e:
+            if e.code != 403:
+                raise
+            print('IndexNow: 403, la chiave non risulta ancora verificata')
+    sys.exit('IndexNow: 403 anche dopo %d tentativi' % len(RIPROVE))
 
 
 if __name__ == '__main__':
