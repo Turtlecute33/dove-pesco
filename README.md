@@ -66,6 +66,14 @@ province, troppo larghe, e le singole schede, troppo strette.
 La soglia è **due spot**. Con uno solo la pagina d'insieme sarebbe il doppione della
 scheda: stesso titolo, stesso elenco, un link dentro.
 
+Dove il comune ha la sua pagina, «dove pescare a \<comune\>» nel titolo spetta a lei.
+Le schede che portavano il comune nel nome lo ripetevano anche in coda («Santerno a
+Imola: dove pescare a Imola»), con le stesse parole della pagina del comune: 38 schede,
+**3,3%** dei clic in posizione 6,9, contro il 5,4-5,9% di tutte le altre. Adesso in coda
+c'è il pesce che la scheda dichiara per primo («dove pescare il cavedano e il barbo»),
+mai una specie protetta o rara in quel punto. Dove il comune ha una scheda sola la frase
+resta: lì la scheda è l'unica risposta a quella ricerca.
+
 L'elenco di tutti gli indirizzi sta anche in fondo all'applicazione, in un `<details>`
 chiuso. Prima stava dentro un `<noscript>`, ed era come non esserci: Googlebot esegue
 JavaScript, e quando lo esegue butta via il contenuto di `<noscript>`. Risultato, la home
@@ -315,6 +323,8 @@ assets/js/
 tools/
   aggiorna-dati.py             scarica meteo e portata e scrive previsioni.json
   genera-pagine.py             prepara _sito/: applicazione + 367 pagine + sitemap
+  avvisa-motori.py             dopo un push avvisa Bing e gli altri motori IndexNow
+  indexnow.txt                 la chiave IndexNow, pubblica per costruzione
   bake-geo.py                  la carta regionale, e l'elenco degli spot senz'acqua
   bake-locale.py               le 225 mini-carte, il mare e l'acqua di ogni scheda
   geom.py                      la geometria delle mini-carte, in un posto solo
@@ -436,6 +446,16 @@ per la sitemap e per il `robots.txt`.
 Alla prima pubblicazione con un dominio nuovo, dichiara il sito in
 [Google Search Console](https://search.google.com/search-console) e manda la sitemap:
 `https://<dominio>/sitemap.xml`.
+
+Poi [Bing Webmaster Tools](https://www.bing.com/webmasters), che importa il sito e la
+sitemap da Search Console in un passaggio. Da Bing prendono i risultati anche DuckDuckGo
+e Yahoo, e un mese dopo il lancio Bing aveva in indice una cinquantina di pagine su 367.
+Dopo ogni push il workflow manda la sitemap a IndexNow (`tools/avvisa-motori.py`), che la
+passa a Bing, Yandex, Seznam, Naver e Yep; ai giri delle previsioni no, perché lì cambia
+solo l'indice del giorno. La chiave sta in `tools/indexnow.txt` e `genera-pagine.py` la
+pubblica alla radice del sito, dove i motori la leggono per credere all'avviso: non è un
+segreto, ed è fatta per stare in chiaro. Partono solo gli indirizzi pubblici della
+sitemap, nessun dato di chi visita il sito.
 
 Due avvertenze: i workflow programmati vengono sospesi da GitHub dopo 60 giorni senza
 commit nel repo (basta un commit per riattivarli), e il cron è a discrezione della coda,

@@ -82,7 +82,8 @@ jobs:
         # genera-pagine.py copia l'applicazione e scrive le pagine statiche: una
         # per spot, una per specie, una per corso d'acqua, una per comune, una
         # per provincia, più gli indici e le pagine fisse. Poi la sitemap, il
-        # robots.txt, la 404 e, se la variabile DOMINIO c'è, il file CNAME.
+        # robots.txt, la 404, la chiave IndexNow e, se la variabile DOMINIO
+        # c'è, il file CNAME.
         #
         # Legge anche assets/dati/previsioni.json, scaricato dal passo prima, e
         # scrive l'indice del giorno dentro ogni scheda: per questo il passo va
@@ -112,3 +113,19 @@ jobs:
     steps:
       - id: deploy
         uses: actions/deploy-pages@v5
+
+  # Dopo un push, e solo allora, avvisa Bing e gli altri motori IndexNow che le
+  # pagine sono cambiate. Ai giri delle previsioni no: li' cambia solo l'indice
+  # del giorno, e avvisare sei volte al giorno sarebbe rumore. Se l'avviso non
+  # va, il sito e' pubblicato lo stesso: per questo continue-on-error.
+  avvisa:
+    needs: pubblica
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    continue-on-error: true
+    steps:
+      - uses: actions/checkout@v7
+      - name: Avvisa i motori IndexNow
+        env:
+          DOMINIO: ${{ vars.DOMINIO }}
+        run: python3 tools/avvisa-motori.py

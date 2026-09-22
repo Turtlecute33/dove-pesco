@@ -61,6 +61,27 @@ TIPI_CONTA = {
     'canale': ('canale', 'canali'), 'cava': ('cava', 'cave'),
     'mare': ('tratto di mare', 'tratti di mare'),
 }
+# Il pesce con il suo articolo, per il titolo delle schede: «dove pescare il
+# siluro». Negli elenchi il genere non c'e', e l'articolo indovinato sull'ultima
+# lettera darebbe «il carpa»; «le breme» e «il black bass» non li indovina
+# nessuna regola. Una specie nuova senza la sua voce ferma la pubblicazione.
+PESCE_ARTICOLO = {
+    'cavedano': 'il cavedano', 'barbo': 'il barbo', 'barboCanino': 'il barbo canino',
+    'lasca': 'la lasca', 'vairone': 'il vairone', 'rovella': 'la rovella',
+    'gobione': 'il gobione', 'alborella': "l'alborella", 'bosega': 'la bosega',
+    'triotto': 'il triotto', 'savetta': 'la savetta', 'pigo': 'il pigo',
+    'sanguinerola': 'la sanguinerola', 'trotaFario': 'la trota fario',
+    'trotaIridea': 'la trota iridea', 'trotaLacustre': 'la trota lacustre',
+    'salmerino': 'il salmerino', 'temolo': 'il temolo', 'carpa': 'la carpa',
+    'carpaErbivora': "l'amur", 'carassio': 'il carassio', 'tinca': 'la tinca',
+    'scardola': 'la scardola', 'breme': 'le breme', 'luccio': 'il luccio',
+    'persicoReale': 'il persico reale', 'persicoTrota': 'il black bass',
+    'lucioperca': 'il lucioperca', 'aspio': "l'aspio", 'siluro': 'il siluro',
+    'pesceGatto': 'il pesce gatto', 'anguilla': "l'anguilla", 'cheppia': 'la cheppia',
+    'cefalo': 'il cefalo', 'storione': 'lo storione', 'spigola': 'la spigola',
+    'orata': "l'orata", 'mormora': 'la mormora', 'pescePelagico': 'lo sgombro',
+    'paganello': 'il paganello',
+}
 MESI = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio',
         'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre']
 ORE = {'alba': 'prime luci', 'crepuscolo': 'alba e tramonto', 'notte': 'notte',
@@ -786,11 +807,36 @@ def pagina_spot(d, s, base, accessi=None, oggi=None, hub=None):
     oggi = oggi or {}
     hub = hub or {'acqua': {}, 'comune': {}}
 
+    # «Santerno a Imola: dove pescare a Imola» diceva il comune due volte, e la
+    # seconda con le stesse parole di /comune/imola/ («Dove pescare a Imola») e
+    # delle altre schede del comune: tre pagine per la stessa ricerca. Le 38
+    # schede in questa condizione prendevano il 3,3% dei clic in posizione 6,9,
+    # contro il 5,4-5,9% di tutte le altre alla stessa altezza. Li' la frase la
+    # tiene la pagina del comune, e al suo posto va il pesce che la scheda
+    # dichiara per primo. Dove il comune ha una scheda sola la frase resta,
+    # doppione o no: «dove pescare a riccione» e' una ricerca vera, e quella
+    # scheda e' l'unica pagina che le risponde.
+    # Mai una specie protetta o in divieto tutto l'anno, e mai una che qui la
+    # guida regionale dice rara: il titolo non promette un pesce che non si puo'
+    # tenere o che non c'e'.
+    dove = 'dove pescare a %s' % s['comune']
+    if s['comune'] in hub['comune'] and any(
+            re.search(r'\b%s\b' % re.escape(c.strip()), s['nome'], re.I)
+            for c in s['comune'].split('/') if c.strip()):
+        pesci = [PESCE_ARTICOLO[x] for x in sp_ids
+                 if x not in rari and not d['SPECIE'][x].get('protetta')
+                 and d['SPECIE'][x].get('limiteGiorno') != 0]
+        for n in (2, 1):
+            prova = 'dove pescare ' + elenco(pesci[:n])
+            if len(pesci) >= n and len('%s: %s' % (s['nome'], prova)) <= 62:
+                dove = prova
+                break
+
     # Il taglio dell'ultimo ripiego finiva con i puntini in mezzo al nome dello
     # spot: un titolo che si interrompe («Bidente a Santa Sofia (area
     # regolamentata Treponti): pesca…») nel risultato di ricerca sembra rotto.
     # Meglio perdere il richiamo che il nome, quindi si scala fino al nome nudo.
-    for testa in ('%s: dove pescare a %s' % (s['nome'], s['comune']),
+    for testa in ('%s: %s' % (s['nome'], dove),
                   '%s: pesca a %s (%s)' % (s['nome'], s['comune'], s['prov']),
                   '%s: pesca a %s' % (s['nome'], s['comune']),
                   '%s: dove pescare (%s)' % (s['nome'], s['prov']),
@@ -939,7 +985,7 @@ def pagina_spot(d, s, base, accessi=None, oggi=None, hub=None):
                ' '.join(v_oggi.get('spiegazione', [])))))
 
     corpo = f"""<span class="occhio acc">{e(tipo)} · {e(prov)}</span>
-<h1>{e(s['nome'])} <span class="h1-luogo">dove pescare a {e(s['comune'])}</span></h1>
+<h1>{e(s['nome'])} <span class="h1-luogo">{e(dove)}</span></h1>
 <div class="luogo">{', '.join(luogo)} · {acqua_link}</div>
 <div class="segni">{''.join(segni)}</div>
 <div class="intro">{' '.join(apre)}</div>
@@ -1712,9 +1758,19 @@ def pagina_indice_specie(d, base):
 def pagina_regole(d, base):
     R = d['REGOLE']
     u = '/regole/'
-    tit = titolo('Regole della pesca sportiva in Emilia-Romagna')
-    desc = ('Licenze, attrezzi, limiti di prelievo, misure minime, periodi di divieto e zone '
-            'delle acque in Emilia-Romagna, con i link ai testi ufficiali.')
+    # 172 impressioni in un mese in posizione 6,8, e 2 clic: l'1,2%, contro il
+    # 5% abbondante che il resto del sito prende a quell'altezza. Il titolo non
+    # diceva di che anno fossero le regole, e chi le cerca vuole quelle in
+    # vigore. L'anno viene dalla data di verifica scritta in data-rules.js: il
+    # titolo dice l'anno in cui le regole sono state controllate, e quando
+    # nessuno le ricontrolla resta fermo anche lui.
+    verifica = re.search(r'\b(ad? (?:%s) (20\d\d))\b' % '|'.join(MESI), R['aggiornato'])
+    tit = titolo('Regole della pesca in Emilia-Romagna %s: licenza e divieti' % verifica[2]
+                 if verifica else 'Regole della pesca sportiva in Emilia-Romagna')
+    desc = cresci('Licenza, misure minime e divieti di %d specie, avvisi in vigore, attrezzi '
+                  'e zone delle acque in Emilia-Romagna.' % CONTA['specie'],
+                  ['Verificate %s sui testi ufficiali.' % verifica[1] if verifica else '',
+                   'Con i link ai testi ufficiali.'])
     briciole = [('/', 'Oggi'), (None, 'Regole')]
 
     def gruppo(t, v, liv=False):
@@ -1744,7 +1800,7 @@ def pagina_regole(d, base):
     fonti = ''.join('<li><a href="%s" target="_blank" rel="noopener noreferrer">%s</a></li>'
                     % (e(f['u']), e(f['t'])) for f in R['fonti'])
 
-    corpo = f"""<h1>Le regole</h1>
+    corpo = f"""<h1>Regole della pesca in Emilia-Romagna</h1>
 <div class="intro">Licenze, attrezzi, limiti di prelievo, zone delle acque, divieti in vigore e
   sicurezza. Sintesi delle fonti regionali, con i link ai testi ufficiali.</div>
 <p class="nota" style="margin-top:18px">{e(R['aggiornato'])} Questa è una sintesi:
@@ -2118,6 +2174,9 @@ def main():
     d = leggi_dati()
     indirizzi(d)
     CONTA['spot'], CONTA['specie'] = len(d['SPOT']), len(d['SPECIE'])
+    senza = sorted(set(d['SPECIE']) - set(PESCE_ARTICOLO))
+    if senza:
+        sys.exit('specie senza la sua voce in PESCE_ARTICOLO: %s' % elenco(senza))
 
     # I gruppi che meritano una pagina propria, e l'indirizzo di ognuno. Servono
     # prima di scrivere qualsiasi pagina, perche' le schede degli spot, le
@@ -2240,6 +2299,17 @@ def main():
         f.write('# Dove Pesco: tutto aperto, niente da nascondere.\n'
                 'User-agent: *\nAllow: /\n\n'
                 'Sitemap: %s/sitemap.xml\n' % base)
+
+    # La chiave IndexNow va alla radice, in un file che porta il suo nome: i
+    # motori la leggono li' per credere all'avviso di tools/avvisa-motori.py.
+    p = os.path.join(BASE, 'tools', 'indexnow.txt')
+    if os.path.exists(p):
+        with open(p) as f:
+            chiave = f.read().strip()
+        if not re.fullmatch(r'[0-9a-f]{32}', chiave):
+            sys.exit('tools/indexnow.txt non contiene una chiave valida (32 cifre esadecimali)')
+        with open(os.path.join(out, chiave + '.txt'), 'w') as f:
+            f.write(chiave + '\n')
 
     if os.environ.get('DOMINIO'):
         with open(os.path.join(out, 'CNAME'), 'w') as f:
