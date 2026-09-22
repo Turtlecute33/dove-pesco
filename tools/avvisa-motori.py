@@ -68,10 +68,11 @@ def main():
     req = urllib.request.Request(PUNTO, data=corpo, method='POST', headers={
         **UA, 'Content-Type': 'application/json; charset=utf-8'})
     # 200 vuol dire ricevuto, 202 ricevuto con la chiave ancora da verificare.
-    # 403 e' la chiave che il motore non ha trovato. Al primo avviso e' successo
-    # subito dopo la pubblicazione, con il file gia' al suo posto, e la stessa
-    # richiesta pochi minuti dopo ha preso 202: il motore aveva letto la chiave
-    # prima che la cache la servisse. Quindi sul 403 si riprova, ma poco: il
+    # 403 e' la chiave che il motore non riconosce. Ai primi due avvisi e'
+    # arrivato subito dopo la pubblicazione, con il file gia' al suo posto e
+    # appena riletto qui sopra, e la stessa richiesta un paio di minuti dopo e'
+    # passata (202 la prima volta, 200 la seconda). Il perche' non si vede da
+    # qui. Quindi sul 403 si riprova, ma poco: il
     # workflow tiene occupato il gruppo «pages» finche' questo passo non
     # finisce, e un'attesa lunga qui ritarderebbe la pubblicazione successiva.
     # Ogni altro errore ferma il passo, che ha continue-on-error: il sito e'
