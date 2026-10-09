@@ -347,6 +347,12 @@ def elenco(v, cong='e'):
     return sep.join(v[:-1]) + ' ' + cong + ' ' + v[-1]
 
 
+def ad(nome, a='a'):
+    """«a Imola», ma «ad Argenta»: la d eufonica davanti alla stessa vocale.
+    Senza, i titoli dicevano «dove pescare a Alto Reno Terme»."""
+    return '%s%s %s' % (a, 'd' if nome[:1].lower() == 'a' else '', nome)
+
+
 def conta_tipo(n, tipo):
     """13 -> '13 fiumi', 1 -> '1 fiume'."""
     uno = TIPI.get(tipo, tipo).lower()
@@ -819,7 +825,7 @@ def pagina_spot(d, s, base, accessi=None, oggi=None, hub=None):
     # Mai una specie protetta o in divieto tutto l'anno, e mai una che qui la
     # guida regionale dice rara: il titolo non promette un pesce che non si puo'
     # tenere o che non c'e'.
-    dove = 'dove pescare a %s' % s['comune']
+    dove = 'dove pescare ' + ad(s['comune'])
     if s['comune'] in hub['comune'] and any(
             re.search(r'\b%s\b' % re.escape(c.strip()), s['nome'], re.I)
             for c in s['comune'].split('/') if c.strip()):
@@ -837,21 +843,26 @@ def pagina_spot(d, s, base, accessi=None, oggi=None, hub=None):
     # regolamentata Treponti): pesca…») nel risultato di ricerca sembra rotto.
     # Meglio perdere il richiamo che il nome, quindi si scala fino al nome nudo.
     for testa in ('%s: %s' % (s['nome'], dove),
-                  '%s: pesca a %s (%s)' % (s['nome'], s['comune'], s['prov']),
-                  '%s: pesca a %s' % (s['nome'], s['comune']),
+                  '%s: pesca %s (%s)' % (s['nome'], ad(s['comune']), s['prov']),
+                  '%s: pesca %s' % (s['nome'], ad(s['comune'])),
                   '%s: dove pescare (%s)' % (s['nome'], s['prov']),
                   s['nome']):
         if len(testa) <= 62:
             break
     tit = titolo(testa)
 
-    # la descrizione si allunga dalla coda: prima i fatti, poi i richiami
+    # La descrizione si allunga dalla coda: prima i fatti, poi i richiami.
+    # Apriva con «Pescare a Bacino del Brasimone», «Pescare a Dighe di Porto
+    # Corsini»: la preposizione giusta dipende dal nome, quindi si parte dal nome.
+    # E «Le 8 specie dichiarate: cavedano, trota fario e trota iridea» ne
+    # elencava tre come se fossero tutte. Corta, la coda delle specie entra in
+    # 174 descrizioni su 225 invece di 144.
     nomi = [d['SPECIE'][x]['nome'] for x in sp_ids]
-    desc = cresci('Pescare a %s, %s (%s): accessi, fondale, esche e regole.'
+    specie = ('%d specie, tra cui %s.' if len(nomi) > 3 else '%d specie: %s.') % (
+        len(nomi), elenco(nomi[:3]).lower()) if nomi else ''
+    desc = cresci('%s, %s (%s): accessi, fondale, esche e regole di pesca.'
                   % (s['nome'], s['comune'], prov),
-                  ['Le %d specie dichiarate: %s.' % (len(nomi), elenco(nomi[:3]).lower())
-                   if nomi else '',
-                   'Indice del giorno su portata e meteo.'])
+                  [specie, 'Indice del giorno su portata e meteo.'])
 
     # Il comune entra nelle briciole solo dove ha una pagina propria, cioe' dove
     # ha piu' di uno spot: altrimenti la briciola porterebbe a se stessa.
@@ -864,8 +875,8 @@ def pagina_spot(d, s, base, accessi=None, oggi=None, hub=None):
     # apertura: solo fatti dichiarati negli elenchi, nessuna aggiunta
     categoria = (cat['nome'].replace('Zona ', 'categoria ')
                  if cat['nome'].startswith('Zona ') else cat['nome'].lower())
-    apre = ['<strong>%s</strong> si pesca sul %s, nel comune di %s (%s). %s, %s.'
-            % (e(s['nome']), e(s['acqua']), e(s['comune']), e(prov),
+    apre = ['<strong>%s</strong>: si pesca %s, nel comune di %s (%s). %s, %s.'
+            % (e(s['nome']), e(sul(s['acqua'])), e(s['comune']), e(prov),
                e(tipo), e(categoria if s['categoria'] == 'mare'
                           else 'acque di ' + categoria))]
     if nomi:
@@ -959,26 +970,29 @@ def pagina_spot(d, s, base, accessi=None, oggi=None, hub=None):
 
     oggi_html, v_oggi = blocco_oggi(s, oggi, d)
 
+    # Le domande cominciano dal nome, come nelle schede delle specie: «Con che
+    # esche si pesca a Torrente Setta a Rioveggio?» o «Dove si trova Laghi
+    # Cerretani?» non tornano, e un nome solo non dice la preposizione giusta.
     faq = [
-        ('Dove si trova %s?' % s['nome'],
-         '%s si trova sul %s, nel comune di %s, in provincia di %s. %s'
-         % (s['nome'], s['acqua'], s['comune'], prov,
+        ('%s: dove si trova lo spot?' % s['nome'],
+         'Lo spot è %s, nel comune di %s, in provincia di %s. %s'
+         % (sul(s['acqua']), s['comune'], prov,
             detto_accesso(s, accessi))),
-        ('Che pesci ci sono a %s?' % s['nome'],
+        ('%s: che pesci ci sono?' % s['nome'],
          ('Le specie dichiarate sono %d: %s. Misure minime e periodi di divieto seguono '
           'l\'Allegato 2 del Regolamento regionale 1/2018.' % (len(nomi), elenco(nomi)))
          if nomi else ''),
-        ('Con che esche si pesca a %s?' % s['nome'],
+        ('%s: con che esche si pesca?' % s['nome'],
          ('Le esche indicate per questo spot sono: %s. Le tecniche: %s.'
           % (elenco(s['esche']), elenco(s.get('tecniche') or ['nessuna indicata'])))
          if s.get('esche') else ''),
-        ('Serve la licenza per pescare a %s?' % s['nome'],
-         'Sì. In Emilia-Romagna serve la licenza di tipo B e il versamento annuale. %s è in %s: %s'
-         % (s['nome'], cat['nome'].lower(), cat['desc'])),
+        ('%s: serve la licenza?' % s['nome'],
+         'Sì. In Emilia-Romagna serve la licenza di tipo B e il versamento annuale. Lo spot è in %s: %s'
+         % (cat['nome'].lower(), cat['desc'])),
     ]
     if v_oggi:
         faq.insert(0, (
-            'Si pesca bene a %s oggi?' % s['nome'],
+            '%s: si pesca bene oggi?' % s['nome'],
             'L\'indice del %s è %d su 100 (%s). %s'
             % (data_lunga(oggi['giorno']), v_oggi['punteggio'],
                (v_oggi.get('etichetta') or '').lower(),
@@ -1166,18 +1180,26 @@ def pagina_specie(d, sp, base, hub=None):
     # muggine» sarebbero due errori scritti da un programma che tira a indovinare
     # sull'ultima lettera. Cosi' la domanda e' giusta per tutte e quaranta.
     nome = sp['nome']
+    # Una frase sola per tre casi dava risposte senza senso: alle protette «fuori
+    # da quel periodo il limite è la pesca resta vietata», alle alloctone un
+    # «fuori da quel periodo» senza periodo.
+    limite = ('%d capi al giorno' % sp['limiteGiorno'] if sp.get('limiteGiorno')
+              else 'quello generale, senza un tetto per specie')
+    testo = sp['divietoTesto'][:1].upper() + sp['divietoTesto'][1:]
+    if sp.get('limiteGiorno') == 0:
+        quando = '%s.' % testo
+    elif sp.get('divieto'):
+        quando = 'Periodo di divieto: %s. Fuori da quel periodo il limite è %s.' % (
+            sp['divietoTesto'], limite)
+    else:
+        quando = '%s. Il limite è %s.' % (testo, limite)
     faq = [
         ('%s: qual è la misura minima in Emilia-Romagna?' % nome,
          ('%d cm, dall\'Allegato 2 del Regolamento regionale 1/2018.' % sp['misuraMin'])
          if sp.get('misuraMin')
          else 'Il regolamento regionale non fissa una misura minima per questa specie. I '
               'calendari ittici provinciali possono aggiungerne una.'),
-        ('%s: quando è vietata la pesca?' % nome,
-         'Periodo di divieto: %s. Fuori da quel periodo il limite è %s.'
-         % (sp['divietoTesto'],
-            'la pesca resta vietata' if sp.get('limiteGiorno') == 0
-            else ('%d capi al giorno' % sp['limiteGiorno'] if sp.get('limiteGiorno')
-                  else 'quello generale, senza un tetto per specie'))),
+        ('%s: quando è vietata la pesca?' % nome, quando),
         ('%s: dove si trova in Emilia-Romagna?' % nome,
          ('%d spot descritti dichiarano questa specie, su %s.'
           % (len(dove), elenco(sorted({s['acqua'] for s in dove})[:6]))) if dove else ''),
@@ -1255,16 +1277,44 @@ def pagina_specie(d, sp, base, hub=None):
 # mettere insieme che nella singola scheda non c'e'.
 SOGLIA_HUB = 2
 
-# Quasi tutti i nomi d'acqua sono maschili (il fiume, il torrente, il cavo, il
-# canale, il lago, il mare, il collettore, il Po). Le eccezioni sono poche e
-# note, e restano qui invece che in un indovinello sulla desinenza.
+# Quasi tutti i nomi d'acqua sono maschili singolari (il fiume, il torrente, il
+# cavo, il canale, il lago, il mare, il collettore, il Po). Le eccezioni sono
+# poche e note, e restano qui invece che in un indovinello sulla desinenza. Con
+# il solo «sul» le schede scrivevano «si pesca sul Laghi Cerretani», «sul Casse
+# di espansione», «sul Sacca di Goro».
 ACQUE_FEMMINILI = ('sacca', 'valle', 'foce', 'cava', 'darsena', 'fossa', 'roggia',
-                   'chiusa', 'diga', 'lanca')
+                   'chiusa', 'diga', 'lanca', 'idrovia')
+ACQUE_PLURALI = {'laghi': 'm', 'laghetti': 'm', 'lagoni': 'm', 'fiumi': 'm', 'canali': 'm',
+                 'casse': 'f', 'cave': 'f', 'valli': 'f', 'foci': 'f', 'dighe': 'f'}
+ARTICOLATE = {'in': ('nel', 'nello', "nell'", 'nella', 'nei', 'negli', 'nelle'),
+              'su': ('sul', 'sullo', "sull'", 'sulla', 'sui', 'sugli', 'sulle')}
+
+
+def articolata(prep, nome):
+    """«nel Fiume Po», «sulla Sacca di Goro», «sui Laghi Cerretani», «sull'Idrovia
+    ferrarese», «sullo Scolo Riolo». Decide la prima parola, in «Ex cave» la seconda."""
+    il, lo, l_, la, i, gli, le = ARTICOLATE[prep]
+    parole = nome.lower().split()
+    testa = parole[1] if parole[0] == 'ex' and len(parole) > 1 else parole[0]
+    vocale = parole[0][0] in 'aeiou'
+    duro = vocale or re.match(r's[^aeiou]|z|gn|ps|x', parole[0])
+    if ACQUE_PLURALI.get(testa) == 'f':
+        return '%s %s' % (le, nome)
+    if testa in ACQUE_PLURALI:
+        return '%s %s' % (gli if duro else i, nome)
+    if vocale:
+        return l_ + nome
+    if testa in ACQUE_FEMMINILI:
+        return '%s %s' % (la, nome)
+    return '%s %s' % (lo if duro else il, nome)
 
 
 def nel(nome):
-    """«nel Fiume Po», «nella Sacca di Goro»."""
-    return 'nella' if nome.split()[0].lower() in ACQUE_FEMMINILI else 'nel'
+    return articolata('in', nome)
+
+
+def sul(nome):
+    return articolata('su', nome)
 
 
 def raggruppa(spot, chiave):
@@ -1308,9 +1358,8 @@ def pagina_acqua(d, nome, spot, base, oggi=None, hub=None):
     comuni = sorted({s['comune'] for s in spot})
 
     tit = titolo('%s: dove pescare, %d spot' % (nome, len(spot)))
-    desc = cresci('I %d spot di pesca sul %s.' % (len(spot), nome),
-                  ['A %s.' % elenco(comuni[:4]) if len(comuni) > 1
-                   else 'A %s.' % comuni[0],
+    desc = cresci('I %d spot di pesca %s.' % (len(spot), sul(nome)),
+                  ['%s.' % ad(elenco(comuni[:4]), 'A'),
                    'Accessi, fondale, specie dichiarate, esche e regole.',
                    'Con l\'indice del giorno.'])
     briciole = [('/', 'Oggi'), ('/acqua/', 'Corsi d\'acqua'), (None, nome)]
@@ -1347,14 +1396,14 @@ def pagina_acqua(d, nome, spot, base, oggi=None, hub=None):
                       for s in v])))
 
     faq = [
-        ('Dove si pesca %s %s?' % (nel(nome), nome),
+        ('Dove si pesca %s?' % nel(nome),
          'Su questo corso d\'acqua ci sono %d spot descritti, in %s: %s.'
          % (len(spot), elenco(comuni), elenco([s['nome'] for s in spot]))),
-        ('Che pesci ci sono %s %s?' % (nel(nome), nome),
+        ('Che pesci ci sono %s?' % nel(nome),
          ('Le specie piu\' dichiarate sono: %s.'
           % elenco(['%s (%d spot)' % (d['SPECIE'][x]['nome'].lower(), n) for x, n in top[:6]]))
          if top else ''),
-        ('Ci sono tratti no kill %s %s?' % (nel(nome), nome),
+        ('Ci sono tratti no kill %s?' % nel(nome),
          ('Sì: %s.' % elenco([s['nome'] for s in nk])) if nk
          else 'Fra gli spot descritti su questo corso d\'acqua non ce ne sono di no kill. '
               'I calendari ittici provinciali cambiano ogni anno: verifica prima di uscire.'),
@@ -1363,7 +1412,7 @@ def pagina_acqua(d, nome, spot, base, oggi=None, hub=None):
     corpo = f"""<span class="occhio acc">{e(tipo)} · Emilia-Romagna</span>
 <h1>{e(nome)} <span class="h1-luogo">dove pescare, spot per spot</span></h1>
 <div class="luogo">{e(elenco(prov))}</div>
-<div class="intro">{len(spot)} spot descritti {nel(nome)} {e(nome)}, {dove_comuni}. Per ognuno:
+<div class="intro">{len(spot)} spot descritti {e(nel(nome))}, {dove_comuni}. Per ognuno:
   come arrivare, i punti di accesso, il fondale, le specie dichiarate, le esche e le regole
   locali.</div>
 {riga_oggi(spot, oggi, 'su questo corso d\'acqua')}
@@ -1381,7 +1430,7 @@ def pagina_acqua(d, nome, spot, base, oggi=None, hub=None):
 
     ld = [briciola_ld(base, briciole), {
         '@context': 'https://schema.org', '@type': 'ItemList',
-        'name': 'Spot di pesca %s %s' % (nel(nome), nome),
+        'name': 'Spot di pesca %s' % nel(nome),
         'description': desc, 'url': base + u,
         'numberOfItems': len(spot),
         'itemListElement': [{'@type': 'ListItem', 'position': i + 1, 'name': s['nome'],
@@ -1410,10 +1459,11 @@ def pagina_comune(d, nome, spot, base, oggi=None, hub=None):
     # quelli «nel comune di Rimini, in provincia di Rimini» e una briciola
     # «Rimini / Rimini» dicono due volte la stessa parola.
     omonimo = nome == prov
-    tit = titolo('Dove pescare a %s: %d spot' % (nome, len(spot)))
+    tit = titolo('Dove pescare %s: %d spot' % (ad(nome), len(spot)))
+    su = elenco([sul(a) for a in acque[:3]])
     desc = cresci('I %d spot di pesca nel comune di %s%s.'
                   % (len(spot), nome, '' if omonimo else ' (%s)' % prov),
-                  ['Su %s.' % elenco(acque[:3]),
+                  ['%s.' % (su[:1].upper() + su[1:]),
                    'Accessi, specie dichiarate, esche e regole.',
                    'Con l\'indice del giorno.'])
     briciole = [('/', 'Oggi'), ('/comune/', 'Comuni')]
@@ -1435,21 +1485,21 @@ def pagina_comune(d, nome, spot, base, oggi=None, hub=None):
         for a in acque)
 
     faq = [
-        ('Dove si pesca a %s?' % nome,
+        ('Dove si pesca %s?' % ad(nome),
          'Nel comune di %s ci sono %d spot descritti: %s. Le acque sono %s.'
          % (nome, len(spot), elenco([s['nome'] for s in spot]), elenco(acque))),
-        ('Che pesci si prendono a %s?' % nome,
+        ('Che pesci si prendono %s?' % ad(nome),
          ('Le specie piu\' dichiarate sono: %s.'
           % elenco(['%s (%d spot)' % (d['SPECIE'][x]['nome'].lower(), n) for x, n in top[:6]]))
          if top else ''),
-        ('Serve la licenza per pescare a %s?' % nome,
+        ('Serve la licenza per pescare %s?' % ad(nome),
          'Sì. In Emilia-Romagna serve la licenza di tipo B con il versamento annuale, valida in '
          'tutta la regione. Il calendario ittico della provincia di %s può aggiungere divieti '
          'locali.' % prov),
     ]
 
     corpo = f"""<span class="occhio acc">{e(prov)} · Emilia-Romagna</span>
-<h1>Dove pescare a {e(nome)}</h1>
+<h1>Dove pescare {e(ad(nome))}</h1>
 <div class="luogo">{acque_html}</div>
 <div class="intro">{len(spot)} spot nel comune di {e(nome)}, in
   <a href="/provincia/{slug(prov)}/">provincia di {e(prov)}</a>. Per ognuno: come arrivare, i punti
@@ -1469,7 +1519,7 @@ def pagina_comune(d, nome, spot, base, oggi=None, hub=None):
 
     ld = [briciola_ld(base, briciole), {
         '@context': 'https://schema.org', '@type': 'ItemList',
-        'name': 'Spot di pesca a %s' % nome, 'description': desc, 'url': base + u,
+        'name': 'Spot di pesca %s' % ad(nome), 'description': desc, 'url': base + u,
         'numberOfItems': len(spot),
         'itemListElement': [{'@type': 'ListItem', 'position': i + 1, 'name': s['nome'],
                              'url': base + '/spot/%s/' % s['slug']}
