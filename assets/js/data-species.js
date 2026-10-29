@@ -579,3 +579,92 @@ const GRUPPI_SPECIE = [
   'salmonidi', 'timallidi', 'ciprinidi reofili', 'ciprinidi',
   'ciprinidi di acqua ferma', 'predatori', 'migratori', 'mare'
 ];
+
+/* Come si riconosce. Chi cerca «breme pesce», «luccio italico», «muggine» o
+   «cheppia» vuole sapere che pesce ha davanti, e la scheda rispondeva solo con
+   misure e divieti: 180 impressioni in tre mesi, nessun clic. Solo i caratteri
+   che si vedono in mano o in acqua, senza lente. `simili` sono le specie con
+   cui si confonde più spesso; `detto` è l'altro nome con cui si cerca.
+   La bosega resta fuori: in regione il nome indica pesci diversi a seconda
+   del posto, e una descrizione sola sarebbe sbagliata in metà dei casi. */
+const RICONOSCERE = {
+  cavedano: { simili: ['vairone', 'aspio', 'carpaErbivora'],
+    riconoscere: 'Corpo affusolato, quasi cilindrico, con la testa larga e la bocca ampia. Le scaglie grandi hanno il bordo scuro e disegnano una rete sul fianco; le pinne ventrali e l\'anale sono aranciate, e l\'anale ha il bordo convesso.' },
+  barbo: { simili: ['barboCanino', 'gobione'],
+    riconoscere: 'Corpo allungato con il ventre piatto, muso sporgente e bocca rivolta verso il basso con quattro barbigli. Dorso bruno verdastro con piccole macchie scure sul fianco e sulle pinne.' },
+  barboCanino: { simili: ['barbo', 'gobione'],
+    riconoscere: 'Un piccolo barbo di torrente, di rado oltre i 20 cm, con quattro barbigli e labbra carnose. Rispetto al barbo comune ha il fianco più fitto di macchie scure irregolari. È protetto: va rilasciato.' },
+  lasca: { simili: ['savetta', 'cavedano'],
+    riconoscere: 'Corpo affusolato e argenteo, con una fascia scura lungo il fianco. La bocca sta sotto il muso e il labbro inferiore è corneo e tagliente, piegato ad arco: nella savetta lo stesso labbro è dritto.' },
+  vairone: { simili: ['cavedano', 'sanguinerola'],
+    riconoscere: 'Piccolo, di rado oltre i 15 cm. Lungo il fianco corre una fascia scura e, sopra, una linea gialla o arancio sulla linea laterale; le pinne pari hanno la base aranciata.' },
+  rovella: { simili: ['triotto', 'scardola'],
+    riconoscere: 'Piccolo ciprinide argenteo con il dorso più scuro, una fascia scura lungo il fianco e le pinne pari e l\'anale rossastre. Vive in branchi numerosi.' },
+  gobione: { simili: ['barbo', 'barboCanino'],
+    riconoscere: 'Piccolo pesce di fondo, 8-14 cm, con due soli barbigli agli angoli della bocca e una fila di macchie scure tondeggianti lungo il fianco. Il barbo di barbigli ne ha quattro.' },
+  alborella: { simili: ['triotto'],
+    riconoscere: 'Piccola e sottile, argento brillante, con la bocca rivolta verso l\'alto e una sottile fascia scura sul fianco. Vive in branchi a pelo d\'acqua.' },
+  triotto: { simili: ['scardola', 'rovella'],
+    riconoscere: 'Piccolo ciprinide di acque lente, 10-18 cm, argenteo, con una fascia scura sul fianco e le pinne ventrali e anale arancio rossastre. La pinna dorsale parte sopra le ventrali: nella scardola parte più indietro.' },
+  savetta: { simili: ['lasca', 'pigo'],
+    riconoscere: 'Corpo alto e compresso, argenteo, fino a 45 cm. La bocca sta sotto il muso, dritta e trasversale, con il labbro inferiore corneo e tagliente: nella lasca lo stesso labbro è ad arco. È protetta.' },
+  pigo: { simili: ['savetta', 'triotto'],
+    riconoscere: 'Grosso rutilo di 30-45 cm, dal corpo alto e argenteo con riflessi dorati e pinne rossastre. In primavera i maschi si coprono di piccoli tubercoli bianchi sulla testa e sul corpo. È protetto.' },
+  sanguinerola: { simili: ['vairone'],
+    riconoscere: 'Pesciolino di 6-10 cm con scaglie minutissime e fianchi a macchie scure irregolari. In frega il maschio ha la gola e il ventre rossi, da cui il nome. È protetta.' },
+  trotaFario: { simili: ['trotaIridea', 'trotaLacustre', 'salmerino'],
+    riconoscere: 'Punti neri e rossi sul fianco, spesso con un alone chiaro, e pinna adiposa con il bordo arancio. Non ha la fascia rosa lungo il fianco né i puntini fitti sulla coda: sono i segni della iridea.' },
+  trotaIridea: { simili: ['trotaFario'], detto: 'trota arcobaleno',
+    riconoscere: 'Fascia rosa iridescente lungo il fianco e puntini neri fitti sul dorso, sulla pinna dorsale e sulla coda. Non ha punti rossi: sono il segno della fario.' },
+  trotaLacustre: { simili: ['trotaFario', 'trotaIridea'],
+    riconoscere: 'La forma di lago della trota fario: corpo argenteo e slanciato, con poche macchie nere, spesso a forma di X, e quasi nessun punto rosso.' },
+  salmerino: { simili: ['trotaFario', 'trotaIridea'],
+    riconoscere: 'Punti chiari, crema o rosati, sul fianco scuro, dove le trote hanno punti neri. Le pinne pari e l\'anale hanno il bordo anteriore bianco; in frega il ventre diventa rosso.' },
+  temolo: { simili: ['trotaFario'],
+    riconoscere: 'La pinna dorsale è altissima, a vessillo, con riflessi viola. Bocca piccola, muso appuntito, scaglie grandi e qualche macchia nera sul fianco.' },
+  carpa: { simili: ['carassio', 'carpaErbivora'],
+    riconoscere: 'Corpo robusto, pinna dorsale lunga e quattro barbigli, due per lato della bocca. La carpa a specchi ha poche scaglie grandi, la carpa regina è coperta di scaglie regolari.' },
+  carpaErbivora: { simili: ['carpa', 'cavedano'],
+    riconoscere: 'Corpo allungato, quasi cilindrico, con la testa larga e piatta, scaglie grandi bordate di scuro e la pinna dorsale corta. Non ha barbigli, a differenza della carpa.' },
+  carassio: { simili: ['carpa', 'tinca'],
+    riconoscere: 'Somiglia a una piccola carpa, ma non ha barbigli. Corpo alto, color bronzo o argento, pinna dorsale lunga con il primo raggio seghettato.' },
+  tinca: { simili: ['carassio'],
+    riconoscere: 'Verde oliva con riflessi dorati, scaglie piccolissime sotto uno strato di muco, occhio rosso e due piccoli barbigli agli angoli della bocca. Le pinne sono arrotondate.' },
+  scardola: { simili: ['triotto', 'rovella'],
+    riconoscere: 'Pinne rosso vivo, occhio dorato o arancio, bocca rivolta verso l\'alto. La pinna dorsale parte più indietro delle ventrali: nel triotto parte sopra.' },
+  breme: { simili: ['carassio'], detto: 'abramide',
+    riconoscere: 'Corpo molto alto e compresso, testa piccola e bocca che si allunga a tubo verso il basso. Gli adulti sono color bronzo, i giovani argentei; la pinna anale è lunghissima.' },
+  luccio: { simili: ['lucioperca'],
+    riconoscere: 'Muso lungo e piatto a becco d\'anatra, bocca piena di denti, pinna dorsale spostata indietro vicino alla coda. Il luccio italico ha di solito barre o macchie scure allungate sul fianco; il luccio nordico, immesso, ha macchie chiare tondeggianti.' },
+  persicoReale: { simili: ['lucioperca', 'persicoTrota'], detto: 'pesce persico',
+    riconoscere: 'Fianchi verdastri con 5-7 bande verticali scure, due pinne dorsali, la prima spinosa con una macchia nera in fondo, e pinne ventrali e anale rosso arancio.' },
+  persicoTrota: { simili: ['persicoReale'],
+    riconoscere: 'Bocca enorme, con la mascella che arriva oltre l\'occhio, e una fascia scura irregolare lungo il fianco verdastro. Le due pinne dorsali sono quasi unite.' },
+  lucioperca: { simili: ['persicoReale', 'luccio'],
+    riconoscere: 'Corpo slanciato, occhi grandi e vitrei, denti a canino in bocca. Due pinne dorsali separate, la prima spinosa e macchiettata, e bande verticali scure sfumate sul fianco.' },
+  aspio: { simili: ['cavedano'],
+    riconoscere: 'Corpo slanciato e argenteo, bocca grande con la mandibola sporgente, che entra in un incavo della mascella. Caccia a galla: le sue mangiate sono spruzzi sulla superficie.' },
+  siluro: { simili: ['pesceGatto'],
+    riconoscere: 'Niente scaglie, testa larga e piatta, sei barbigli: due lunghissimi sopra la bocca e quattro corti sotto. La pinna dorsale è minuscola e l\'anale lunghissima, fino alla coda.' },
+  pesceGatto: { simili: ['siluro'],
+    riconoscere: 'Otto barbigli intorno alla bocca, pelle senza scaglie bruno nerastra, pinna adiposa e una spina robusta davanti alla dorsale e alle pettorali. Il siluro ha sei barbigli e non ha la pinna adiposa.' },
+  anguilla: {
+    riconoscere: 'Corpo a serpente, coperto di muco, con le pinne dorsale, caudale e anale unite in un\'unica frangia. La mandibola sporge appena oltre la mascella.' },
+  cheppia: { simili: ['alborella'],
+    riconoscere: 'Pesce argenteo della famiglia delle aringhe, con il ventre a carena seghettata e una macchia scura dietro l\'opercolo, spesso seguita da una fila di macchie più piccole. Risale i fiumi dal mare in primavera. È protetta.' },
+  cefalo: { simili: ['spigola'],
+    riconoscere: 'Testa larga e piatta, bocca piccola, due pinne dorsali ben separate, la prima con quattro soli raggi spinosi, e righe grigie lungo il fianco argenteo. Le specie sono diverse, e si distinguono dal labbro e dalle macchie sull\'opercolo.' },
+  storione: {
+    riconoscere: 'Muso a punta, bocca sotto la testa con quattro barbigli davanti, cinque file di placche ossee lungo il corpo e coda con il lobo superiore più lungo. Sono tutti protetti: un esemplare catturato si rilascia subito e si segnala.' },
+  spigola: { simili: ['cefalo', 'orata'],
+    riconoscere: 'Corpo slanciato e argenteo, dorso grigio, due pinne dorsali separate e spine sull\'opercolo, con una macchia scura. I giovani possono avere puntini neri sul dorso.' },
+  orata: { simili: ['spigola', 'mormora'],
+    riconoscere: 'Corpo alto e ovale, una fascia dorata fra gli occhi e una macchia scura all\'inizio della linea laterale, sull\'opercolo.' },
+  mormora: { simili: ['orata'],
+    riconoscere: 'Corpo argenteo con una dozzina di bande verticali scure e sottili, e muso allungato, a punta.' },
+  pescePelagico: {
+    riconoscere: 'Lo sgombro ha il dorso verde azzurro con strisce ondulate scure; la palamita strisce scure oblique sul dorso e denti robusti; l\'aguglia un corpo lunghissimo e sottile, con un becco di denti aghiformi e le lische verdi.' },
+  paganello: {
+    riconoscere: 'Ghiozzo di scogliera di 8-18 cm, con la testa grossa, gli occhi in alto e le pinne ventrali unite a ventosa. Il paganello ha una banda chiara, gialla o arancio, sul bordo della prima pinna dorsale.' }
+};
+Object.keys(RICONOSCERE).forEach(k => Object.assign(SPECIE[k], RICONOSCERE[k]));

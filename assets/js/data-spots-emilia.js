@@ -638,6 +638,7 @@ const SPOT_EMILIA = [
 },
 {
   id: 'mo-laghi-santanna', nome: 'Casse di espansione del Panaro, laghi S. Anna',
+  titolo: 'Laghetti di Sant\'Anna, casse del Panaro: pesca a Modena',
   comune: 'Modena', prov: 'MO', acqua: 'Casse di espansione del Panaro',
   tipo: 'lago', categoria: 'B', lat: 44.6019, lon: 11.0045,
   specie: ['persicoTrota', 'luccio', 'siluro', 'pesceGatto', 'persicoReale', 'carpa', 'scardola'],

@@ -85,7 +85,6 @@ const RARITA = {
   'bo-reno-marzabotto':      ['lasca'],
   'bo-limentra-molino-casio':['trotaIridea'],
   'bo-limentra-bagnana':     ['trotaIridea'],
-  'bo-laghetti-castrola':    ['cavedano'],
   'bo-santa-maria':          ['luccio', 'trotaFario'],
   'bo-santerno-macerato':    ['lasca', 'trotaFario'],
   'fe-po-goro-gorino':       ['siluro', 'carpa'],

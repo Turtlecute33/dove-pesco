@@ -532,6 +532,7 @@ const SPOT_ROMAGNA = [
 },
 {
   id: 'ra-diga-porto-corsini', nome: 'Dighe di Porto Corsini e Marina di Ravenna',
+  titolo: 'Marina di Ravenna e Porto Corsini: pesca dalle dighe',
   comune: 'Ravenna', prov: 'RA', acqua: 'Mare Adriatico',
   tipo: 'mare', categoria: 'mare', lat: 44.4922, lon: 12.2850,
   specie: ['spigola', 'cefalo', 'orata', 'mormora', 'paganello', 'pescePelagico'],

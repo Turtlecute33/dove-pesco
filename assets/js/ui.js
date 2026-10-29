@@ -224,13 +224,13 @@ const APP = (() => {
   /* ---------------------------------------------- la risposta del giorno */
   function rispostaHTML(v) {
     const s = v.spot, m = v.meteo, a = v.acqua;
-    const pesce = v.specie.find(x => !x.soloRilascio) || v.specie[0];
+    const pesce = v.chiuso ? null : (v.specie.find(x => !x.soloRilascio) || v.specie[0]);
     const ci = TAVOLE.ciel(m.wmo);
 
     const fatti = [];
     fatti.push(`<div class="fatto${banda(v.punteggio) === 'buono' ? ' acc' : ''}"><span class="occhio">indice</span>
       <span class="indice ${banda(v.punteggio)}"><b>${v.punteggio}</b><s>/100</s></span>
-      <em>${esc(ENGINE.etichetta(v.punteggio).t.toLowerCase())}</em></div>`);
+      <em>${esc(ENGINE.etichetta(v.punteggio, v.chiuso).t.toLowerCase())}</em></div>`);
     if (pesce) fatti.push(`<div class="fatto"><span class="occhio">il pesce</span>
       <b style="font-size:clamp(1.15rem,2.2vw,1.5rem)">${esc(pesce.nome)}</b>
       <em>il più attivo oggi</em></div>`);
@@ -326,7 +326,7 @@ const APP = (() => {
     return `
       <div class="torna"><button class="link" data-chiudi>${seg('indietro')} Torna a oggi</button></div>
 
-      <span class="occhio acc">indice ${v.punteggio}/100 · ${esc(ENGINE.etichetta(v.punteggio).t.toLowerCase())}</span>
+      <span class="occhio acc">indice ${v.punteggio}/100 · ${esc(ENGINE.etichetta(v.punteggio, v.chiuso).t.toLowerCase())}</span>
       <h2 class="titolone">${esc(s.nome)}</h2>
       <div class="luogo">${esc(s.comune)}, ${esc(PROVINCE[s.prov])} · ${esc(s.acqua)}</div>
 
@@ -471,8 +471,7 @@ const APP = (() => {
       out.push(['', 'Rilasci quotidiani dalla diga di Suviana: il livello sale in pochi minuti.']);
     if (/Savio/.test(s.acqua || ''))
       out.push(['', 'La portata dipende dai rilasci della diga di Quarto: serali nei giorni lavorativi.']);
-    if (/Taro/.test(s.acqua || ''))
-      out.push(['rosso', 'Sul Taro vige il divieto di pesca fino al 31/12/2026 dalla derivazione di Ramiola alla foce: verifica l\'estensione esatta.']);
+    if (v.chiuso) out.unshift(['rosso', `${v.chiuso.t}. ${v.chiuso.d}`]);
     const vietate = v.specie.filter(x => x.vietata && !x.protetta);
     if (vietate.length)
       out.push(['', `Oggi in divieto: ${vietate.map(x => x.nome.toLowerCase()).join(', ')}. Rilascio immediato in acqua.`]);
@@ -636,7 +635,7 @@ const APP = (() => {
     const corpo = $('.mappa-corpo', $('#mappa'));
     if (!v || !corpo) return;
     const pop = $('.pop', corpo), s = v.spot, a = v.acqua;
-    const pesce = v.specie.find(x => !x.soloRilascio) || v.specie[0];
+    const pesce = v.chiuso ? null : (v.specie.find(x => !x.soloRilascio) || v.specie[0]);
 
     const dati = [`acqua ${n1(a.temp)}°`];
     if (a.flowRatio !== null)
@@ -650,7 +649,7 @@ const APP = (() => {
       ${popFissa ? '<button class="pop-x" type="button" aria-label="Chiudi la scheda rapida">×</button>' : ''}
       <div class="p-testa">
         <span class="p-pun ${banda(v.punteggio)}">${v.punteggio}</span>
-        <span class="micro tenue">${esc(ENGINE.etichetta(v.punteggio).t.toLowerCase())}</span>
+        <span class="micro tenue">${esc(ENGINE.etichetta(v.punteggio, v.chiuso).t.toLowerCase())}</span>
       </div>
       <b class="p-nome">${esc(s.nome)}</b>
       <span class="p-sub">${esc(s.comune)}, ${esc(PROVINCE[s.prov])} · ${esc(s.acqua)}</span>
@@ -796,7 +795,7 @@ const APP = (() => {
       <div class="avviso" style="margin-top:22px">${seg('info')}<div>${esc(R.aggiornato)}
         Questa è una sintesi: <b>fa fede solo il testo ufficiale</b> del Regolamento regionale e del
         calendario ittico della tua provincia.</div></div>
-      ${grup('Avvisi in vigore', R.avvisi)}
+      ${grup('Avvisi in vigore', R.avvisi.filter(a => !a.al || a.al >= iso(new Date())))}
       ${grup('Licenze e permessi', R.licenza)}
       ${grup('Attrezzi ammessi', R.attrezzi)}
       ${grup('Limiti di prelievo', R.limiti)}

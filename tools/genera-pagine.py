@@ -82,6 +82,8 @@ PESCE_ARTICOLO = {
     'orata': "l'orata", 'mormora': 'la mormora', 'pescePelagico': 'lo sgombro',
     'paganello': 'il paganello',
 }
+# Le schede che raccolgono piu' pesci: «Storioni: che pesce è» non torna.
+SPECIE_PLURALI = {'storione', 'pescePelagico', 'paganello'}
 MESI = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio',
         'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre']
 ORE = {'alba': 'prime luci', 'crepuscolo': 'alba e tramonto', 'notte': 'notte',
@@ -172,9 +174,9 @@ def leggi_indice(quando=None):
           if (!v) return;
           fuori[s.id] = {
             punteggio: v.punteggio,
-            etichetta: ENGINE.etichetta(v.punteggio).t,
+            etichetta: ENGINE.etichetta(v.punteggio, v.chiuso).t,
             banda: ENGINE.banda(v.punteggio),
-            specie: v.specie.filter(x => !x.soloRilascio).slice(0, 3)
+            specie: v.chiuso ? [] : v.specie.filter(x => !x.soloRilascio).slice(0, 3)
                      .map(x => ({ nome: x.nome, id: x.id })),
             tAcqua: v.acqua.temp, flowRatio: v.acqua.flowRatio,
             alba: v.meteo.alba, tramonto: v.meteo.tramonto,
@@ -351,6 +353,28 @@ def ad(nome, a='a'):
     """«a Imola», ma «ad Argenta»: la d eufonica davanti alla stessa vocale.
     Senza, i titoli dicevano «dove pescare a Alto Reno Terme»."""
     return '%s%s %s' % (a, 'd' if nome[:1].lower() == 'a' else '', nome)
+
+
+AL = {'il': 'al', 'lo': 'allo', 'la': 'alla', 'i': 'ai', 'gli': 'agli', 'le': 'alle'}
+
+
+def al(pesce):
+    """'il cavedano' -> 'al cavedano', "l'anguilla" -> "all'anguilla"."""
+    if pesce.startswith("l'"):
+        return "all'" + pesce[2:]
+    art, _, resto = pesce.partition(' ')
+    return '%s %s' % (AL[art], resto)
+
+
+def oggi_iso():
+    return datetime.datetime.now(FUSO).date().isoformat()
+
+
+def in_vigore(avviso, giorno=None):
+    """Se un avviso vale nel giorno dato (AAAA-MM-GG), oggi a Roma se manca."""
+    g = giorno or oggi_iso()
+    return ((not avviso.get('dal') or g >= avviso['dal'])
+            and (not avviso.get('al') or g <= avviso['al']))
 
 
 def conta_tipo(n, tipo):
@@ -703,6 +727,30 @@ def faq_html(voci):
                       % (e(dom), e(ris)) for dom, ris in voci if ris))
 
 
+def avvisi_html(avvisi):
+    """I divieti in vigore, nel riquadro rosso che usa anche l'applicazione."""
+    if not avvisi:
+        return ''
+    return ('<div class="avvisi" style="margin-top:20px">%s</div>' % ''.join(
+        '<div class="avviso rosso"><div><b>%s.</b> %s</div></div>' % (e(a['t']), e(a['d']))
+        for a in avvisi))
+
+
+def risposta_licenza(d, categoria, pagamento=False, coda=''):
+    """Serve la licenza? La risposta era «Sì» per tutti, anche per chi ha
+    passato i 65 anni, che in Emilia-Romagna ne e' esente, per i laghetti a
+    pagamento e per il mare, dove la licenza regionale non c'entra."""
+    R = d['REGOLE']
+    if pagamento:
+        return ('No. In un impianto di pesca a pagamento la licenza regionale non serve: si paga '
+                'il turno al gestore, che fissa regole, orari e prezzi.')
+    if categoria == 'mare':
+        return ('La licenza regionale di tipo B o C riguarda le acque interne: in mare valgono le '
+                'norme nazionali sulla pesca marittima ricreativa. Nei porti di Rimini, Riccione, '
+                'Cattolica e Bellaria serve anche il permesso annuale della Capitaneria di Porto.')
+    return ' '.join(x for x in ('Sì, %s.' % R['licenzaBreve'], R['esentiBreve'], coda) if x)
+
+
 # ---------------------------------------------------------------- indice del giorno
 
 def num(v, dec=1):
@@ -826,12 +874,12 @@ def pagina_spot(d, s, base, accessi=None, oggi=None, hub=None):
     # guida regionale dice rara: il titolo non promette un pesce che non si puo'
     # tenere o che non c'e'.
     dove = 'dove pescare ' + ad(s['comune'])
-    if s['comune'] in hub['comune'] and any(
-            re.search(r'\b%s\b' % re.escape(c.strip()), s['nome'], re.I)
-            for c in s['comune'].split('/') if c.strip()):
-        pesci = [PESCE_ARTICOLO[x] for x in sp_ids
-                 if x not in rari and not d['SPECIE'][x].get('protetta')
-                 and d['SPECIE'][x].get('limiteGiorno') != 0]
+    comune_nel_nome = any(re.search(r'\b%s\b' % re.escape(c.strip()), s['nome'], re.I)
+                          for c in s['comune'].split('/') if c.strip())
+    pesci = [PESCE_ARTICOLO[x] for x in sp_ids
+             if x not in rari and not d['SPECIE'][x].get('protetta')
+             and d['SPECIE'][x].get('limiteGiorno') != 0]
+    if s['comune'] in hub['comune'] and comune_nel_nome:
         for n in (2, 1):
             prova = 'dove pescare ' + elenco(pesci[:n])
             if len(pesci) >= n and len('%s: %s' % (s['nome'], prova)) <= 62:
@@ -842,14 +890,36 @@ def pagina_spot(d, s, base, accessi=None, oggi=None, hub=None):
     # spot: un titolo che si interrompe («Bidente a Santa Sofia (area
     # regolamentata Treponti): pesca…») nel risultato di ricerca sembra rotto.
     # Meglio perdere il richiamo che il nome, quindi si scala fino al nome nudo.
-    for testa in ('%s: %s' % (s['nome'], dove),
-                  '%s: pesca %s (%s)' % (s['nome'], ad(s['comune']), s['prov']),
-                  '%s: pesca %s' % (s['nome'], ad(s['comune'])),
-                  '%s: dove pescare (%s)' % (s['nome'], s['prov']),
-                  s['nome']):
-        if len(testa) <= 62:
-            break
+    # Quando il nome e' lungo e porta gia' il comune, il ripiego «pesca a» lo
+    # ripeteva: «Tiepido a Castelnuovo Rangone: pesca a Castelnuovo Rangone».
+    # Le 28 schede finite su quel ripiego prendevano il 3,7% dei clic contro il
+    # 5,7% di quelle con il pesce in coda, quindi li' prima si prova il pesce.
+    teste = ['%s: %s' % (s['nome'], dove)]
+    if comune_nel_nome:
+        for n in (2, 1):
+            if len(pesci) >= n:
+                teste.append('%s: dove pescare %s' % (s['nome'], elenco(pesci[:n])))
+        for n in (2, 1):
+            if len(pesci) >= n:
+                teste.append('%s: pesca %s' % (s['nome'], elenco([al(p) for p in pesci[:n]])))
+    teste += ['%s: pesca %s (%s)' % (s['nome'], ad(s['comune']), s['prov']),
+              '%s: pesca %s' % (s['nome'], ad(s['comune'])),
+              '%s: dove pescare (%s)' % (s['nome'], s['prov'])]
+    # `titolo` nella scheda e' la testa scritta a mano, per i nomi che la gente
+    # non scrive cosi': «laghi S. Anna» si cerca come «laghetti sant'anna». Il
+    # nome, la pagina e l'indirizzo restano quelli.
+    if s.get('titolo'):
+        teste.insert(0, s['titolo'])
+    testa = next((t for t in teste if len(t) <= 62), s['nome'])
     tit = titolo(testa)
+
+    # Un divieto che chiude lo spot (vedi gli avvisi in data-rules.js) va in
+    # testa alla scheda, indice o non indice: la pagina resta in rete anche
+    # quando il file delle previsioni manca, e non deve dire «si pesca» a chi
+    # arriva su un lago chiuso.
+    divieti = [a for a in d['REGOLE']['avvisi']
+               if s['id'] in (a.get('spot') or []) and in_vigore(a, oggi.get('giorno'))]
+    pagamento = bool(s.get('pagamento'))
 
     # La descrizione si allunga dalla coda: prima i fatti, poi i richiami.
     # Apriva con «Pescare a Bacino del Brasimone», «Pescare a Dighe di Porto
@@ -860,9 +930,12 @@ def pagina_spot(d, s, base, accessi=None, oggi=None, hub=None):
     nomi = [d['SPECIE'][x]['nome'] for x in sp_ids]
     specie = ('%d specie, tra cui %s.' if len(nomi) > 3 else '%d specie: %s.') % (
         len(nomi), elenco(nomi[:3]).lower()) if nomi else ''
-    desc = cresci('%s, %s (%s): accessi, fondale, esche e regole di pesca.'
-                  % (s['nome'], s['comune'], prov),
-                  [specie, 'Indice del giorno su portata e meteo.'])
+    desc = cresci('%s, %s (%s): %s'
+                  % (s['nome'], s['comune'], prov,
+                     'laghetti privati di pesca a pagamento. Accessi, esche e cosa sapere.'
+                     if pagamento else 'accessi, fondale, esche e regole di pesca.'),
+                  ['%s.' % divieti[0]['t'] if divieti else '',
+                   specie, 'Indice del giorno su portata e meteo.'])
 
     # Il comune entra nelle briciole solo dove ha una pagina propria, cioe' dove
     # ha piu' di uno spot: altrimenti la briciola porterebbe a se stessa.
@@ -877,7 +950,8 @@ def pagina_spot(d, s, base, accessi=None, oggi=None, hub=None):
                  if cat['nome'].startswith('Zona ') else cat['nome'].lower())
     apre = ['<strong>%s</strong>: si pesca %s, nel comune di %s (%s). %s, %s.'
             % (e(s['nome']), e(sul(s['acqua'])), e(s['comune']), e(prov),
-               e(tipo), e(categoria if s['categoria'] == 'mare'
+               e(tipo), e('impianto privato di pesca a pagamento' if pagamento
+                          else categoria if s['categoria'] == 'mare'
                           else 'acque di ' + categoria))]
     if nomi:
         apre.append('Le specie dichiarate sono %d: %s.'
@@ -916,9 +990,12 @@ def pagina_spot(d, s, base, accessi=None, oggi=None, hub=None):
                    e(sp['divietoTesto']), tag))
         sp_html = (
             '<h2>Cosa si pesca</h2>'
-            '<p class="mini tenue" style="max-width:62ch;margin-top:8px">Misure minime e periodi '
-            'di divieto dall\'Allegato 2 del Regolamento regionale 1/2018. Il calendario ittico '
-            'della provincia può essere più restrittivo.</p>'
+            '<p class="mini tenue" style="max-width:62ch;margin-top:8px">%s</p>'
+            % ('Valori dell\'Allegato 2 del Regolamento regionale 1/2018, per confronto: '
+               'nell\'impianto a pagamento misure e capi trattenibili li fissa il gestore.'
+               if pagamento else
+               'Misure minime e periodi di divieto dall\'Allegato 2 del Regolamento regionale '
+               '1/2018. Il calendario ittico della provincia può essere più restrittivo.') +
             '<div class="scorre" style="margin-top:16px"><table class="dati">'
             '<thead><tr><th>Specie</th><th>Misura minima</th><th>Capi al giorno</th>'
             '<th>Divieto</th></tr></thead><tbody>%s</tbody></table></div>' % ''.join(voci))
@@ -936,7 +1013,8 @@ def pagina_spot(d, s, base, accessi=None, oggi=None, hub=None):
         attr.append(('Tecniche', elenco(s['tecniche'])))
     if s.get('esche'):
         attr.append(('Esche', elenco(s['esche'])))
-    attr.append(('Acque', '%s. %s' % (cat['nome'], cat['desc'])))
+    attr.append(('Acque', 'Impianto privato di pesca a pagamento: regole, orari e prezzi li '
+                 'decide il gestore.' if pagamento else '%s. %s' % (cat['nome'], cat['desc'])))
     attr_html = ''.join(
         '<div class="voce"><h3>%s</h3><div><p>%s</p></div></div>' % (e(t), e(v))
         for t, v in attr)
@@ -987,8 +1065,9 @@ def pagina_spot(d, s, base, accessi=None, oggi=None, hub=None):
           % (elenco(s['esche']), elenco(s.get('tecniche') or ['nessuna indicata'])))
          if s.get('esche') else ''),
         ('%s: serve la licenza?' % s['nome'],
-         'Sì. In Emilia-Romagna serve la licenza di tipo B e il versamento annuale. Lo spot è in %s: %s'
-         % (cat['nome'].lower(), cat['desc'])),
+         risposta_licenza(d, s['categoria'], pagamento,
+                          'Lo spot è in %s: %s' % (cat['nome'][:1].lower() + cat['nome'][1:],
+                                                   cat['desc']))),
     ]
     if v_oggi:
         faq.insert(0, (
@@ -1003,6 +1082,7 @@ def pagina_spot(d, s, base, accessi=None, oggi=None, hub=None):
 <div class="luogo">{', '.join(luogo)} · {acqua_link}</div>
 <div class="segni">{''.join(segni)}</div>
 <div class="intro">{' '.join(apre)}</div>
+{avvisi_html(divieti)}
 {oggi_html or cta('/#spot/' + s['id'], "Vedi l'indice di oggi per questo spot")}
 <h2>Il posto</h2>
 <div class="voci">{posto_html}</div>
@@ -1017,11 +1097,14 @@ def pagina_spot(d, s, base, accessi=None, oggi=None, hub=None):
 <h2>Altri spot vicini</h2>
 {vic_html}
 {faq_html(faq)}
-<p class="mini tenue" style="margin-top:26px;max-width:72ch">Scheda ricavata da
-  «Itinerari di pesca sportiva in Emilia-Romagna» della Regione Emilia-Romagna, espansa per
-  località. Prima di uscire controlla il
-  <a href="/regole/">quadro delle regole</a>, il calendario ittico della provincia di
-  {e(prov)} e la cartellonistica sul posto.</p>"""
+<p class="mini tenue" style="margin-top:26px;max-width:72ch">{
+  'Impianto privato: orari, prezzi e regole li decide il gestore, controllali prima di partire. '
+  'Il <a href="/regole/">quadro delle regole</a> vale per le acque pubbliche intorno.'
+  if pagamento else
+  'Scheda ricavata da «Itinerari di pesca sportiva in Emilia-Romagna» della Regione '
+  'Emilia-Romagna, espansa per località. Prima di uscire controlla il '
+  '<a href="/regole/">quadro delle regole</a>, il calendario ittico della provincia di '
+  + e(prov) + ' e la cartellonistica sul posto.'}</p>"""
 
     ld = [briciola_ld(base, briciole), {
         '@context': 'https://schema.org', '@type': 'Place',
@@ -1033,7 +1116,7 @@ def pagina_spot(d, s, base, accessi=None, oggi=None, hub=None):
                 'longitude': round(s['lon'], 5)},
         'address': {'@type': 'PostalAddress', 'addressLocality': s['comune'],
                     'addressRegion': prov, 'addressCountry': 'IT'},
-        'isAccessibleForFree': True,
+        'isAccessibleForFree': not pagamento,
         'publicAccess': True,
         **({'amenityFeature': [{'@type': 'LocationFeatureSpecification',
                                 'name': 'Postazioni accessibili', 'value': True}]}
@@ -1053,7 +1136,22 @@ def pagina_specie(d, sp, base, hub=None):
     # Il titolo si accorciava tagliando dentro «| Dove Pesco», e quattro pagine
     # uscivano con il marchio spezzato a meta'. Il richiamo si perde tutto o non
     # si perde: mezzo marchio nel risultato di ricerca sembra un errore.
-    tit = titolo('%s: pesca in Emilia-Romagna' % sp['nome'])
+    # Chi cerca «breme pesce», «luccio italico» o «muggine» vuole sapere che
+    # pesce ha davanti, e il titolo prometteva solo «pesca in Emilia-Romagna»:
+    # le specie prendevano il 3,1% dei clic in posizione 7, contro il 6% del
+    # resto del sito. Dove la scheda sa dire come si riconosce, il titolo lo dice.
+    riconoscere = sp.get('riconoscere')
+    # Una specie protetta non si promette nel titolo: «dove si trova», non
+    # «dove si pesca».
+    vietata = sp.get('protetta') or sp.get('limiteGiorno') == 0
+    che = ('che pesci sono e dove si trovano' if sp['id'] in SPECIE_PLURALI
+           else 'che pesce è e dove si trova' if vietata
+           else 'che pesce è e dove si pesca')
+    nome_t = sp['nome'] + (' (%s)' % sp['detto'] if sp.get('detto') else '')
+    teste = (['%s: %s in Emilia-Romagna' % (nome_t, che), '%s: %s' % (nome_t, che),
+              '%s: %s' % (nome_t, che.split(' e dove')[0])] if riconoscere else [])
+    tit = titolo(next((t for t in teste if len(t) <= 62),
+                      '%s: pesca in Emilia-Romagna' % sp['nome']))
 
     # La coda diceva «0 spot in Emilia-Romagna dove si trova», e su cinque specie
     # veniva pure troncata a meta' frase. Una specie che nessuno spot dichiara
@@ -1061,8 +1159,27 @@ def pagina_specie(d, sp, base, hub=None):
     # nelle schede, e la descrizione ora lo dice invece di contare zero.
     coda = ('%d spot in Emilia-Romagna dove si trova.' % len(dove) if dove
             else 'Presente nelle acque della regione, non dichiarata negli spot descritti.')
-    desc = cresci('%s (%s): misura minima, periodo di divieto, temperatura, esche e tecniche.'
-                  % (sp['nome'], sp['sci']), [coda])
+    # «Cheppia (alosa) (Alosa fallax)»: due parentesi di fila. Il nome
+    # scientifico entra in quella che c'e' gia'.
+    chi = ('%s, %s)' % (sp['nome'][:-1], sp['sci']) if sp['nome'].endswith(')')
+           else '%s (%s)' % (sp['nome'], sp['sci']))
+    # Nella descrizione va il primo tratto che si vede, intero: la prima frase,
+    # o il suo primo pezzo fino a una virgola quando la frase e' lunga.
+    testa = ''
+    if riconoscere:
+        frase = riconoscere.split('. ')[0].rstrip('.')
+        pezzi = re.split(r'(?<=[,;]) ', frase)
+        for n in range(len(pezzi), 0, -1):
+            aspetto = ' '.join(pezzi[:n]).rstrip(',;')
+            prova = '%s: %s%s.' % (chi, aspetto[:1].lower(), aspetto[1:])
+            if len(prova) <= 158:
+                testa = prova
+                break
+    if testa:
+        desc = cresci(testa, ['Misura minima, divieti ed esche.', coda])
+    else:
+        desc = cresci('%s: misura minima, periodo di divieto, temperatura, esche e tecniche.'
+                      % chi, [coda])
     briciole = [('/', 'Oggi'), ('/specie/', 'Specie'), (None, sp['nome'])]
 
     segni = ['<span class="tag acc">autoctona</span>' if sp.get('autoctona')
@@ -1235,10 +1352,23 @@ def pagina_specie(d, sp, base, hub=None):
                 % ' · '.join('<a href="/specie/%s/">%s</a>' % (o['slug'], e(o['nome']))
                              for o in simili)) if simili else ''
 
+    confusi = [d['SPECIE'][x] for x in sp.get('simili') or [] if x in d['SPECIE']]
+    ric_html = ''
+    if riconoscere:
+        ric_html = ('<h2>Come si riconosce</h2><p class="nota" style="margin-top:14px">%s</p>'
+                    % e(riconoscere))
+        if confusi:
+            ric_html += ('<p class="mini" style="margin-top:-8px;max-width:72ch">Si confonde '
+                         'con: %s.</p>' % ' · '.join('<a href="/specie/%s/">%s</a>'
+                                                     % (o['slug'], e(o['nome'])) for o in confusi))
+        faq.insert(0, ('%s: come si riconosce?' % nome, riconoscere))
+
     corpo = f"""<span class="occhio acc">{e(sp['gruppo'])}</span>
-<h1>{e(sp['nome'])} <span class="h1-luogo">pesca in Emilia-Romagna</span></h1>
-<div class="luogo sci-tit">{e(sp['sci'])}</div>
+<h1>{e(sp['nome'])} <span class="h1-luogo">{e(che + ' in Emilia-Romagna' if riconoscere
+                                              else 'pesca in Emilia-Romagna')}</span></h1>
+<div class="luogo sci-tit">{e(sp['sci'])}{e(', o ' + sp['detto']) if sp.get('detto') else ''}</div>
 <div class="segni">{''.join(segni)}</div>
+{ric_html}
 {cta('/#specie', 'Apri la scheda con il disegno e i confronti')}
 <h2>Regole e biologia</h2>
 <div class="voci">{dati_html}</div>
@@ -1256,7 +1386,8 @@ def pagina_specie(d, sp, base, hub=None):
 
     ld = [briciola_ld(base, briciole), {
         '@context': 'https://schema.org', '@type': 'Article',
-        'headline': '%s (%s): regole, biologia e spot in Emilia-Romagna' % (sp['nome'], sp['sci']),
+        'headline': '%s (%s): %s, regole e spot in Emilia-Romagna'
+                    % (sp['nome'], sp['sci'], 'come si riconosce' if riconoscere else 'biologia'),
         'description': desc,
         'url': base + '/specie/%s/' % sp['slug'],
         'image': base + '/assets/og.png',
@@ -1460,7 +1591,11 @@ def pagina_comune(d, nome, spot, base, oggi=None, hub=None):
     # «Rimini / Rimini» dicono due volte la stessa parola.
     omonimo = nome == prov
     tit = titolo('Dove pescare %s: %d spot' % (ad(nome), len(spot)))
-    su = elenco([sul(a) for a in acque[:3]])
+    # Le acque in ordine alfabetico: Ravenna, che ha sette spot su nove al mare,
+    # nella descrizione diceva «Sul Canale Destra Reno, sul Fiume Reno e sui
+    # Fiumi Uniti», e il mare restava fuori. Prima quelle con piu' spot.
+    conta_acque = collections.Counter(s['acqua'] for s in spot)
+    su = elenco([sul(a) for a in sorted(acque, key=lambda a: (-conta_acque[a], a))[:3]])
     desc = cresci('I %d spot di pesca nel comune di %s%s.'
                   % (len(spot), nome, '' if omonimo else ' (%s)' % prov),
                   ['%s.' % (su[:1].upper() + su[1:]),
@@ -1493,9 +1628,13 @@ def pagina_comune(d, nome, spot, base, oggi=None, hub=None):
           % elenco(['%s (%d spot)' % (d['SPECIE'][x]['nome'].lower(), n) for x, n in top[:6]]))
          if top else ''),
         ('Serve la licenza per pescare %s?' % ad(nome),
-         'Sì. In Emilia-Romagna serve la licenza di tipo B con il versamento annuale, valida in '
-         'tutta la regione. Il calendario ittico della provincia di %s può aggiungere divieti '
-         'locali.' % prov),
+         ('Nelle acque interne sì: %s. %s%s Il calendario ittico della provincia di %s può '
+          'aggiungere divieti locali.'
+          % (d['REGOLE']['licenzaBreve'], d['REGOLE']['esentiBreve'],
+             ' In mare valgono invece le norme nazionali sulla pesca marittima.'
+             if any(s['categoria'] == 'mare' for s in spot) else '', prov))
+         if any(s['categoria'] != 'mare' for s in spot)
+         else risposta_licenza(d, 'mare')),
     ]
 
     corpo = f"""<span class="occhio acc">{e(prov)} · Emilia-Romagna</span>
@@ -1538,9 +1677,6 @@ def pagina_provincia(d, sigla, base, oggi=None, hub=None):
     sp = sorted((s for s in d['SPOT'] if s['prov'] == sigla), key=lambda s: s['nome'])
     u = '/provincia/%s/' % slug(nome)
     tit = titolo('Dove pescare in provincia di %s: %d spot' % (nome, len(sp)))
-    desc = taglia('I %d spot di pesca della provincia di %s: fiumi, torrenti, laghi e canali, '
-                  'con accessi, specie e regole. Indice del giorno su portata e meteo.'
-                  % (len(sp), nome), 158)
     briciole = [('/', 'Oggi'), ('/spot/', 'Spot'), ('/provincia/', 'Province'), (None, nome)]
 
     per_tipo = {}
@@ -1548,6 +1684,25 @@ def pagina_provincia(d, sigla, base, oggi=None, hub=None):
         per_tipo.setdefault(s['tipo'], []).append(s)
     conte = elenco([conta_tipo(len(v), k)
                     for k, v in sorted(per_tipo.items(), key=lambda x: -len(x[1]))])
+    # «fiumi, torrenti, laghi e canali» era la stessa frase per tutte e nove, e
+    # chi cerca «laghi pesca modena» non sapeva se di laghi ce ne fossero.
+    desc = cresci('I %d spot di pesca della provincia di %s: %s.' % (len(sp), nome, conte),
+                  ['Accessi, specie e regole.', 'Indice del giorno su portata e meteo.'])
+
+    # «laghi pesca sportiva modena e provincia» atterrava qui, e i laghi erano
+    # sparsi nell'elenco per corso d'acqua. Ora hanno un riquadro loro.
+    laghi = sorted((s for s in sp if s['tipo'] in ('lago', 'bacino', 'cava')),
+                   key=lambda s: s['nome'])
+    laghi_html = ''
+    if laghi:
+        laghi_html = ('<h2>Laghi, bacini e cave</h2><p class="mini tenue" style="margin-top:8px;'
+                      'max-width:66ch">Le acque ferme della provincia con uno spot descritto. '
+                      'I laghetti privati a pagamento non sono censiti, salvo dove è indicato.</p>%s'
+                      % righe([('/spot/%s/' % s['slug'], s['nome'], '%s · %s%s' % (
+                          s['comune'], TIPI.get(s['tipo'], s['tipo']).lower(),
+                          ', a pagamento' if s.get('pagamento') else
+                          ', no kill' if s.get('noKill') else ''))
+                          for s in laghi]))
 
     freq = {}
     for s in sp:
@@ -1601,6 +1756,9 @@ def pagina_provincia(d, sigla, base, oggi=None, hub=None):
          ('Le specie più dichiarate sono: %s.'
           % elenco(['%s (%d spot)' % (d['SPECIE'][x]['nome'].lower(), n) for x, n in top[:6]]))
          if top else ''),
+        ('Dove pescare nei laghi in provincia di %s?' % nome,
+         ('Laghi, bacini e cave con uno spot descritto: %s.' % elenco([s['nome'] for s in laghi]))
+         if laghi else ''),
         ('Ci sono tratti no kill in provincia di %s?' % nome,
          ('Sì: %s.' % elenco([s['nome'] for s in nk])) if nk
          else 'Fra gli spot descritti in questa provincia non ce ne sono di no kill. I calendari '
@@ -1614,6 +1772,7 @@ def pagina_provincia(d, sigla, base, oggi=None, hub=None):
   regole locali.</div>
 {riga_oggi(sp, oggi, 'in provincia') or cta('/', "Vedi l'indice di oggi, spot per spot")}
 {('<h2>Scorciatoie</h2><div class="voci">' + ''.join(scorci) + '</div>') if scorci else ''}
+{laghi_html}
 <h2>Le specie più diffuse</h2>
 {top_html}
 {com_html}
@@ -1814,14 +1973,21 @@ def pagina_regole(d, base):
     # vigore. L'anno viene dalla data di verifica scritta in data-rules.js: il
     # titolo dice l'anno in cui le regole sono state controllate, e quando
     # nessuno le ricontrolla resta fermo anche lui.
+    # Con l'anno: 703 impressioni in 28 giorni e ancora l'1,1%, con il 74% di
+    # uscite. Le ricerche dicono «regolamento pesca emilia-romagna 2026» e
+    # «licenza», e la pagina non diceva quanto costa la licenza ne' chi ne e'
+    # esente: ora lo dice in cima, e il titolo usa la parola delle ricerche.
     verifica = re.search(r'\b(ad? (?:%s) (20\d\d))\b' % '|'.join(MESI), R['aggiornato'])
-    tit = titolo('Regole della pesca in Emilia-Romagna %s: licenza e divieti' % verifica[2]
-                 if verifica else 'Regole della pesca sportiva in Emilia-Romagna')
-    desc = cresci('Licenza, misure minime e divieti di %d specie, avvisi in vigore, attrezzi '
-                  'e zone delle acque in Emilia-Romagna.' % CONTA['specie'],
-                  ['Verificate %s sui testi ufficiali.' % verifica[1] if verifica else '',
-                   'Con i link ai testi ufficiali.'])
+    tit = titolo('Regolamento pesca Emilia-Romagna %s: licenza e divieti' % verifica[2]
+                 if verifica else 'Regolamento della pesca sportiva in Emilia-Romagna')
+    desc = cresci('Licenza B e C: costo, durata e chi è esente. Misure minime e divieti di %d '
+                  'specie, avvisi in vigore e zone delle acque.' % CONTA['specie'],
+                  ['Verificate %s sui testi ufficiali.' % verifica[1] if verifica else ''])
     briciole = [('/', 'Oggi'), (None, 'Regole')]
+
+    # Un avviso scaduto (`al` passato) sparisce da solo: un «divieto fino al
+    # 31/12/2026» letto a febbraio dice il falso.
+    avvisi = [a for a in R['avvisi'] if in_vigore({'al': a.get('al')})]
 
     def gruppo(t, v, liv=False):
         voci = []
@@ -1830,6 +1996,28 @@ def pagina_regole(d, base):
             voci.append('<div class="voce"><h3>%s</h3><div><p>%s</p>%s</div></div>'
                         % (e(r['t']), e(r['d']), att))
         return '<h2>%s</h2><div class="voci">%s</div>' % (e(t), ''.join(voci))
+
+    voce = {x['t'].split(':')[0]: x['d'] for x in R['licenza']}
+    chiusi = [sul(a['t'].split(':')[0]) for a in avvisi if a.get('spot')]
+    breve = [
+        ('Serve la licenza per pescare in Emilia-Romagna?',
+         'Nelle acque interne sì: %s. %s' % (R['licenzaBreve'], R['esentiBreve'])),
+        ('Quanto costa la licenza di pesca e quanto dura?',
+         ' '.join('Licenza di tipo %s, %s%s' % (k, voce['Licenza di tipo ' + k][:1].lower(),
+                                               voce['Licenza di tipo ' + k][1:])
+                  for k in 'BC')),
+        ('Chi può pescare senza licenza?', voce['Chi non ha bisogno della licenza']),
+        ('La licenza di un\'altra regione vale in Emilia-Romagna?',
+         'Sì. ' + voce['Licenze di altre regioni']),
+        ('C\'è un nuovo regolamento della pesca nel %s?' % (verifica[2] if verifica else ''),
+         R['vigente'] if verifica else ''),
+        ('Dove è vietato pescare adesso?',
+         ('Ci sono divieti temporanei di pesca %s. Il tratto esatto e la scadenza sono negli '
+          'avvisi qui sotto, e lo spot chiuso lo dice in cima alla sua scheda.'
+          % elenco(chiusi)) if chiusi else ''),
+    ]
+    breve_html = ''.join('<div class="voce"><h3>%s</h3><div><p>%s</p></div></div>'
+                         % (e(q), e(a)) for q, a in breve if a)
 
     tab = ''.join(
         '<tr><td><a href="/specie/%s/"><b>%s</b></a><span class="sci">%s</span></td>'
@@ -1850,13 +2038,15 @@ def pagina_regole(d, base):
     fonti = ''.join('<li><a href="%s" target="_blank" rel="noopener noreferrer">%s</a></li>'
                     % (e(f['u']), e(f['t'])) for f in R['fonti'])
 
-    corpo = f"""<h1>Regole della pesca in Emilia-Romagna</h1>
-<div class="intro">Licenze, attrezzi, limiti di prelievo, zone delle acque, divieti in vigore e
+    corpo = f"""<h1>Regolamento della pesca in Emilia-Romagna</h1>
+<div class="intro">Licenza, attrezzi, limiti di prelievo, zone delle acque, divieti in vigore e
   sicurezza. Sintesi delle fonti regionali, con i link ai testi ufficiali.</div>
 <p class="nota" style="margin-top:18px">{e(R['aggiornato'])} Questa è una sintesi:
   <b>fa fede solo il testo ufficiale</b> del Regolamento regionale e del calendario ittico della
   tua provincia.</p>
-{gruppo('Avvisi in vigore', R['avvisi'])}
+<h2>In breve</h2>
+<div class="voci">{breve_html}</div>
+{gruppo('Avvisi in vigore', avvisi)}
 {gruppo('Licenze e permessi', R['licenza'])}
 {gruppo('Attrezzi ammessi', R['attrezzi'])}
 {gruppo('Limiti di prelievo', R['limiti'])}
@@ -1876,11 +2066,11 @@ def pagina_regole(d, base):
 
     ld = [briciola_ld(base, briciole), {
         '@context': 'https://schema.org', '@type': 'Article',
-        'headline': 'Regole della pesca sportiva in Emilia-Romagna',
+        'headline': 'Regolamento della pesca sportiva in Emilia-Romagna',
         'description': desc, 'url': base + u, 'inLanguage': 'it',
         'isPartOf': {'@type': 'WebSite', '@id': base + '/#sito'},
         'citation': [f['t'] for f in R['fonti']],
-    }]
+    }, faq_ld(breve)]
     return u, pagina(base, u, tit, desc, corpo, ld, briciole)
 
 

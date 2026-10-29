@@ -102,6 +102,17 @@ const ENGINE = (() => {
     });
   }
 
+  /* ------------------------------------------- divieti temporanei sullo spot */
+  /* Il divieto che chiude uno spot intero (secca, lavori, ordinanze) sta negli
+     avvisi di data-rules.js, con gli spot che tocca. Senza questo controllo il
+     Brasimone, chiuso dal 20 ottobre 2026, continuava a prendere il suo
+     punteggio e a finire fra i posti consigliati del giorno.               */
+  function chiusura(spot, dataISO) {
+    const avvisi = (typeof REGOLE !== 'undefined' && REGOLE.avvisi) || [];
+    return avvisi.find(a => (a.spot || []).includes(spot.id)
+      && (!a.dal || dataISO >= a.dal) && (!a.al || dataISO <= a.al)) || null;
+  }
+
   const STAGIONE = (m) => (m <= 1 || m === 11) ? 'inverno'
     : (m <= 4) ? 'primavera' : (m <= 7) ? 'estate'
     : (m <= 9) ? 'autunno' : 'autunno';
@@ -288,6 +299,9 @@ const ENGINE = (() => {
 
     if (!utili.length) { base *= 0.6; mod.push({ t: 'Nessuna specie trattenibile oggi', v: -1 }); }
 
+    const chiuso = chiusura(spot, dataISO);
+    if (chiuso) { base = 0; mod.unshift({ t: chiuso.t, v: -1 }); }
+
     /* Scala finale: compressione esponenziale. Nessun giorno è perfetto, quindi
        100 non è raggiungibile; in cambio la fascia alta resta discriminante. */
     const punteggio = Math.round(100 * clamp(1 - Math.exp(-1.55 * Math.max(0, base)), 0, 0.97));
@@ -304,14 +318,15 @@ const ENGINE = (() => {
     }
 
     return {
-      spot, punteggio, specie, mod,
+      spot, punteggio, specie, mod, chiuso,
       meteo: {
         wmo, tmax, tmin, pioggia, p72, nuvole, vento, ventoDir,
         press, dPress, alba, tramonto, quota
       },
       acqua: { temp: tAcqua, torbidita, flow, flowRatio, flowTrend, flowAssoluto },
-      luna, stagione: stag, finestre,
-      spiegazione: spiega(spot, specie, tAcqua, torbidita, flowRatio, dPress, nuvole, stag, punteggio, mod)
+      luna, stagione: stag, finestre: chiuso ? [] : finestre,
+      spiegazione: chiuso ? ['Lo spot è chiuso da un divieto temporaneo: finché resta in vigore non c\'è un pesce del giorno.']
+        : spiega(spot, specie, tAcqua, torbidita, flowRatio, dPress, nuvole, stag, punteggio, mod)
     };
   }
 
@@ -398,7 +413,8 @@ const ENGINE = (() => {
     return true;
   }
 
-  function etichetta(p) {
+  function etichetta(p, chiuso) {
+    if (chiuso) return { t: 'Pesca vietata', c: 'low' };
     if (p >= 78) return { t: 'Eccellente', c: 'ok' };
     if (p >= 62) return { t: 'Ottimo', c: 'ok' };
     if (p >= 46) return { t: 'Buono', c: 'mid' };
@@ -414,5 +430,5 @@ const ENGINE = (() => {
   const banda = (p) => p >= 62 ? 'buono' : p >= 30 ? 'medio' : 'scarso';
 
   return { valuta, classifica, etichetta, banda, faseLunare, inDivieto, tempAcqua,
-           STAGIONE, passa };
+           STAGIONE, passa, chiusura };
 })();
