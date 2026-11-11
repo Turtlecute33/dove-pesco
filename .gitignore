@@ -13,5 +13,6 @@ tools/.cache-locale.*.json
 tools/.cache-snap.json
 tools/.cache-geocodifica.json
 tools/.cache-geo.json
+tools/.cache-portata.json
 tools/.metrica-accessi.json
 __pycache__/

@@ -23,21 +23,26 @@ molti, e connessioni ravvicinate dallo stesso indirizzo vengono lasciate cadere
 senza risposta. Meno connessioni, meno occasioni di incagliarsi; e un tetto
 basso fa costare poco quelle che si incagliano comunque.
 
+Tre connessioni da quando c'e' il mare: la terza chiede la temperatura di
+superficie e l'onda per i soli spot di mare. Se non arriva il file esce lo
+stesso, e su quegli spot il motore torna a stimare l'acqua dall'aria.
+
     python3 tools/aggiorna-dati.py            # scrive il file
-    python3 tools/aggiorna-dati.py --prova    # solo i primi 12 spot
+    python3 tools/aggiorna-dati.py --prova    # solo una dozzina di spot
 
 Dati: Open-Meteo, licenza CC BY 4.0. Portata dal modello idrologico GloFAS.
 """
-import json, os, re, sys, time, urllib.error, urllib.request
+import json, os, sys, time, urllib.error, urllib.request
 from datetime import datetime, timezone
 
-BASE = os.path.join(os.path.dirname(__file__), '..')
-FILE_DATI = ['data-spots-emilia.js', 'data-spots-romagna.js', 'data-spots-extra.js',
-             'data-spots-centro.js']
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from elenchi import BASE, CORSI, leggi_spot, punto_portata
+
 OUT = os.path.join(BASE, 'assets', 'dati', 'previsioni.json')
 
 METEO_URL = 'https://api.open-meteo.com/v1/forecast'
 FLOOD_URL = 'https://flood-api.open-meteo.com/v1/flood'
+MARE_URL = 'https://marine-api.open-meteo.com/v1/marine'
 UA = {'User-Agent': 'dove-pesco-static-site/1.0 (aggiornamento periodico dei dati)'}
 
 LOTTO = 250         # tutti gli spot in una richiesta sola: Open-Meteo li accetta
@@ -51,9 +56,15 @@ TETTO = 25          # secondi di attesa per una risposta. Open-Meteo risponde in
 RIPROVE = [0, 15, 45]   # il primo ritentativo subito: serve una connessione
                         # nuova, non un'attesa. Storicamente il primo bastava
                         # sempre. Nel caso peggiore: 4 tentativi x 25s + 60s di
-                        # attese = 160s per servizio, 325s in tutto, che stanno
-                        # dentro il tetto di 7 minuti del passo nel workflow.
-PASSATI = 10        # giorni indietro (servono alla temperatura dell'acqua)
+                        # attese = 160s per servizio. Meteo e portata, 325s in
+                        # tutto, stanno dentro il tetto di 7 minuti del passo
+                        # nel workflow; il mare viene per ultimo e ha un solo
+                        # ritentativo, cosi' non puo' portare il giro oltre.
+RIPROVE_MARE = [0]
+PASSATI = 14        # giorni indietro: la finestra piu' lunga del modello
+                    # dell'acqua (un bacino) e' di 14 giorni. Con 10 veniva
+                    # tagliata, e lo stesso giorno dava un'acqua diversa visto
+                    # da oggi o visto da tre giorni prima.
 AVANTI = 7          # giorni di previsione
 PORT_PASSATI = 45   # giorni indietro per la mediana della portata
 
@@ -69,27 +80,12 @@ CAMPI = [('wmo', 'weather_code', 0), ('tmax', 'temperature_2m_max', 1),
          ('nuv', 'cloud_cover_mean', 0)]
 
 
-def leggi_spot():
-    testo = ''
-    for f in FILE_DATI:
-        testo += open(os.path.join(BASE, 'assets', 'js', f)).read()
-    visti, out = set(), []
-    for m in re.finditer(r"id: '([^']+)'[\s\S]{0,200}?tipo: '(\w+)'[\s\S]{0,90}?"
-                         r"lat: (-?[\d.]+), lon: (-?[\d.]+)", testo):
-        if m.group(1) in visti:
-            continue
-        visti.add(m.group(1))
-        out.append({'id': m.group(1), 'tipo': m.group(2),
-                    'lat': float(m.group(3)), 'lon': float(m.group(4))})
-    return out
-
-
-def chiedi(url, etichetta):
+def chiedi(url, etichetta, riprove=RIPROVE):
     """Una richiesta, con qualche ritentativo se la connessione si incaglia."""
-    for giro, pausa in enumerate([0] + RIPROVE):
+    for giro, pausa in enumerate([0] + riprove):
         if giro:
             sys.stderr.write('    riprovo (%d di %d)%s\n'
-                             % (giro, len(RIPROVE), ', dopo %ds' % pausa if pausa else ' subito'))
+                             % (giro, len(riprove), ', dopo %ds' % pausa if pausa else ' subito'))
             time.sleep(pausa)
         avvio = time.time()
         try:
@@ -151,15 +147,53 @@ def scarica_meteo(spot, dati):
             time.sleep(PAUSA)
 
 
+def scarica_mare(spot, dati):
+    """Temperatura di superficie e onda massima, per i soli spot di mare.
+
+    La temperatura arriva ora per ora: nel file va la media del giorno, sugli
+    stessi giorni del meteo. cell_selection=sea chiede la cella d'acqua piu'
+    vicina: un molo sta sul bordo, e la cella piu' vicina puo' essere di terra.
+    """
+    mare = [s for s in spot if s['tipo'] == 'mare' and s['id'] in dati['spot']]
+    if not mare or not dati['giorni']:
+        return
+    sys.stderr.write('  mare (%d spot)\n' % len(mare))
+    u = ('%s?latitude=%s&longitude=%s&hourly=sea_surface_temperature&daily=wave_height_max'
+         '&past_days=%d&forecast_days=%d&timezone=Europe%%2FRome&cell_selection=sea'
+         % (MARE_URL, ','.join('%.4f' % s['lat'] for s in mare),
+            ','.join('%.4f' % s['lon'] for s in mare), PASSATI, AVANTI))
+    r = chiedi(u, 'mare', RIPROVE_MARE)
+    if r is None:
+        sys.stderr.write('    il mare non risponde: su quegli spot l\'acqua resta stimata\n')
+        return
+    for s, rj in zip(mare, r if isinstance(r, list) else [r]):
+        ore, giorno = (rj or {}).get('hourly') or {}, (rj or {}).get('daily') or {}
+        per_giorno = {}
+        for t, v in zip(ore.get('time', []), ore.get('sea_surface_temperature', [])):
+            if v is not None:
+                per_giorno.setdefault(t[:10], []).append(v)
+        onda = dict(zip(giorno.get('time', []), giorno.get('wave_height_max', [])))
+        tsm = [arr(sum(per_giorno[g]) / len(per_giorno[g]), 1) if g in per_giorno else None
+               for g in dati['giorni']]
+        if any(v is not None for v in tsm):
+            dati['spot'][s['id']]['tsm'] = tsm
+            dati['spot'][s['id']]['onda'] = [arr(onda.get(g), 2) for g in dati['giorni']]
+
+
 def scarica_portata(spot, dati):
-    """Solo fiumi e torrenti: GloFAS non modella laghi, cave, mare e canali."""
-    corsi = [s for s in spot if s['tipo'] in ('fiume', 'torrente')]
+    """Solo fiumi e torrenti: GloFAS non modella laghi, cave, mare e canali.
+
+    La coordinata e' quella dello spot, tranne dove tools/celle-portata.py ha
+    trovato che la cella dello spot non e' quella in cui GloFAS fa scorrere il
+    fiume: li' si chiede il centro della cella vicina (vedi punto_portata).
+    """
+    corsi = [s for s in spot if s['tipo'] in CORSI]
     lotti = a_lotti(corsi, LOTTO)
     for n, lotto in enumerate(lotti, 1):
         sys.stderr.write('  portata, lotto %d/%d (%d spot)\n' % (n, len(lotti), len(lotto)))
         u = ('%s?latitude=%s&longitude=%s&daily=river_discharge&past_days=%d&forecast_days=%d'
-             % (FLOOD_URL, ','.join('%.4f' % s['lat'] for s in lotto),
-                ','.join('%.4f' % s['lon'] for s in lotto), PORT_PASSATI, AVANTI))
+             % (FLOOD_URL, ','.join('%.4f' % punto_portata(s)[0] for s in lotto),
+                ','.join('%.4f' % punto_portata(s)[1] for s in lotto), PORT_PASSATI, AVANTI))
         r = chiedi(u, 'portata %d' % n)
         if r is None:
             continue
@@ -169,7 +203,10 @@ def scarica_portata(spot, dati):
             if not d or not d.get('river_discharge'):
                 continue
             if s['id'] in dati['spot']:
-                dati['spot'][s['id']]['por'] = [arr(x, 2) for x in d['river_discharge']]
+                # tre decimali sotto il metro cubo: su un torrente da 0,2 m3/s
+                # due decimali erano scalini del 5% nello scarto sulla mediana
+                dati['spot'][s['id']]['por'] = [arr(x, 3 if x is not None and x < 1 else 2)
+                                                for x in d['river_discharge']]
                 dati['giorniPortata'] = d['time']
         if n < len(lotti):
             time.sleep(PAUSA)
@@ -178,22 +215,36 @@ def scarica_portata(spot, dati):
 def main():
     spot = leggi_spot()
     if '--prova' in sys.argv:
-        spot = spot[:12]
+        # uno ogni tanti, piu' il primo di ogni ambiente: cosi' la prova passa
+        # anche dal mare e dalla portata, che altrimenti poteva non toccare
+        scelti = {s['id'] for s in spot[::max(1, len(spot) // 12)]}
+        for tipo in {s['tipo'] for s in spot}:
+            scelti.add(next(s['id'] for s in spot if s['tipo'] == tipo))
+        spot = [s for s in spot if s['id'] in scelti]
     sys.stderr.write('Aggiorno le previsioni per %d spot\n' % len(spot))
 
     dati = {'generato': datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
-            'fonte': 'Open-Meteo (CC BY 4.0); portata dal modello idrologico GloFAS',
+            'fonte': 'Open-Meteo (CC BY 4.0); portata dal modello idrologico GloFAS; '
+                     'mare dal servizio Marine di Open-Meteo',
             'giorni': [], 'giorniPortata': [], 'spot': {}}
 
     scarica_meteo(spot, dati)
-    time.sleep(PAUSA)      # i due servizi sono su due macchine diverse, ma una
-    scarica_portata(spot, dati)   # connessione appena dopo l'altra costa poco evitarla
+    time.sleep(PAUSA)      # i servizi sono su macchine diverse, ma una connessione
+    scarica_portata(spot, dati)   # appena dopo l'altra costa poco evitarla
+    time.sleep(PAUSA)
+    scarica_mare(spot, dati)
 
     con_meteo = sum(1 for v in dati['spot'].values() if v.get('tmax'))
     con_portata = sum(1 for v in dati['spot'].values() if v.get('por'))
+    con_mare = sum(1 for v in dati['spot'].values() if v.get('tsm'))
     quota = con_meteo / max(1, len(spot))
-    sys.stderr.write('\nMeteo su %d spot su %d (%.0f%%), portata su %d\n'
-                     % (con_meteo, len(spot), quota * 100, con_portata))
+    sys.stderr.write('\nMeteo su %d spot su %d (%.0f%%), portata su %d, mare su %d\n'
+                     % (con_meteo, len(spot), quota * 100, con_portata, con_mare))
+    # Uno spot che manca dal file resta senza indice del giorno, e prima non lo
+    # diceva nessuno: i laghi S. Anna ci sono rimasti due settimane.
+    senza = [s['id'] for s in spot if not dati['spot'].get(s['id'], {}).get('tmax')]
+    if senza:
+        sys.stderr.write('Senza meteo: %s\n' % ', '.join(senza))
 
     if quota < 0.6:
         sys.stderr.write('Troppi buchi: non scrivo il file, resta buono il precedente.\n')

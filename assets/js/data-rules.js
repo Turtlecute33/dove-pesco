@@ -7,7 +7,56 @@
 
 const REGOLE = {
 
-  aggiornato: 'Verificato ad agosto 2026 sulle fonti regionali. I calendari provinciali cambiano ogni anno: controlla sempre prima di uscire.',
+  aggiornato: 'Verificato a novembre 2026 sulle fonti regionali e sui calendari ittici 2026/2027 delle nove province. I calendari cambiano ogni anno: controlla sempre prima di uscire.',
+
+  /* Quello che i calendari ittici provinciali aggiungono all'Allegato 2, letto
+     l'11 novembre 2026 sui nove calendari 2026/2027 e su quello regionale. Il
+     motore lo applica spot per spot, dalla provincia della scheda: una specie
+     che in quella provincia non si può trattenere pesa come una in divieto e
+     non diventa «il pesce del giorno». Qui stanno solo le regole che valgono in
+     tutti i corpi idrici della provincia; quelle di un tratto solo (zone no
+     kill, trofei, aree regolamentate) restano nelle note delle schede.
+     Va riletto a ogni nuovo calendario: di solito esce a fine marzo. */
+  province: {
+    stagione: '2026/2027',
+    /* detenzione vietata tutto l'anno */
+    nonTrattenibili: {
+      tinca:   ['PC', 'RE', 'MO', 'BO', 'FE', 'RA'],
+      luccio:  ['PC', 'RE', 'MO', 'BO', 'FE', 'RA'],
+      lasca:   ['PR', 'RE', 'MO', 'FC', 'RN'],
+      vairone: ['FC', 'RN']
+    },
+    /* periodi di divieto più lunghi di quelli regionali. A Parma l'anticipo
+       della carpa vale solo sull'Enza in comune con Reggio, e resta fuori. */
+    periodi: [
+      { specie: ['carpa'], prov: ['RE', 'MO', 'FE', 'RA', 'FC'], divieto: [4, 15, 6, 30],
+        testo: 'il divieto va dal 15 aprile al 30 giugno' },
+      { specie: ['cavedano', 'barbo', 'rovella', 'alborella', 'triotto', 'carpa', 'tinca', 'scardola'],
+        prov: ['RN'], divieto: [4, 15, 6, 30],
+        testo: 'i ciprinidi autoctoni non si trattengono dal 15 aprile al 30 giugno' }
+    ],
+    /* misure minime più alte: la trota a Modena e a Rimini nelle acque D, che
+       è dove sta */
+    misure: {
+      cavedano:   { PC: 20, FC: 20, PR: 22, RE: 22 },
+      trotaFario: { PC: 25, MO: 25, RN: 25 }
+    },
+    limiti: { trotaFario: { RN: 3 } }
+  },
+
+  /* Acque D che aprono la prima domenica di maggio invece dell'ultima di marzo
+     (calendario ittico di Parma 2026/2027): Lago Santo e Laghi Gemini, cioè i
+     Lagoni, e i laghi Ballano e Verde, dove si pesca «dalla prima domenica di
+     maggio alla prima domenica di ottobre». */
+  apertureDiMaggio: ['pr-lago-santo-parmense', 'pr-lagoni', 'pr-lago-ballano'],
+
+  /* Schede segnate D su cui la chiusura invernale NON viene applicata, perché
+     la categoria è in dubbio. L'invaso del Molato (Lago di Trebecco) sta nel
+     calendario ittico di Piacenza 2026/2027 fra le zone per il carp fishing
+     notturno, vietato solo dal 15 maggio al 30 giugno: in un'acqua D non
+     potrebbe esserci. Va controllato sulla carta interattiva regionale, e
+     corretta la categoria nella scheda. */
+  categoriaDaVerificare: ['pc-lago-trebecco'],
 
   /* Le due frasi che rispondono a «serve la licenza?» nelle pagine degli spot
      e dei comuni. Stanno qui, accanto alle voci complete, perché il prezzo
@@ -62,10 +111,13 @@ const REGOLE = {
      Gli spot vanno scritti uno per uno: «il Taro» non è chiuso tutto, solo
      dalla derivazione di Ramiola in giù. */
   avvisi: [
+    { t: 'Anguilla: pesca sportiva vietata per tutto il 2026', d: 'Il decreto ministeriale n. 107712 del 4 marzo 2026 (art. 5) vieta la pesca sportiva dell\'anguilla europea su tutto il territorio nazionale per l\'intero anno. Il calendario ittico regionale 2026/2027 la mette fra le specie di cui la detenzione è sempre vietata: se abbocca, va rilasciata subito.', livello: 'alto' },
+    { t: 'Luccio, tinca, lasca e vairone: dove non si trattengono', d: 'I calendari ittici provinciali 2026/2027 vietano la detenzione di tinca e luccio in tutte le acque di Piacenza, Reggio Emilia, Modena, Bologna, Ferrara e Ravenna; della lasca a Parma, Reggio Emilia, Modena, Forlì-Cesena e Rimini; del vairone a Forlì-Cesena e Rimini. La carpa è in divieto dal 15 aprile (non dal 15 maggio) a Reggio Emilia, Modena, Ferrara, Ravenna e Forlì-Cesena. A Rimini tutti i ciprinidi autoctoni si rilasciano dal 15 aprile al 30 giugno.', livello: 'medio' },
+    { t: 'Misure minime più alte in provincia', d: 'Cavedano: 20 cm a Piacenza e Forlì-Cesena, 22 cm a Parma e Reggio Emilia. Trota: 25 cm in tutte le acque di Piacenza e nelle acque D di Modena e di Rimini, dove il limite è di 3 capi al giorno.', livello: 'medio' },
     { t: 'Lago del Brasimone: divieto di pesca', d: 'Dal 20/10/2026 la pesca è vietata in tutto il bacino del Brasimone (Camugnano, BO), a ogni specie, finché l\'invaso non torna al livello normale. È una zona di protezione temporanea istituita dalla Regione con la Determinazione n. 20213 per il forte abbassamento dell\'acqua.', livello: 'alto', spot: ['bo-brasimone'], dal: '2026-10-20' },
     { t: 'Fiume Taro: divieto di pesca fino al 31/12/2026', d: 'Per la scarsità idrica è istituita una zona di protezione temporanea della fauna ittica nel tratto tra il punto di derivazione in località Ramiola (Medesano, PR) e la foce, compresi i canali di bonifica alimentati con risorsa prelevata in deroga.', livello: 'alto', spot: ['pr-taro-san-secondo'], al: '2026-12-31' },
     { t: 'Bacini di Suviana, Brasimone e S. Maria', d: 'Nuovo regolamento per il triennio 2026-29 (BUR n. 167 del 01/07/2026). Vietata la pesca e la detenzione di esemplari vivi o morti di vairone, pigo e savetta.', livello: 'medio' },
-    { t: 'Provincia di Parma', d: 'Divieto permanente di pesca al barbo canino e alla lasca. Divieto di pesca a cavedano e vairone dal 15 marzo al 30 giugno. Divieto di detenzione di cavedani sotto i 22 cm. Detenzione della cheppia vietata in tutte le acque provinciali.', livello: 'medio' },
+    { t: 'Provincia di Parma', d: 'Divieto di detenzione della lasca e dei cavedani sotto i 22 cm in tutte le acque provinciali. Nel Lago Santo e nei Laghi Gemini la pesca apre la prima domenica di maggio; nei laghi Ballano e Verde si pesca dalla prima domenica di maggio alla prima domenica di ottobre.', livello: 'medio' },
     { t: 'Casse di espansione del Secchia', d: 'Misure minime locali per lucci e persici e divieto di utilizzo di esche artificiali dal 15 dicembre al 15 maggio.', livello: 'medio' },
     { t: 'Canale Boicelli e zone ferraresi', d: 'Zone di protezione delle specie ittiche con divieto di pesca alla savetta, al cavedano e al barbo.', livello: 'medio' }
   ],
@@ -87,6 +139,8 @@ const REGOLE = {
     { t: 'Aree di pesca regolamentata in Emilia-Romagna', u: 'https://agricoltura.regione.emilia-romagna.it/pesca/pesca-sportiva-professionale-acque-interne/aree-di-pesca-regolamentata-in-emilia-romagna' },
     { t: 'Regolamento regionale n. 1/2018 (testo vigente su Demetra)', u: 'https://demetra.regione.emilia-romagna.it/al/articolo?urn=er%3Aassemblealegislativa%3Aregolamento%3A2018%3B1' },
     { t: 'Allegato 2 modificato, BUR n. 377 del 29/10/2020', u: 'https://bur.regione.emilia-romagna.it/area-bollettini/bollettini-in-lavorazione/n-377-del-29-10-2020-parte-prima.2020-10-30.1839750467/modifica-dellallegato-2-del-regolamento-regionale-2-febbraio-2018-n-1-di-attuazione-delle-disposizioni-in-materia-di-tutela-della-fauna-ittica-e-dellecosistema-acquatico-e-di-disciplina-della-pesca-dellacquacoltura-e-delle-attivita-connesse-nelle-acque/allegato-regolamento-regionale.2020-10-30.1604064195' },
+    { t: 'Calendari ittici 2026/2027, regionale e delle nove province', u: 'https://agricoltura.regione.emilia-romagna.it/pesca/pesca-sportiva-professionale-acque-interne/calendari-ittici' },
+    { t: 'Anguilla: D.M. n. 107712 del 4 marzo 2026 (Masaf)', u: 'https://www.masaf.gov.it/flex/cm/pages/ServeBLOB.php/L/IT/IDPagina/24397' },
     { t: 'Programma ittico regionale 2026/2027', u: 'https://bur.regione.emilia-romagna.it/area-bollettini/n-79-del-02-04-2026-parte-seconda/l-r-n-11-2012-art-5-adozione-del-programma-ittico-regionale-2026-2027/allegato1' },
     { t: 'Itinerari di pesca sportiva in Emilia-Romagna (PDF)', u: 'https://agricoltura.regione.emilia-romagna.it/pesca/pubblicazioni/pesca-sportiva/itinerari-di-pesca-sportiva-in-emilia-romagna' },
     { t: 'Tesserino pesca Suviana, Brasimone e S. Maria (Ente Parchi BO)', u: 'https://enteparchi.bo.it/pagina.php?id=42' },

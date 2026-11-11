@@ -36,10 +36,13 @@ const API = (() => {
   const ETA_MAX = 9 * 60 * 60 * 1000;
   const METEO_URL = 'https://api.open-meteo.com/v1/forecast';
   const FLOOD_URL = 'https://flood-api.open-meteo.com/v1/flood';
+  const MARE_URL = 'https://marine-api.open-meteo.com/v1/marine';
   const CHUNK = 40;              // spot per richiesta
   const PARALLELE = 3;           // richieste contemporanee
   const TTL = 45 * 60 * 1000;    // 45 minuti
-  const PAST = 10;               // giorni passati (per la temperatura dell'acqua)
+  const PAST = 14;               // giorni passati: la finestra più lunga del modello
+                                 // dell'acqua (un bacino) è di 14 giorni, e con 10
+                                 // veniva tagliata senza dirlo
   const FWD = 7;                 // giorni di previsione
   const RIPROVE = [1500, 6000, 14000];   // pause fra un tentativo e l'altro
   const PAUSA_LIMITE = 12000;            // quanto fermarsi tutti dopo un 429
@@ -96,7 +99,7 @@ const API = (() => {
   }
   function scadute(tutte) {
     if (!MAG) return;
-    Object.keys(MAG).filter(k => k.startsWith('mto:') || k.startsWith('flw:')).forEach(k => {
+    Object.keys(MAG).filter(k => /^(mto|flw|flw2|mar):/.test(k)).forEach(k => {
       if (tutte) return MAG.removeItem(k);
       try {
         const o = JSON.parse(MAG.getItem(k));
@@ -183,6 +186,8 @@ const API = (() => {
         temperature_2m_mean: s.tmed, precipitation_sum: s.pio,
         wind_speed_10m_max: s.ven, wind_direction_10m_dominant: s.dir,
         pressure_msl_mean: s.pre, cloud_cover_mean: s.nuv,
+        /* solo sugli spot di mare: temperatura di superficie e onda massima */
+        sea_surface_temperature: s.tsm, wave_height_max: s.onda,
         sunrise: (s.alba || []).map((h, i) => h ? g[i] + 'T' + h : null),
         sunset:  (s.tram || []).map((h, i) => h ? g[i] + 'T' + h : null)
       } };
@@ -234,7 +239,54 @@ const API = (() => {
     return { dati: out, persi: esiti.filter(x => !x).length, lotti: groups.length };
   }
 
+  /* ---------- il mare: temperatura di superficie e onda ----------
+     Una richiesta sola per tutti gli spot di mare. La temperatura arriva ora
+     per ora e qui diventa la media del giorno; l'onda arriva già come massimo
+     giornaliero. Finiscono dentro il meteo dello spot, giorno per giorno. Se
+     la richiesta non va, il motore torna alla stima dall'aria e al vento. */
+  async function mare(spots, dati) {
+    const g = spots.filter(s => s.tipo === 'mare' && dati[s.id]);
+    if (!g.length) return;
+    const key = 'mar:' + g.map(s => s.id).join('|');
+    let data = cacheGet(key);
+    if (!data) {
+      const u = `${MARE_URL}?latitude=${g.map(s => s.lat).join(',')}`
+        + `&longitude=${g.map(s => s.lon).join(',')}`
+        + `&hourly=sea_surface_temperature&daily=wave_height_max`
+        + `&past_days=${PAST}&forecast_days=${FWD}&timezone=Europe%2FRome&cell_selection=sea`;
+      let grezzi;
+      try { grezzi = asArray(await fetchJSON(u)); }
+      catch (e) { return; }
+      /* in cache va la media del giorno, non le 500 ore di ogni spot */
+      data = grezzi.map(r => {
+        const somma = {}, quanti = {}, tsm = {}, onda = {};
+        ((r.hourly && r.hourly.time) || []).forEach((t, i) => {
+          const v = r.hourly.sea_surface_temperature[i];
+          if (v === null || v === undefined) return;
+          const gg = t.slice(0, 10);
+          somma[gg] = (somma[gg] || 0) + v; quanti[gg] = (quanti[gg] || 0) + 1;
+        });
+        Object.keys(somma).forEach(gg => { tsm[gg] = Math.round(somma[gg] / quanti[gg] * 10) / 10; });
+        ((r.daily && r.daily.time) || []).forEach((t, i) => { onda[t] = r.daily.wave_height_max[i]; });
+        return { tsm, onda };
+      });
+      cacheSet(key, data);
+    }
+    const o = (v) => (v === undefined ? null : v);
+    g.forEach((s, k) => {
+      const r = data[k], d = dati[s.id].daily;
+      if (!r || !d) return;
+      d.sea_surface_temperature = d.time.map(t => o(r.tsm[t]));
+      d.wave_height_max = d.time.map(t => o(r.onda[t]));
+    });
+  }
+
   /* ---------- portata dei fiumi (GloFAS) ---------- */
+  /* Il punto da cui leggere la portata: quello dello spot, oppure il centro
+     della cella vicina in cui GloFAS fa scorrere il fiume (CELLE_PORTATA in
+     data-index.js, scritta da tools/celle-portata.py). */
+  const cella = (s) => (typeof CELLE_PORTATA !== 'undefined' && CELLE_PORTATA[s.id]) || [s.lat, s.lon];
+
   async function portata(spots) {
     /* Solo corsi d'acqua naturali: laghi, cave e mare non hanno portata, e i
        canali artificiali non sono modellati da GloFAS (il loro livello dipende
@@ -243,11 +295,11 @@ const API = (() => {
     const out = {};
     const groups = chunks(target, CHUNK);
     await aPochiPerVolta(groups.map(g => async () => {
-      const key = 'flw:' + g.map(s => s.id).join('|');
+      const key = 'flw2:' + g.map(s => s.id).join('|');
       let data = cacheGet(key);
       if (!data) {
-        const u = `${FLOOD_URL}?latitude=${g.map(s => s.lat).join(',')}`
-          + `&longitude=${g.map(s => s.lon).join(',')}`
+        const u = `${FLOOD_URL}?latitude=${g.map(s => cella(s)[0]).join(',')}`
+          + `&longitude=${g.map(s => cella(s)[1]).join(',')}`
           + `&daily=river_discharge&past_days=45&forecast_days=7`;
         try { data = asArray(await fetchJSON(u)); }
         catch (e) { data = []; }             // senza portata l'indice si calcola lo stesso
@@ -276,6 +328,7 @@ const API = (() => {
       e.limite = limitato;
       throw e;
     }
+    await mare(spots, m.dati);
     const p = await portata(spots);
     return { meteo: m.dati, portata: p, persi: m.persi, lotti: m.lotti, limitato };
   }
@@ -292,5 +345,5 @@ const API = (() => {
      della pubblicazione legge lo stesso previsioni.json e calcola l'indice del
      giorno da scrivere nelle pagine statiche. Copiare quelle quindici righe in
      Python voleva dire due letture dello stesso formato che possono divergere. */
-  return { tutto, meteo, portata, svuotaCache, suStato, espandi };
+  return { tutto, meteo, mare, portata, svuotaCache, suStato, espandi };
 })();

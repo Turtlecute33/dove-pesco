@@ -144,27 +144,34 @@
     <div class="voci">
       <div class="voce"><h3>Stagione</h3><div>
         <p>Ogni specie ha una curva di attività mensile costruita sulla sua biologia e sui periodi
-        indicati dalla guida regionale. Un cavedano a settembre e un cavedano a gennaio non sono
-        lo stesso pesce.</p></div></div>
+        indicati dalla guida regionale, sfumata da un mese all'altro perché l'indice non salti il
+        primo del mese. Un cavedano a settembre e un cavedano a gennaio non sono lo stesso
+        pesce.</p></div></div>
 
       <div class="voce"><h3>Temperatura dell'acqua</h3><div>
         <p>È il fattore che pesa di più, e nessuno la misura spot per spot. La stimiamo con un
         modello a inerzia termica: l'acqua segue la media dell'aria degli ultimi giorni, smorzata
         verso la temperatura media annua alla quota dello spot, che è, in pratica, la temperatura
         di falda.</p>
-        <p>Finestra e smorzamento cambiano con l'ambiente: tre giorni e forte smorzamento per un
-        torrente sorgivo, sette e quasi nessuno per un canale di pianura, quattordici per un bacino
-        profondo. Ogni tipo ha un tetto: il rio Ospitale non arriva a 28 °C nemmeno ad agosto.
-        <b>È una stima dichiarata, non una misura.</b></p></div></div>
+        <p>Finestra e smorzamento cambiano con l'ambiente: tre giorni per un torrente e per un
+        canale, quattordici per un lago o un bacino. Su fiumi e torrenti decide la quota: in
+        pianura l'acqua segue l'aria quasi per intero, in montagna resta fredda, e il rio Ospitale
+        non arriva a 28 °C nemmeno ad agosto. I numeri sono tarati sulle misure di ARPAE, 829
+        campioni del 2024-2025 fra fiumi, canali e invasi: l'errore medio è di circa 2 °C.
+        <b>È una stima dichiarata, non una misura.</b></p>
+        <p>Sul mare non stimiamo: usiamo la temperatura di superficie e l'altezza dell'onda del
+        servizio marino di Open-Meteo.</p></div></div>
 
       <div class="voce"><h3>Portata</h3><div>
         <p>Dato reale: portata giornaliera in metri cubi al secondo dal modello idrologico GloFAS,
         confrontata con la mediana delle settimane precedenti nello stesso punto. Un rialzo del
         15–40% è la condizione che accende barbi e siluri; oltre il 260% l'indice crolla e compare
         l'avviso di piena; sotto il 45% è magra.</p>
-        <p>Su laghi, cave, mare e canali di bonifica non viene usata. GloFAS lavora su celle:
-        vicino a una confluenza il valore assoluto può riferirsi a un ramo diverso, per questo
-        mostriamo sempre lo scarto sulla mediana e i m³/s solo quando sono coerenti.</p></div></div>
+        <p>Su laghi, cave, mare e canali di bonifica non viene usata. GloFAS lavora su celle di
+        cinque chilometri, e non sempre fa scorrere il fiume nella cella in cui sta lo spot: in 72
+        punti di fiume su 149 leggiamo la cella accanto, quella in cui il fiume c'è. Vicino a una
+        confluenza il valore assoluto può riferirsi a un ramo diverso, per questo mostriamo sempre
+        lo scarto sulla mediana e i m³/s solo quando sono coerenti.</p></div></div>
 
       <div class="voce"><h3>Pioggia e torbidità</h3><div>
         <p>Pioggia delle 72 ore precedenti, quella prevista e lo scarto di portata, per stimare
@@ -178,8 +185,11 @@
 
       <div class="voce"><h3>Divieti e presenza reale</h3><div>
         <p>Una specie in divieto o protetta non viene esclusa: resta pescabile in catch and
-        release, ma pesa il 34% e la scheda lo dichiara. Dove la guida regionale scrive «rari»,
-        la specie pesa il 42%.</p></div></div>
+        release, ma pesa il 34% e la scheda lo dichiara. Lo stesso vale dove il calendario ittico
+        della provincia vieta di trattenerla, come il luccio e la tinca in sei province su nove.
+        Dove la guida regionale scrive «rari», la specie pesa il 42%.</p>
+        <p>Le acque di categoria D sono chiuse a ogni specie dalla prima domenica di ottobre
+        all'ultima di marzo: in quei mesi l'indice è zero e la scheda dice quando si riapre.</p></div></div>
 
       <div class="voce"><h3>La somma</h3><div>
         <p>62% della specie migliore più 38% della media delle prime tre, poi i modificatori

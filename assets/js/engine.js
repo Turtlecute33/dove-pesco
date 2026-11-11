@@ -4,11 +4,13 @@
    Incrocia, per ogni spot e per un giorno scelto:
      · stagione e finestra di attività di ogni specie
      · temperatura dell'acqua stimata (inerzia termica per tipo di acqua)
+     · temperatura di superficie e moto ondoso del mare, dove lo spot è sul mare
      · portata del fiume rispetto alla mediana delle ultime settimane
      · pioggia caduta nelle 72 ore precedenti e pioggia prevista
      · tendenza barometrica
      · copertura nuvolosa, vento, fase lunare
-     · periodi di divieto e misure minime (Allegato 2)
+     · periodi di divieto e misure minime (Allegato 2), le regole in più dei
+       calendari ittici provinciali e la chiusura invernale delle acque D
    Restituisce un punteggio 0-100, il perché e i consigli operativi.
    ========================================================================== */
 
@@ -25,6 +27,12 @@ const ENGINE = (() => {
     return s.length % 2 ? s[m] : (s[m - 1] + s[m]) / 2;
   };
   const num = (v) => (typeof v === 'number' && isFinite(v)) ? v : null;
+
+  /* m³/s sommati a portata e mediana prima di farne il rapporto: mezzo metro
+     cubo su un fiume e cento litri su un torrente non fanno una piena */
+  const PORTATA_MINIMA = { fiume: 0.5, torrente: 0.1 };
+  const ONDA_MOSSA = [0.5, 1.5];   // metri di onda massima: mare mosso, buono da riva
+  const ONDA_GROSSA = 2;           // da qui in su dai moli e dalla spiaggia non si pesca
 
   /* Campana asimmetrica. Dentro l'optimum non è piatta: vale 1 al centro e
      scende a 0,88 ai bordi, così spot con acqua "giusta" ma non ideale non
@@ -48,16 +56,43 @@ const ENGINE = (() => {
   /* ------------------------------------------------- temperatura dell'acqua */
   /* Modello a inerzia: l'acqua segue la media dell'aria degli ultimi N giorni,
      smorzata verso la temperatura media annua (≈ temperatura di falda) a
-     quella quota. Non è una misura: è una stima, dichiarata come tale.       */
+     quella quota. Non è una misura: è una stima, dichiarata come tale.
+
+     I numeri non sono più scelti a occhio. A novembre 2026 il modello è stato
+     messo davanti alle misure di ARPAE: 575 campioni del 2024-2025 su 50
+     stazioni di fiume e torrente da 1 a 1043 m, 128 su dieci canali, 126 in
+     superficie su cinque invasi (Molato, Mignano, Suviana, Brasimone,
+     Ridracoli). L'aria è quella di Open-Meteo nello stesso punto.
+
+                     errore medio (°C)      di cui in estate
+                     prima     ora          prima          ora
+       torrenti       3,4      1,9      4,6 in meno    0,3 in meno
+       fiumi          2,3      1,8      2,1 in meno    0,3 in meno
+       canali         2,6      1,7      1,9 in meno    pari
+       invasi         3,9      2,7      4,3 in meno    0,5 in meno
+
+     L'errore stava quasi tutto d'estate e in basso: un torrente di pianura
+     prendeva i numeri di un torrente di sorgente (smorzo 0,55, un tetto a 20 °C)
+     e a luglio usciva a 19 °C con l'acqua vera a 26. Ma «torrente» è un nome,
+     non una quota: l'Idice a Castenaso e il Dolo a Civago si chiamano uguale.
+     Ora per le acque correnti decide la quota: in pianura l'acqua segue l'aria
+     quasi per intero, in montagna resta fredda come prima, e in mezzo si sfuma. */
   const INERZIA = {
-    torrente: { giorni: 3,  smorzo: 0.55, offset: -1.2, tetto: 20 },
-    fiume:    { giorni: 5,  smorzo: 0.74, offset: -0.3, tetto: 29 },
-    canale:   { giorni: 7,  smorzo: 0.90, offset: +0.8, tetto: 32 },
-    lago:     { giorni: 12, smorzo: 0.72, offset:  0.0, tetto: 28 },
-    bacino:   { giorni: 14, smorzo: 0.66, offset: -0.6, tetto: 26 },
-    cava:     { giorni: 9,  smorzo: 0.84, offset: +0.5, tetto: 30 },
-    mare:     { giorni: 21, smorzo: 0.60, offset: +0.5, tetto: 29 }
+    torrente: { giorni: 3,  corrente: true, tetto: 31 },
+    fiume:    { giorni: 5,  corrente: true, tetto: 31 },
+    canale:   { giorni: 3,  smorzo: 0.95, offset: +2.25, tetto: 33 },
+    lago:     { giorni: 14, smorzo: 0.85, offset: +1.25, tetto: 30 },
+    bacino:   { giorni: 14, smorzo: 0.85, offset: +1.25, tetto: 30 },
+    cava:     { giorni: 9,  smorzo: 0.90, offset: +1.75, tetto: 31 },
+    /* di riserva: sul mare si usa la temperatura di superficie di Open-Meteo.
+       Tarato su due anni di quella misura in tre punti della costa: prima
+       sbagliava di 3,8 °C (6 in meno ad agosto, 3 in più a gennaio), ora di 1,1. */
+    mare:     { giorni: 14, smorzo: 1.00, offset: +2.25, tetto: 31 }
   };
+  /* Acque correnti: da 100 m in giù valgono i numeri di pianura, da 900 m in
+     su quelli di sorgente. */
+  const PIANURA = { quota: 100, smorzo: 0.85, offset: +0.75 };
+  const MONTAGNA = { quota: 900, smorzo: 0.55, offset: -1.2 };
 
   function tempAcqua(spot, serieAriaMedia, quota) {
     const p = INERZIA[spot.tipo] || INERZIA.fiume;
@@ -66,9 +101,13 @@ const ENGINE = (() => {
     const aria = media(finestra);
     /* Media annua dell'aria in Emilia-Romagna, corretta per la quota */
     const annua = 14.6 - 0.0058 * (quota || 0);
-    let t = annua + p.smorzo * (aria - annua) + p.offset;
-    /* I torrenti sorgivi non superano mai di molto il loro tetto */
-    return clamp(t, 1, p.tetto);
+    let smorzo = p.smorzo, offset = p.offset;
+    if (p.corrente) {
+      const f = clamp(((quota || 0) - PIANURA.quota) / (MONTAGNA.quota - PIANURA.quota), 0, 1);
+      smorzo = PIANURA.smorzo + (MONTAGNA.smorzo - PIANURA.smorzo) * f;
+      offset = PIANURA.offset + (MONTAGNA.offset - PIANURA.offset) * f;
+    }
+    return clamp(annua + smorzo * (aria - annua) + offset, 1, p.tetto);
   }
 
   /* ---------------------------------------------------------- fase lunare  */
@@ -91,15 +130,66 @@ const ENGINE = (() => {
     return { frazione, illum, nome, eta: Math.round(eta) };
   }
 
+  /* ------------------------------------------- la stagione delle acque D   */
+  /* La trota e le acque di categoria D non chiudono in una data ma in una
+     domenica: dalle 19 della prima di ottobre alle 5 dell'ultima di marzo
+     (Reg. reg. 1/2018, art. 23). Con le date fisse 5 ottobre - 25 marzo, nel
+     2026 la trota risultava aperta dal 26 al 28 marzo, tre giorni prima
+     dell'apertura vera di domenica 29. Le due domeniche si pescano: quella di
+     ottobre fino a sera, quella di marzo dall'alba. Torna null se è aperto,
+     altrimenti la domenica in cui si riapre. Con `aMaggio` l'apertura è la
+     prima domenica di maggio: vale per i laghi di crinale che il calendario
+     di Parma tiene chiusi più a lungo (REGOLE.apertureDiMaggio). */
+  const ultimaDomenicaMarzo = (anno) => { const d = new Date(anno, 2, 31); d.setDate(31 - d.getDay()); return d; };
+  const primaDomenica = (anno, mese) => { const d = new Date(anno, mese, 1); d.setDate(1 + (7 - d.getDay()) % 7); return d; };
+  function stagioneChiusa(date, aMaggio) {
+    const anno = date.getFullYear();
+    const apertura = (a) => aMaggio ? primaDomenica(a, 4) : ultimaDomenicaMarzo(a);
+    if (date < apertura(anno)) return apertura(anno);
+    const chiude = primaDomenica(anno, 9);
+    chiude.setDate(chiude.getDate() + 1);              // il lunedì dopo
+    return date >= chiude ? apertura(anno + 1) : null;
+  }
+
+  const tra = (date, [m1, g1, m2, g2]) => {
+    const v = (date.getMonth() + 1) * 100 + date.getDate();
+    const a = m1 * 100 + g1, b = m2 * 100 + g2;
+    return a <= b ? (v >= a && v <= b) : (v >= a || v <= b);
+  };
+
   /* --------------------------------------------------------- divieti (Alleg. 2) */
   function inDivieto(sp, date) {
+    if (sp.chiusuraSalmonidi) return !!stagioneChiusa(date);
     if (!sp.divieto || !sp.divieto.length) return false;
-    const m = date.getMonth() + 1, g = date.getDate();
-    const v = m * 100 + g;
-    return sp.divieto.some(([m1, g1, m2, g2]) => {
-      const a = m1 * 100 + g1, b = m2 * 100 + g2;
-      return a <= b ? (v >= a && v <= b) : (v >= a || v <= b);
-    });
+    return sp.divieto.some(p => tra(date, p));
+  }
+
+  /* ------------------------------------------------ le regole delle province */
+  /* L'Allegato 2 vale in tutta la regione, ma ogni calendario ittico
+     provinciale aggiunge del suo: a Bologna il luccio non si trattiene mai, a
+     Rimini i ciprinidi autoctoni si rilasciano dal 15 aprile. Senza queste
+     regole il luccio di Varignana era il «pesce del giorno» da portare a casa.
+     La tabella sta in data-rules.js (REGOLE.province). */
+  function regolaLocale(spot, id, date) {
+    const P = (typeof REGOLE !== 'undefined' && REGOLE.province) || null;
+    const out = { nonTrattenibile: false, vietata: false, misuraMin: null, limite: null, testo: null };
+    if (!P) return out;
+    const dove = 'in provincia di ' + ((typeof PROVINCE !== 'undefined' && PROVINCE[spot.prov]) || spot.prov);
+    if (((P.nonTrattenibili || {})[id] || []).includes(spot.prov)) {
+      out.nonTrattenibile = true;
+      out.testo = `${dove} non si può trattenere, tutto l'anno (calendario ittico ${P.stagione})`;
+      return out;
+    }
+    const per = (P.periodi || []).find(p => p.specie.includes(id) && p.prov.includes(spot.prov));
+    if (per) {
+      out.vietata = tra(date, per.divieto);
+      out.testo = `${dove} ${per.testo} (calendario ittico ${P.stagione})`;
+    }
+    const mis = ((P.misure || {})[id] || {})[spot.prov];
+    if (mis) out.misuraMin = mis;
+    const lim = ((P.limiti || {})[id] || {})[spot.prov];
+    if (lim) out.limite = lim;
+    return out;
   }
 
   /* ------------------------------------------- divieti temporanei sullo spot */
@@ -109,8 +199,48 @@ const ENGINE = (() => {
      punteggio e a finire fra i posti consigliati del giorno.               */
   function chiusura(spot, dataISO) {
     const avvisi = (typeof REGOLE !== 'undefined' && REGOLE.avvisi) || [];
-    return avvisi.find(a => (a.spot || []).includes(spot.id)
-      && (!a.dal || dataISO >= a.dal) && (!a.al || dataISO <= a.al)) || null;
+    const avviso = avvisi.find(a => (a.spot || []).includes(spot.id)
+      && (!a.dal || dataISO >= a.dal) && (!a.al || dataISO <= a.al));
+    if (avviso) return avviso;
+
+    /* Le acque di categoria D d'inverno sono chiuse a ogni specie, non solo
+       alla trota. Prima il motore fermava la trota e lasciava il resto: 68 spot
+       davano un indice e un «pesce del giorno» (vairone, cavedano) da ottobre a
+       marzo, in acque dove non si può pescare niente. I laghetti a pagamento
+       sono acque private e restano fuori dalla chiusura, e così le schede la
+       cui categoria D è in dubbio (REGOLE.categoriaDaVerificare). */
+    const R = (typeof REGOLE !== 'undefined' && REGOLE) || {};
+    if (spot.categoria === 'D' && !spot.pagamento && !(R.categoriaDaVerificare || []).includes(spot.id)) {
+      const aMaggio = (R.apertureDiMaggio || []).includes(spot.id);
+      const riapre = stagioneChiusa(new Date(dataISO + 'T12:00:00'), aMaggio);
+      if (riapre) {
+        const quando = `domenica ${riapre.getDate()} ${aMaggio ? 'maggio' : 'marzo'} ${riapre.getFullYear()}`;
+        return {
+          t: 'Acque di categoria D: pesca chiusa fino a ' + quando,
+          d: aMaggio
+            ? 'Qui il calendario ittico di Parma vieta la pesca dalle 19 della prima domenica di ottobre alle 5 della prima domenica di maggio.'
+            : 'Nelle acque da salmonidi la pesca a ogni specie è vietata dalle 19 della prima domenica di ottobre alle 5 dell\'ultima domenica di marzo (Reg. reg. 1/2018, art. 23).',
+          livello: 'alto', stagionale: true, riapre: quando
+        };
+      }
+    }
+    return null;
+  }
+
+  /* --------------------------------------------------- stagione, senza scalini */
+  /* `mesi` dà un valore per mese. Letto così com'è, l'indice saltava il primo
+     del mese a meteo identico: il luccio passava da 0,9 a 0,3 fra il 30
+     novembre e il 1° dicembre. Qui il valore del mese vale a metà mese e si
+     sfuma verso il mese vicino. Uno zero non si sfuma: vuol dire divieto o
+     pesce assente, e deve restare un gradino. */
+  function stagionale(mesi, date) {
+    const m = date.getMonth();
+    const v = mesi[m];
+    if (!v) return 0;
+    const giorni = new Date(date.getFullYear(), m + 1, 0).getDate();
+    const x = (date.getDate() - 0.5) / giorni - 0.5;   // -0,5 a inizio mese, +0,5 alla fine
+    const vicino = mesi[(m + (x < 0 ? 11 : 1)) % 12];
+    return vicino ? v + (vicino - v) * Math.abs(x) : v;
   }
 
   const STAGIONE = (m) => (m <= 1 || m === 11) ? 'inverno'
@@ -135,7 +265,13 @@ const ENGINE = (() => {
           (num(v) !== null && num(d.temperature_2m_min[k]) !== null)
             ? (v + d.temperature_2m_min[k]) / 2 : null);
 
-    const tAcqua = tempAcqua(spot, mediaAria, quota);
+    /* Sul mare la temperatura non si stima dall'aria: Open-Meteo dà quella di
+       superficie, la stessa che usano i bollettini. La stima resta di riserva,
+       per quando quel dato non arriva. */
+    const giorno = (serie) => (serie ? num(serie[i]) : null);
+    const tMare = spot.tipo === 'mare' ? giorno(d.sea_surface_temperature) : null;
+    const onda = spot.tipo === 'mare' ? giorno(d.wave_height_max) : null;
+    const tAcqua = tMare !== null ? tMare : tempAcqua(spot, mediaAria, quota);
 
     /* ---- meteo del giorno ---- */
     const tmax = num(d.temperature_2m_max[i]);
@@ -165,8 +301,18 @@ const ENGINE = (() => {
       const j = t.indexOf(dataISO);
       if (j >= 0 && num(q[j]) !== null) {
         flow = q[j];
-        const base = mediana(q.slice(0, Math.max(1, j)).map(num).filter(v => v !== null));
-        if (base > 0.02) flowRatio = flow / base;
+        const prima = q.slice(0, Math.max(1, j)).map(num).filter(v => v !== null);
+        const base = mediana(prima);
+        /* Il rapporto fra due numeri piccoli è rumore: da 0,03 a 0,09 m³/s
+           faceva +200% e «piena». GloFAS sottostima molto le magre dei fiumi
+           appenninici (il Reno a Marzabotto d'estate gli risulta a 30 litri
+           al secondo), e ogni temporale diventava una piena di una settimana.
+           Una portata fissa sommata sopra e sotto non sposta un fiume vero e
+           calma i numeri piccoli. In 47 giorni d'autunno i giorni «in piena»
+           sui fiumi scendono dal 16% al 7%: ancora troppi per essere tutte
+           piene vere, e il rimedio serio sono i livelli misurati da ARPAE. */
+        const fondo = PORTATA_MINIMA[spot.tipo] || PORTATA_MINIMA.fiume;
+        if (prima.length) flowRatio = (flow + fondo) / (base + fondo);
         if (j > 0 && num(q[j - 1]) !== null) flowTrend = flow - q[j - 1];
         flowAssoluto = spot.tipo === 'torrente' ? flow >= 0.08 : flow >= 0.8;
         if (flow < 0.02) { flow = null; flowRatio = null; flowTrend = null; }
@@ -190,10 +336,11 @@ const ENGINE = (() => {
       const sp = SPECIE[id];
       if (!sp) return null;
 
-      const vietata = inDivieto(sp, date);
-      const soloRilascio = vietata || sp.protetta || sp.limiteGiorno === 0;
+      const locale = regolaLocale(spot, id, date);
+      const vietata = inDivieto(sp, date) || locale.vietata;
+      const soloRilascio = vietata || sp.protetta || sp.limiteGiorno === 0 || locale.nonTrattenibile;
 
-      const fStag = sp.mesi[mese];
+      const fStag = stagionale(sp.mesi, date);
       const fTemp = campana(tAcqua, sp.tOpt, sp.tLive);
 
       /* portata: preferenza della specie */
@@ -250,8 +397,11 @@ const ENGINE = (() => {
         id, nome: sp.nome, icona: sp.icona, gruppo: sp.gruppo,
         score: clamp(s, 0, 1.4), rara,
         vietata, soloRilascio, protetta: !!sp.protetta,
-        misuraMin: sp.misuraMin, limiteGiorno: sp.limiteGiorno,
-        divietoTesto: sp.divietoTesto, registrazione: !!sp.registrazione,
+        /* dove la provincia vieta di trattenerla, misura e capi non hanno senso */
+        nonTrattenibile: locale.nonTrattenibile,
+        misuraMin: locale.nonTrattenibile ? null : (locale.misuraMin || sp.misuraMin),
+        limiteGiorno: locale.nonTrattenibile ? null : (locale.limite || sp.limiteGiorno),
+        divietoTesto: locale.testo || sp.divietoTesto, registrazione: !!sp.registrazione,
         norme: !!sp.norme,
         prof: sp.prof[stag], taglia: sp.taglia,
         esche: sp.esche, tecniche: sp.tecniche, dritte: sp.dritte,
@@ -278,13 +428,18 @@ const ENGINE = (() => {
     if (pioggia > 18) { base *= 0.82; mod.push({ t: 'Pioggia forte prevista', v: -1 }); }
     if ([95, 96, 99].includes(wmo)) { base *= 0.7; mod.push({ t: 'Temporali', v: -1 }); }
 
-    if (vento > 38) {
+    /* Il mare vive di mareggiate, e adesso l'onda si legge invece di dedurla
+       dal vento. Il vento a terra diceva «mare mosso» anche con la brezza del
+       pomeriggio e il mare piatto: in tre mesi, nei giorni in cui una delle due
+       misure dava mare mosso, l'altra era d'accordo quattro volte su dieci. Mosso (da mezzo metro a un metro e mezzo) è
+       l'acqua che lavora il fondo sotto riva; da due metri in su dai moli non
+       si pesca. Senza il dato dell'onda si torna al vento. */
+    const mareGrosso = onda !== null && onda >= ONDA_GROSSA;
+    if (vento > 38 || mareGrosso) {
       const p = (spot.tipo === 'lago' || spot.tipo === 'bacino' || spot.tipo === 'cava' || spot.tipo === 'mare') ? 0.72 : 0.9;
-      base *= p; mod.push({ t: 'Vento forte', v: -1 });
-    }
-
-    /* Il mare vive di mareggiate: vento moderato è un vantaggio */
-    if (spot.tipo === 'mare' && vento >= 18 && vento <= 36) {
+      base *= p; mod.push({ t: mareGrosso ? 'Mare molto mosso' : 'Vento forte', v: -1 });
+    } else if (spot.tipo === 'mare'
+        && (onda !== null ? (onda >= ONDA_MOSSA[0] && onda < ONDA_MOSSA[1]) : (vento >= 18 && vento <= 36))) {
       base *= 1.12; mod.push({ t: 'Mare mosso: spigole attive', v: 1 });
     }
 
@@ -312,7 +467,7 @@ const ENGINE = (() => {
     if (alba) finestre.push({ q: 'Alba', o: `${sposta(alba, -30)} – ${sposta(alba, 120)}`, why: 'La prima luce è la finestra più produttiva su torrenti e laghi.' });
     if (tramonto) finestre.push({ q: 'Tramonto', o: `${sposta(tramonto, -120)} – ${sposta(tramonto, 40)}`, why: 'Ultima ora di luce: i predatori si spostano in caccia.' });
     if (specie.some(s => s.luce === 'notte' && !s.soloRilascio)) {
-      finestre.push({ q: 'Notte', o: `${sposta(tramonto, 60)} – 24:00`, why: 'Siluro, anguilla, lucioperca e carpa danno il meglio dopo il buio. Verifica gli orari consentiti.' });
+      finestre.push({ q: 'Notte', o: `${sposta(tramonto, 60)} – 24:00`, why: 'Siluro, lucioperca e carpa danno il meglio dopo il buio. Verifica gli orari consentiti.' });
     }
     if (nuvole !== null && nuvole > 65) {
       finestre.push({ q: 'Tutto il giorno', o: 'cielo coperto', why: 'Con il cielo coperto la luce resta bassa: la finestra utile si allarga.' });
@@ -324,10 +479,13 @@ const ENGINE = (() => {
         wmo, tmax, tmin, pioggia, p72, nuvole, vento, ventoDir,
         press, dPress, alba, tramonto, quota
       },
-      acqua: { temp: tAcqua, torbidita, flow, flowRatio, flowTrend, flowAssoluto },
+      acqua: { temp: tAcqua, misurata: tMare !== null, onda, torbidita, flow, flowRatio, flowTrend, flowAssoluto },
       luna, stagione: stag, finestre: chiuso ? [] : finestre,
-      spiegazione: chiuso ? ['Lo spot è chiuso da un divieto temporaneo: finché resta in vigore non c\'è un pesce del giorno.']
-        : spiega(spot, specie, tAcqua, torbidita, flowRatio, dPress, nuvole, stag, punteggio, mod)
+      spiegazione: chiuso
+        ? [chiuso.stagionale
+            ? `Acque di categoria D: fino a ${chiuso.riapre} la pesca è chiusa a ogni specie. L'indice torna alla riapertura.`
+            : 'Lo spot è chiuso da un divieto temporaneo: finché resta in vigore non c\'è un pesce del giorno.']
+        : spiega(spot, specie, tAcqua, torbidita, flowRatio, dPress, nuvole, stag, punteggio, mod, tMare !== null)
     };
   }
 
@@ -340,22 +498,23 @@ const ENGINE = (() => {
   }
 
   /* -------------------------------------------------------- testo del perché */
-  function spiega(spot, specie, tAcqua, torb, flowRatio, dPress, nuvole, stag, punteggio, mod) {
+  function spiega(spot, specie, tAcqua, torb, flowRatio, dPress, nuvole, stag, punteggio, mod, misurata) {
     const f = [];
     const target = specie.filter(s => !s.soloRilascio).slice(0, 2);
 
     if (tAcqua !== null) {
       const t = tAcqua.toFixed(1).replace('.', ',');
+      const A = misurata ? 'Mare in superficie' : 'Acqua stimata';
       if (target.length) {
         const sp = target[0];
         const dentro = tAcqua >= sp.tOpt[0] && tAcqua <= sp.tOpt[1];
         f.push(dentro
-          ? `Acqua stimata a ${t} °C: in pieno optimum per ${sp.nome.toLowerCase()} (${sp.tOpt[0]}–${sp.tOpt[1]} °C).`
+          ? `${A} a ${t} °C: in pieno optimum per ${sp.nome.toLowerCase()} (${sp.tOpt[0]}–${sp.tOpt[1]} °C).`
           : tAcqua < sp.tOpt[0]
-            ? `Acqua stimata a ${t} °C: sotto l'optimum di ${sp.nome.toLowerCase()} (${sp.tOpt[0]}–${sp.tOpt[1]} °C), aspettati mangiate lente e recuperi rallentati.`
-            : `Acqua stimata a ${t} °C: sopra l'optimum di ${sp.nome.toLowerCase()} (${sp.tOpt[0]}–${sp.tOpt[1]} °C), concentrati sulle prime e ultime ore.`);
+            ? `${A} a ${t} °C: sotto l'optimum di ${sp.nome.toLowerCase()} (${sp.tOpt[0]}–${sp.tOpt[1]} °C), aspettati mangiate lente e recuperi rallentati.`
+            : `${A} a ${t} °C: sopra l'optimum di ${sp.nome.toLowerCase()} (${sp.tOpt[0]}–${sp.tOpt[1]} °C), concentrati sulle prime e ultime ore.`);
       } else {
-        f.push(`Acqua stimata a ${t} °C.`);
+        f.push(`${A} a ${t} °C.`);
       }
     }
 
@@ -431,5 +590,5 @@ const ENGINE = (() => {
   const banda = (p) => p >= 62 ? 'buono' : p >= 30 ? 'medio' : 'scarso';
 
   return { valuta, classifica, etichetta, banda, faseLunare, inDivieto, tempAcqua,
-           STAGIONE, passa, chiusura };
+           STAGIONE, passa, chiusura, stagioneChiusa, stagionale, regolaLocale };
 })();

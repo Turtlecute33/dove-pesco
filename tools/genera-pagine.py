@@ -180,7 +180,7 @@ def leggi_indice(quando=None):
             banda: ENGINE.banda(v.punteggio),
             specie: v.chiuso ? [] : v.specie.filter(x => !x.soloRilascio).slice(0, 3)
                      .map(x => ({ nome: x.nome, id: x.id })),
-            tAcqua: v.acqua.temp, flowRatio: v.acqua.flowRatio,
+            tAcqua: v.acqua.temp, misurata: !!v.acqua.misurata, flowRatio: v.acqua.flowRatio,
             alba: v.meteo.alba, tramonto: v.meteo.tramonto,
             finestre: v.finestre.slice(0, 2).map(x => ({ q: x.q, o: x.o })),
             spiegazione: v.spiegazione.slice(0, 3),
@@ -810,6 +810,26 @@ def ora_di(generato):
     return t.astimezone(FUSO).strftime('%H:%M')
 
 
+def regola_provincia(d, s, x):
+    """Quello che il calendario ittico della provincia aggiunge all'Allegato 2 per
+    questa specie in questo spot: (misura, capi, testo), con None dove vale la
+    regola regionale. E' la stessa tabella che legge il motore (REGOLE.province
+    in data-rules.js): prima la scheda di Varignana dava il luccio a 70 cm e un
+    capo al giorno, in una provincia dove non si puo' trattenere."""
+    P = d['REGOLE'].get('province') or {}
+    dove = 'in provincia di %s' % d['PROVINCE'].get(s['prov'], s['prov'])
+    stagione = P.get('stagione', '')
+    if s['prov'] in (P.get('nonTrattenibili') or {}).get(x, []):
+        return '–', '–', ("%s non si può trattenere, tutto l'anno (calendario ittico %s)"
+                          % (dove, stagione))
+    misura = ((P.get('misure') or {}).get(x) or {}).get(s['prov'])
+    capi = ((P.get('limiti') or {}).get(x) or {}).get(s['prov'])
+    per = next((p for p in P.get('periodi') or []
+                if x in p['specie'] and s['prov'] in p['prov']), None)
+    testo = '%s %s (calendario ittico %s)' % (dove, per['testo'], stagione) if per else None
+    return ('%d cm' % misura if misura else None), capi, testo
+
+
 def blocco_oggi(s, oggi, d):
     """Come si presenta questo spot oggi: il pezzo che prima viveva solo nel browser.
 
@@ -823,7 +843,9 @@ def blocco_oggi(s, oggi, d):
     if not v:
         return '', None
     ora = ora_di(oggi.get('generato'))
-    voci = [('Acqua stimata', '%s °C' % num(v['tAcqua']) if v.get('tAcqua') is not None else '')]
+    # sul mare la temperatura non e' stimata dall'aria: e' quella di superficie
+    voci = [('Mare in superficie' if v.get('misurata') else 'Acqua stimata',
+             '%s °C' % num(v['tAcqua']) if v.get('tAcqua') is not None else '')]
     if v.get('flowRatio') is not None:
         pc = round((v['flowRatio'] - 1) * 100)
         voci.append(('Portata', '%+d%% sulla mediana recente' % pc))
@@ -1003,6 +1025,7 @@ def pagina_spot(d, s, base, accessi=None, oggi=None, hub=None):
         voci = []
         for x in sp_ids:
             sp = d['SPECIE'][x]
+            loc_misura, loc_capi, loc_testo = regola_provincia(d, s, x)
             tag = ''
             if sp.get('protetta'):
                 tag = '<span class="tag rosso">protetta</span>'
@@ -1014,9 +1037,10 @@ def pagina_spot(d, s, base, accessi=None, oggi=None, hub=None):
                 '<td class="num" data-eti="Al giorno">%s</td>'
                 '<td data-eti="Divieto">%s %s</td></tr>'
                 % (sp['slug'], e(sp['nome']), e(sp['sci']),
-                   (str(sp['misuraMin']) + ' cm') if sp.get('misuraMin') else '–',
-                   'vietata' if sp.get('limiteGiorno') == 0 else (sp.get('limiteGiorno') or '–'),
-                   e(sp['divietoTesto']), tag))
+                   loc_misura or ((str(sp['misuraMin']) + ' cm') if sp.get('misuraMin') else '–'),
+                   'vietata' if sp.get('limiteGiorno') == 0
+                   else (loc_capi or sp.get('limiteGiorno') or '–'),
+                   e(loc_testo or sp['divietoTesto']), tag))
         sp_html = (
             '<h2>Cosa si pesca</h2>'
             '<p class="mini tenue" style="max-width:62ch;margin-top:8px">%s</p>'
@@ -1024,7 +1048,8 @@ def pagina_spot(d, s, base, accessi=None, oggi=None, hub=None):
                'nell\'impianto a pagamento misure e capi trattenibili li fissa il gestore.'
                if pagamento else
                'Misure minime e periodi di divieto dall\'Allegato 2 del Regolamento regionale '
-               '1/2018. Il calendario ittico della provincia può essere più restrittivo.') +
+               '1/2018, con le regole che il calendario ittico della provincia aggiunge in tutte '
+               'le sue acque. Un singolo tratto può averne di più strette.') +
             '<div class="scorre" style="margin-top:16px"><table class="dati">'
             '<thead><tr><th>Specie</th><th>Misura minima</th><th>Capi al giorno</th>'
             '<th>Divieto</th></tr></thead><tbody>%s</tbody></table></div>' % ''.join(voci))
@@ -2117,18 +2142,25 @@ def pagina_regole(d, base):
 
 VOCI_METODO = [
     ('Stagione', "Ogni specie ha una curva di attività mensile costruita sulla sua biologia e sui "
-     "periodi indicati dalla guida regionale. Un cavedano a settembre e un cavedano a gennaio non "
-     "sono lo stesso pesce."),
+     "periodi indicati dalla guida regionale, sfumata da un mese all'altro perché l'indice non "
+     "salti il primo del mese. Un cavedano a settembre e un cavedano a gennaio non sono lo stesso "
+     "pesce."),
     ("Temperatura dell'acqua", "È il fattore che pesa di più, e nessuno la misura spot per spot. "
      "La stimiamo con un modello a inerzia termica: l'acqua segue la media dell'aria degli ultimi "
      "giorni, smorzata verso la temperatura media annua alla quota dello spot. Finestra e "
-     "smorzamento cambiano con l'ambiente: tre giorni e forte smorzamento per un torrente sorgivo, "
-     "sette e quasi nessuno per un canale di pianura, quattordici per un bacino profondo. Ogni tipo "
-     "ha un tetto. È una stima dichiarata, non una misura."),
+     "smorzamento cambiano con l'ambiente: tre giorni per un torrente e per un canale, quattordici "
+     "per un lago o un bacino. Su fiumi e torrenti decide la quota: in pianura l'acqua segue l'aria "
+     "quasi per intero, in montagna resta fredda. I numeri sono tarati sulle misure di ARPAE, 829 "
+     "campioni del 2024-2025 fra fiumi, canali e invasi: l'errore medio è di circa 2 °C. È una "
+     "stima dichiarata, non una misura. Sul mare non stimiamo: usiamo la temperatura di superficie "
+     "e l'altezza dell'onda del servizio marino di Open-Meteo."),
     ('Portata', "Dato reale: portata giornaliera in metri cubi al secondo dal modello idrologico "
      "GloFAS, confrontata con la mediana delle settimane precedenti nello stesso punto. Un rialzo "
      "del 15–40% accende barbi e siluri; oltre il 260% l'indice crolla e compare l'avviso di piena; "
-     "sotto il 45% è magra. Su laghi, cave, mare e canali di bonifica non viene usata."),
+     "sotto il 45% è magra. Su laghi, cave, mare e canali di bonifica non viene usata. GloFAS "
+     "lavora su celle di cinque chilometri, e non sempre fa scorrere il fiume nella cella in cui "
+     "sta lo spot: in 72 punti di fiume su 149 leggiamo la cella accanto, quella in cui il fiume "
+     "c'è."),
     ('Pioggia e torbidità', "Pioggia delle 72 ore precedenti, quella prevista e lo scarto di "
      "portata, per stimare quanto è velata l'acqua. Poi il confronto con la preferenza di ogni "
      "specie: il barbo la ama, il temolo la detesta."),
@@ -2136,8 +2168,11 @@ VOCI_METODO = [
      "attivano con la pressione in calo, ma un crollo oltre gli 8 hPa penalizza tutti. Il cielo "
      "coperto premia i crepuscolari. La luna conta solo per i predatori notturni."),
     ('Divieti e presenza reale', "Una specie in divieto o protetta non viene esclusa: resta "
-     "pescabile in catch and release, ma pesa il 34% e la scheda lo dichiara. Dove la guida "
-     "regionale scrive «rari», la specie pesa il 42%."),
+     "pescabile in catch and release, ma pesa il 34% e la scheda lo dichiara. Lo stesso vale dove "
+     "il calendario ittico della provincia vieta di trattenerla, come il luccio e la tinca in sei "
+     "province su nove. Dove la guida regionale scrive «rari», la specie pesa il 42%. Le acque di "
+     "categoria D sono chiuse a ogni specie dalla prima domenica di ottobre all'ultima di marzo: in "
+     "quei mesi l'indice è zero e la scheda dice quando si riapre."),
     ('La somma', "62% della specie migliore più 38% della media delle prime tre, poi i "
      "modificatori d'ambiente (piena, magra, temporali, vento, mare mosso, acqua fresca in "
      "giornata torrida, stagione consigliata) e una compressione esponenziale su 100. Il 100 non "
@@ -2149,7 +2184,9 @@ NON_SA = [
     "Gli orari puntuali dei rilasci delle dighe: gli avvisi ci sono, gli orari no.",
     "La torbidità reale, le schiuse di insetti, le chiusure decise ieri.",
     "Lo stato delle strade di crinale e dei sentieri in inverno.",
-    "I regolamenti provinciali aggiornati: cambiano ogni anno e vanno letti.",
+    "Le regole di un singolo tratto: zone no kill, trofei, aree regolamentate. Quelle che "
+    "valgono in tutta la provincia il modello le applica, ma i calendari cambiano ogni anno "
+    "e vanno letti.",
 ]
 
 

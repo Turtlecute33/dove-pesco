@@ -9,12 +9,23 @@
    Campi del modello:
      tOpt    [min,max]  temperatura acqua (°C) di massima attività
      tLive   [min,max]  intervallo in cui la specie si alimenta ancora
+             Rivisti a novembre 2026, insieme al modello dell'acqua. Il limite
+             alto era tarato su un'acqua stimata troppo fredda: con i 27 °C
+             misurati d'estate in pianura (e i 30 del mare) cavedano, carpa,
+             siluro e orata uscivano a zero nel loro mese migliore. I valori
+             seguono la tabella di Elliott (1981) sulle tolleranze termiche
+             dei pesci d'acqua dolce e, per spigola e orata, gli studi di
+             acquacoltura: `tLive` arriva dove l'alimentazione si ferma, non
+             alla soglia letale, che sta più in alto.
      mesi    12 valori 0..1  attività media per mese (gen..dic)
      luce    'alba' | 'crepuscolo' | 'notte' | 'giorno' | 'qualsiasi'
      torbida -1..+1   preferenza per acqua torbida (+) o limpida (-)
      portata -1..+1   preferenza per portata alta (+) o magra (-)
      press   -1..+1   reazione a pressione in calo (+ = si attiva)
      prof    profondità tipica per stagione, in metri
+     chiusuraSalmonidi  il divieto non ha date fisse: va dalla prima domenica
+             di ottobre all'ultima di marzo, e lo calcola il motore. `divieto`
+             resta come data approssimata per le tabelle delle pagine.
    ========================================================================== */
 
 const SPECIE = {
@@ -25,11 +36,11 @@ const SPECIE = {
     icona: 'fish-generic', autoctona: true,
     misuraMin: 16, limiteGiorno: null,
     divieto: [[5, 1, 6, 30]], divietoTesto: '1 maggio – 30 giugno',
-    tOpt: [14, 24], tLive: [6, 28],
+    tOpt: [14, 25], tLive: [5, 31],
     mesi: [.35, .4, .55, .8, .5, .5, .85, .95, 1, .9, .6, .35],
     luce: 'giorno', torbida: -0.2, portata: 0.2, press: 0.3,
     prof: { primavera: '0,8 – 2 m, testa di buca e code di raschio', estate: '0,3 – 1,2 m, sotto la vegetazione e in corrente veloce', autunno: '1 – 2,5 m, buche profonde', inverno: '2 – 4 m, buche a corrente lenta' },
-    taglia: 'comune 20–35 cm; belle prede 40–50 cm, fino a 2 kg',
+    taglia: 'comune 20–35 cm; belle prede 40–50 cm, fino a 2 kg. Misura minima 16 cm, che sale a 20 cm a Piacenza e Forlì-Cesena e a 22 cm a Parma e Reggio Emilia',
     esche: ['larva di mosca (bigattino)', 'pane', 'mais', 'sanguinerola artificiale', 'piccoli minnow 3–5 cm', 'mosca secca (tricotteri, effimere)'],
     tecniche: ['passata con canna fissa 5–7 m', 'bolognese', 'spinning leggero', 'pesca a mosca secca'],
     dritte: 'Pesce sospettoso e vista acuta: terminali sottili (0,10–0,12) e pasturazione leggerissima. In estate sale a galla: prova pane a scarroccio. Il caldo lo attiva, il freddo lo blocca.'
@@ -39,7 +50,7 @@ const SPECIE = {
     icona: 'fish-barbel', autoctona: true,
     misuraMin: 25, limiteGiorno: null, reteNatura: true,
     divieto: [[5, 1, 6, 30]], divietoTesto: '1 maggio – 30 giugno',
-    tOpt: [16, 25], tLive: [9, 29],
+    tOpt: [15, 25], tLive: [8, 30],
     mesi: [.2, .25, .4, .7, .5, .5, .9, 1, .95, .8, .45, .2],
     luce: 'crepuscolo', torbida: 0.4, portata: 0.5, press: 0.2,
     prof: { primavera: '1 – 2,5 m sul fondo, code di buca', estate: '0,8 – 2 m in corrente ossigenata, dietro i massi', autunno: '1,5 – 3 m nelle buche', inverno: '2,5 – 4 m, quasi inattivo' },
@@ -53,7 +64,7 @@ const SPECIE = {
     icona: 'fish-barbel', autoctona: true, protetta: true,
     misuraMin: null, limiteGiorno: 0,
     divieto: [[1, 1, 12, 31]], divietoTesto: 'tutto l\'anno, pesca vietata',
-    tOpt: [12, 20], tLive: [6, 24],
+    tOpt: [12, 20], tLive: [6, 26],
     mesi: [.2, .2, .3, .5, .5, .5, .7, .8, .8, .6, .3, .2],
     luce: 'qualsiasi', torbida: -0.3, portata: 0.2, press: 0,
     prof: { primavera: '0,5 – 1,5 m', estate: '0,4 – 1,2 m', autunno: '0,8 – 2 m', inverno: '1,5 – 3 m' },
@@ -66,35 +77,35 @@ const SPECIE = {
     icona: 'fish-generic', autoctona: true, reteNatura: true,
     misuraMin: 15, limiteGiorno: 30,
     divieto: [[2, 1, 5, 31]], divietoTesto: '1 febbraio – 31 maggio',
-    tOpt: [13, 22], tLive: [7, 26],
+    tOpt: [13, 22], tLive: [5, 27],
     mesi: [.3, .2, .2, .2, .2, .7, .9, .9, .9, .8, .5, .35],
     luce: 'giorno', torbida: -0.4, portata: 0, press: 0.1,
     prof: { primavera: '0,5 – 1,5 m', estate: '0,4 – 1,2 m in branchi sui raschi', autunno: '0,8 – 2 m', inverno: '1,5 – 3 m' },
     taglia: '15–25 cm, in branchi numerosi',
     esche: ['bigattino singolo', 'pezzetto di lombrico'],
     tecniche: ['passata leggera con fissa', 'roubaisienne'],
-    dritte: 'Vive in branchi sui raschi ghiaiosi ad acqua limpida. Amo piccolo (18–20) e terminale 0,08. In provincia di Parma la pesca è vietata in modo permanente.'
+    dritte: 'Vive in branchi sui raschi ghiaiosi ad acqua limpida. Amo piccolo (18–20) e terminale 0,08. Nelle province di Parma, Reggio Emilia, Modena, Forlì-Cesena e Rimini non si può trattenere (calendari ittici 2026/2027): si rilascia subito.'
   },
   vairone: {
     nome: 'Vairone', sci: 'Telestes muticellus', gruppo: 'ciprinidi reofili',
     icona: 'fish-generic', autoctona: true, reteNatura: true,
     misuraMin: 10, limiteGiorno: 30,
     divieto: [[4, 1, 6, 30]], divietoTesto: '1 aprile – 30 giugno',
-    tOpt: [12, 21], tLive: [5, 25],
+    tOpt: [11, 20], tLive: [4, 26],
     mesi: [.4, .4, .5, .2, .2, .2, .9, .9, .9, .8, .6, .4],
     luce: 'giorno', torbida: -0.5, portata: 0, press: 0,
     prof: { primavera: '0,3 – 1 m', estate: '0,2 – 0,8 m sui raschi', autunno: '0,5 – 1,5 m', inverno: '1 – 2 m' },
     taglia: '10–18 cm',
     esche: ['bigattino', 'mosca secca minuscola'],
     tecniche: ['passata leggerissima', 'mosca secca'],
-    dritte: 'Indicatore di acque pulite e fresche. Ottima palestra per la mosca secca su torrenti come Secchiello, Nure e Tidoncello. In provincia di Parma vietato dal 15 marzo al 30 giugno.'
+    dritte: 'Indicatore di acque pulite e fresche. Ottima palestra per la mosca secca su torrenti come Secchiello, Nure e Tidoncello. Nelle province di Forlì-Cesena e Rimini non si può trattenere (calendari ittici 2026/2027).'
   },
   rovella: {
     nome: 'Rovella', sci: 'Sarmarutilus rubilio', gruppo: 'ciprinidi',
     icona: 'fish-generic', autoctona: true, reteNatura: true,
     misuraMin: null, limiteGiorno: 30,
     divieto: [[4, 1, 6, 30]], divietoTesto: '1 aprile – 30 giugno',
-    tOpt: [14, 24], tLive: [7, 27],
+    tOpt: [14, 24], tLive: [7, 29],
     mesi: [.35, .35, .5, .2, .2, .2, .85, .9, .85, .7, .5, .35],
     luce: 'giorno', torbida: -0.2, portata: 0, press: 0,
     prof: { primavera: '0,5 – 1,5 m', estate: '0,3 – 1,2 m', autunno: '0,8 – 2 m', inverno: '1,5 – 3 m' },
@@ -120,7 +131,7 @@ const SPECIE = {
     icona: 'fish-generic', autoctona: true,
     misuraMin: null, limiteGiorno: 40,
     divieto: [[4, 1, 6, 15]], divietoTesto: '1 aprile – 15 giugno',
-    tOpt: [14, 25], tLive: [6, 28],
+    tOpt: [14, 25], tLive: [6, 31],
     mesi: [.3, .3, .5, .2, .2, .4, .9, 1, .9, .7, .45, .3],
     luce: 'giorno', torbida: -0.3, portata: -0.2, press: 0,
     prof: { primavera: '0,2 – 1 m in superficie', estate: '0,1 – 0,8 m, a galla', autunno: '0,5 – 1,5 m', inverno: '1,5 – 3 m' },
@@ -129,25 +140,29 @@ const SPECIE = {
     tecniche: ['fissa leggerissima', 'roubaisienne'],
     dritte: 'Perfetta per iniziare o per portare i bambini. Attenzione: nei canali del ravennate può rendere difficile la pesca ai ciprinidi maggiori rubando l\'esca.'
   },
+  /* Nel regolamento regionale «bosega» è un cefalo (Chelon labrosus, il
+     muggine labbrone), elencato fra bosega, cefalo e muggini con la misura
+     minima comune di 20 cm. Qui era descritta come un ciprinide del gruppo
+     della savetta, con le esche e i posti di un altro pesce. */
   bosega: {
-    nome: 'Bosega', sci: 'Protochondrostoma / Chondrostoma soetta gr.', gruppo: 'ciprinidi',
+    nome: 'Bosega', sci: 'Chelon labrosus', gruppo: 'migratori',
     icona: 'fish-generic', autoctona: true,
     misuraMin: 20, limiteGiorno: null,
-    divieto: [], divietoTesto: 'nessun periodo di divieto specifico',
-    tOpt: [14, 23], tLive: [8, 26],
-    mesi: [.3, .3, .4, .5, .6, .6, .8, .8, .8, .7, .5, .3],
-    luce: 'giorno', torbida: 0, portata: 0, press: 0,
-    prof: { primavera: '1 – 2 m', estate: '0,8 – 2 m', autunno: '1 – 2,5 m', inverno: '2 – 3,5 m' },
-    taglia: '20–35 cm',
-    esche: ['bigattino', 'mais'], tecniche: ['passata', 'bolognese'],
-    dritte: 'Misura minima 20 cm. Nel Boicelli e in alcune zone ferraresi vige il divieto specifico di pesca alla savetta, al cavedano e al barbo: leggi i cartelli.'
+    divieto: [], divietoTesto: 'nessun periodo di divieto',
+    tOpt: [16, 27], tLive: [7, 33],
+    mesi: [.2, .2, .5, .9, .95, .85, .8, .8, .9, .8, .45, .25],
+    luce: 'giorno', torbida: 0.2, portata: 0.2, press: 0,
+    prof: { primavera: '0,3 – 2 m, in risalita nei rami del Po', estate: '0,3 – 2 m nei portocanali', autunno: '0,5 – 3 m', inverno: '1 – 3 m' },
+    taglia: '30–50 cm',
+    esche: ['pastella', 'pane', 'tremolina'], tecniche: ['bolognese', 'fissa con elastico'],
+    dritte: 'È un cefalo: nel regolamento regionale «bosega» è il muggine labbrone, con la misura minima di 20 cm degli altri cefali e nessun periodo di divieto. Entra nei portocanali, nelle sacche e nei rami del Po e si pesca come il cefalo, con pane, pastella e sfarinati aromatici.'
   },
   triotto: {
     nome: 'Triotto', sci: 'Rutilus aula', gruppo: 'ciprinidi',
     icona: 'fish-generic', autoctona: true,
     misuraMin: null, limiteGiorno: 30,
     divieto: [[4, 1, 6, 30]], divietoTesto: '1 aprile – 30 giugno',
-    tOpt: [14, 24], tLive: [5, 27],
+    tOpt: [14, 24], tLive: [5, 30],
     mesi: [.4, .4, .5, .2, .2, .2, .85, .9, .85, .7, .5, .4],
     luce: 'giorno', torbida: 0, portata: -0.3, press: 0,
     prof: { primavera: '0,5 – 1,5 m', estate: '0,3 – 1,5 m tra la vegetazione', autunno: '1 – 2 m', inverno: '1,5 – 3 m' },
@@ -196,7 +211,7 @@ const SPECIE = {
     nome: 'Trota fario', sci: 'Salmo trutta fario', gruppo: 'salmonidi',
     icona: 'fish-trout', autoctona: true,
     misuraMin: 22, limiteGiorno: 5, registrazione: true,
-    divieto: [[10, 5, 3, 25]], divietoTesto: 'dalla fine pesca della 1ª domenica di ottobre all\'inizio pesca dell\'ultima domenica di marzo',
+    divieto: [[10, 5, 3, 25]], chiusuraSalmonidi: true, divietoTesto: 'dalla fine pesca della 1ª domenica di ottobre all\'inizio pesca dell\'ultima domenica di marzo',
     tOpt: [8, 16], tLive: [2, 20],
     mesi: [0, 0, .3, .95, 1, .9, .7, .6, .8, .5, 0, 0],
     luce: 'crepuscolo', torbida: -0.4, portata: 0.3, press: 0.5,
@@ -211,7 +226,7 @@ const SPECIE = {
     icona: 'fish-trout', autoctona: false, alloctona: true,
     misuraMin: null, limiteGiorno: null,
     divieto: [], divietoTesto: 'specie alloctona: nessuna misura minima né periodo di divieto regionale (valgono però i regolamenti locali delle zone a regime speciale)',
-    tOpt: [10, 18], tLive: [3, 22],
+    tOpt: [10, 18], tLive: [3, 24],
     mesi: [.2, .2, .5, .95, .95, .8, .6, .55, .8, .7, .3, .2],
     luce: 'crepuscolo', torbida: -0.2, portata: 0.2, press: 0.3,
     prof: { primavera: '0,5 – 3 m', estate: '1 – 4 m, cerca il fresco in profondità nei laghi', autunno: '0,8 – 3 m', inverno: '2 – 6 m nei laghi' },
@@ -224,7 +239,7 @@ const SPECIE = {
     nome: 'Trota lacustre', sci: 'Salmo trutta lacustris', gruppo: 'salmonidi',
     icona: 'fish-trout', autoctona: true,
     misuraMin: 22, limiteGiorno: 5,
-    divieto: [[10, 5, 3, 25]], divietoTesto: 'come la trota fario',
+    divieto: [[10, 5, 3, 25]], chiusuraSalmonidi: true, divietoTesto: 'come la trota fario',
     tOpt: [7, 15], tLive: [2, 19],
     mesi: [0, 0, .3, .8, .9, .7, .5, .5, .8, .5, 0, 0],
     luce: 'alba', torbida: -0.3, portata: 0, press: 0.4,
@@ -238,8 +253,8 @@ const SPECIE = {
     nome: 'Salmerino alpino', sci: 'Salvelinus alpinus', gruppo: 'salmonidi',
     icona: 'fish-trout', autoctona: false, naturalizzata: true,
     misuraMin: 22, limiteGiorno: 5,
-    divieto: [[10, 5, 3, 25]], divietoTesto: 'stesso periodo dei salmonidi; verifica il calendario provinciale (a Parma limite 3 capi non inferiori a 25 cm)',
-    tOpt: [6, 13], tLive: [1, 17],
+    divieto: [[10, 5, 3, 25]], chiusuraSalmonidi: true, divietoTesto: 'stesso periodo dei salmonidi; verifica il calendario provinciale (a Parma limite 3 capi non inferiori a 25 cm)',
+    tOpt: [6, 15], tLive: [1, 20],
     mesi: [0, 0, .2, .7, .85, .7, .5, .5, .85, .5, 0, 0],
     luce: 'alba', torbida: -0.4, portata: 0, press: 0.3,
     prof: { primavera: '2 – 8 m', estate: '8 – 20 m, acque profonde e fredde', autunno: '2 – 8 m, in frega verso riva', inverno: 'fuori stagione' },
@@ -252,8 +267,8 @@ const SPECIE = {
     nome: 'Temolo', sci: 'Thymallus aeliani', gruppo: 'timallidi',
     icona: 'fish-trout', autoctona: true,
     misuraMin: 35, limiteGiorno: 2,
-    divieto: [[10, 5, 3, 25]], divietoTesto: 'segue il calendario dei salmonidi; verificare il calendario provinciale. Nell\'alto Aveto, vicino al confine ligure, è vietato trattenerlo',
-    tOpt: [8, 15], tLive: [3, 19],
+    divieto: [[10, 5, 3, 25]], chiusuraSalmonidi: true, divietoTesto: 'segue il calendario dei salmonidi; verificare il calendario provinciale. Nell\'alto Aveto, vicino al confine ligure, è vietato trattenerlo',
+    tOpt: [8, 16], tLive: [3, 21],
     mesi: [0, 0, .2, .6, .9, .95, .85, .8, .9, .5, 0, 0],
     luce: 'giorno', torbida: -0.6, portata: 0.1, press: 0.3,
     prof: { primavera: '0,8 – 2,5 m nelle lame a corrente uniforme', estate: '0,5 – 2 m, bolla in superficie sulle schiuse', autunno: '1 – 3 m', inverno: 'fuori stagione' },
@@ -268,8 +283,8 @@ const SPECIE = {
     nome: 'Carpa', sci: 'Cyprinus carpio', gruppo: 'ciprinidi di acqua ferma',
     icona: 'fish-carp', autoctona: true,
     misuraMin: 30, limiteGiorno: null,
-    divieto: [[5, 15, 6, 30]], divietoTesto: '15 maggio – 30 giugno',
-    tOpt: [18, 26], tLive: [8, 30],
+    divieto: [[5, 15, 6, 30]], divietoTesto: '15 maggio – 30 giugno; dal 15 aprile nelle province di Reggio Emilia, Modena, Ferrara, Ravenna e Forlì-Cesena',
+    tOpt: [18, 28], tLive: [8, 34],
     mesi: [.2, .25, .5, .8, .5, .5, .95, 1, .95, .8, .45, .25],
     luce: 'notte', torbida: 0.3, portata: -0.3, press: 0.4,
     prof: { primavera: '1 – 2,5 m sui bassi fondali che si scaldano prima', estate: '0,5 – 2 m di notte sottoriva, 2 – 4 m di giorno', autunno: '2 – 4 m, si concentra sulle buche', inverno: '3 – 6 m, attività molto ridotta' },
@@ -283,7 +298,7 @@ const SPECIE = {
     icona: 'fish-carp', autoctona: false, alloctona: true,
     misuraMin: null, limiteGiorno: null,
     divieto: [], divietoTesto: 'specie alloctona: nessun divieto regionale',
-    tOpt: [20, 28], tLive: [12, 32],
+    tOpt: [20, 30], tLive: [10, 36],
     mesi: [.1, .1, .3, .6, .8, .9, 1, 1, .9, .6, .25, .1],
     luce: 'giorno', torbida: -0.2, portata: -0.4, press: 0.2,
     prof: { primavera: '1 – 2,5 m', estate: '0,3 – 1,5 m in superficie tra la vegetazione', autunno: '1,5 – 3 m', inverno: '3 – 5 m, inattiva' },
@@ -297,7 +312,7 @@ const SPECIE = {
     icona: 'fish-carp', autoctona: false, alloctona: true,
     misuraMin: null, limiteGiorno: null,
     divieto: [], divietoTesto: 'specie alloctona: nessun divieto regionale',
-    tOpt: [17, 27], tLive: [5, 32],
+    tOpt: [17, 28], tLive: [5, 34],
     mesi: [.3, .35, .55, .8, .9, .95, 1, 1, .9, .75, .5, .35],
     luce: 'giorno', torbida: 0.4, portata: -0.5, press: 0.2,
     prof: { primavera: '1 – 2 m', estate: '0,5 – 2 m, a mezzacqua nei canali', autunno: '1,5 – 3 m', inverno: '2 – 4 m' },
@@ -311,21 +326,21 @@ const SPECIE = {
     icona: 'fish-carp', autoctona: true,
     misuraMin: 30, limiteGiorno: 1,
     divieto: [[5, 15, 7, 31]], divietoTesto: '15 maggio – 31 luglio',
-    tOpt: [19, 26], tLive: [12, 30],
+    tOpt: [18, 27], tLive: [8, 32],
     mesi: [.1, .1, .3, .6, .3, 0, 0, .8, .9, .6, .25, .1],
     luce: 'alba', torbida: 0.4, portata: -0.6, press: 0.3,
     prof: { primavera: '0,8 – 2 m sui fondali molli con vegetazione', estate: '0,5 – 1,5 m all\'alba tra le ninfee', autunno: '1,5 – 3 m', inverno: 'praticamente inattiva, interrata nel fango' },
     taglia: '0,5 – 2 kg',
     esche: ['lombrico', 'mais', 'pastella', 'bigattino'],
     tecniche: ['pesca al fondo delicata', 'fissa nel sottoriva'],
-    dritte: 'Massimo 1 capo al giorno, minimo 30 cm. Pesca all\'alba, sui fondali molli con vegetazione: lanche del Po, Cavo Fiuma, laghi Calamone e Cerretani, lago del Gelso (dove vale il catch & release).'
+    dritte: 'Massimo 1 capo al giorno, minimo 30 cm; nelle province di Piacenza, Reggio Emilia, Modena, Bologna, Ferrara e Ravenna non si può trattenere (calendari ittici 2026/2027). Pesca all\'alba, sui fondali molli con vegetazione: lanche del Po, Cavo Fiuma, laghi Calamone e Cerretani, lago del Gelso (dove vale il catch & release).'
   },
   scardola: {
     nome: 'Scardola', sci: 'Scardinius hesperidicus', gruppo: 'ciprinidi di acqua ferma',
     icona: 'fish-generic', autoctona: true,
     misuraMin: null, limiteGiorno: null,
     divieto: [[5, 1, 6, 30]], divietoTesto: '1 maggio – 30 giugno',
-    tOpt: [17, 26], tLive: [8, 30],
+    tOpt: [17, 27], tLive: [8, 32],
     mesi: [.25, .3, .5, .8, .3, .3, .9, .95, .9, .7, .45, .3],
     luce: 'giorno', torbida: 0.1, portata: -0.4, press: 0.1,
     prof: { primavera: '0,5 – 1,5 m', estate: '0,2 – 1,2 m in superficie', autunno: '1 – 2,5 m', inverno: '2 – 4 m' },
@@ -339,7 +354,7 @@ const SPECIE = {
     icona: 'fish-generic', autoctona: false, alloctona: true,
     misuraMin: null, limiteGiorno: null,
     divieto: [], divietoTesto: 'specie alloctona: nessun divieto regionale',
-    tOpt: [15, 24], tLive: [6, 28],
+    tOpt: [15, 26], tLive: [6, 31],
     mesi: [.3, .35, .55, .8, .85, .85, .9, .9, .9, .8, .55, .35],
     luce: 'crepuscolo', torbida: 0.4, portata: -0.2, press: 0.2,
     prof: { primavera: '2 – 3,5 m', estate: '1,5 – 3 m', autunno: '2 – 4 m', inverno: '3 – 5 m' },
@@ -353,21 +368,21 @@ const SPECIE = {
     icona: 'fish-pike', autoctona: true,
     misuraMin: 70, limiteGiorno: 1,
     divieto: [[1, 1, 3, 30]], divietoTesto: '1 gennaio – 30 marzo (riproduzione)',
-    tOpt: [10, 19], tLive: [4, 24],
+    tOpt: [10, 21], tLive: [3, 28],
     mesi: [0, 0, 0, .6, .75, .7, .6, .6, .9, 1, .9, .3],
     luce: 'crepuscolo', torbida: -0.2, portata: -0.3, press: 0.5,
     prof: { primavera: '0,5 – 2 m nei canneti e sulle piane erbose', estate: '1 – 3 m ai margini della vegetazione', autunno: '1,5 – 4 m, il periodo migliore', inverno: '2 – 5 m, movimenti lenti' },
     taglia: 'per trattenerlo servono almeno 70 cm; solo 1 capo al giorno',
     esche: ['vermone in gomma vinilica', 'spinnerbait', 'jerkbait', 'esca viva (dove ammessa)'],
     tecniche: ['spinning', 'pesca a mosca con streamer'],
-    dritte: 'Misura minima altissima (70 cm) e 1 solo capo: nella pratica è pesce da catch & release. Popolazione residua e fragile, minacciata da persico trota, lucioperca e siluro. Cerca i margini della vegetazione: casse di espansione del Secchia, laghi di Varignana, laghi di Santarcangelo, monte diga di Quarto. L\'autunno è la stagione d\'oro.'
+    dritte: 'Misura minima altissima (70 cm) e 1 solo capo: nella pratica è pesce da catch & release, e nelle province di Piacenza, Reggio Emilia, Modena, Bologna, Ferrara e Ravenna la detenzione è vietata del tutto (calendari ittici 2026/2027). Popolazione residua e fragile, minacciata da persico trota, lucioperca e siluro. Cerca i margini della vegetazione: casse di espansione del Secchia, laghi di Varignana, laghi di Santarcangelo, monte diga di Quarto. L\'autunno è la stagione d\'oro.'
   },
   persicoReale: {
     nome: 'Persico reale', sci: 'Perca fluviatilis', gruppo: 'predatori',
     icona: 'fish-perch', autoctona: true,
     misuraMin: 20, limiteGiorno: 5,
     divieto: [[3, 15, 5, 15]], divietoTesto: '15 marzo – 15 maggio',
-    tOpt: [12, 22], tLive: [4, 26],
+    tOpt: [12, 24], tLive: [4, 31],
     mesi: [.4, .4, .2, .2, .3, .8, .85, .85, .95, 1, .7, .45],
     luce: 'giorno', torbida: -0.2, portata: -0.3, press: 0.3,
     prof: { primavera: '1 – 3 m', estate: '2 – 5 m, in branchi sulle strutture', autunno: '2 – 6 m, branchi in caccia', inverno: '3 – 8 m, compatto sul fondo' },
@@ -381,7 +396,7 @@ const SPECIE = {
     icona: 'fish-perch', autoctona: false, alloctona: true,
     misuraMin: null, limiteGiorno: null,
     divieto: [], divietoTesto: 'specie alloctona: nessun divieto regionale. Nelle casse di espansione del Secchia valgono però misure minime locali per lucci e persici e il divieto di esche artificiali dal 15 dicembre al 15 maggio',
-    tOpt: [18, 27], tLive: [10, 31],
+    tOpt: [18, 29], tLive: [8, 35],
     mesi: [.1, .15, .3, .6, .85, .95, 1, 1, .95, .7, .3, .15],
     luce: 'crepuscolo', torbida: -0.3, portata: -0.5, press: 0.4,
     prof: { primavera: '0,5 – 2 m sui bassi fondali in frega', estate: '1 – 3 m all\'ombra delle strutture, a galla all\'alba', autunno: '2 – 4 m', inverno: '3 – 6 m, molto lento' },
@@ -395,7 +410,7 @@ const SPECIE = {
     icona: 'fish-perch', autoctona: false, alloctona: true,
     misuraMin: null, limiteGiorno: null,
     divieto: [], divietoTesto: 'specie alloctona: nessun divieto regionale',
-    tOpt: [10, 20], tLive: [3, 25],
+    tOpt: [10, 24], tLive: [3, 32],
     mesi: [.4, .4, .5, .6, .6, .6, .6, .7, .9, 1, .85, .5],
     luce: 'notte', torbida: 0.5, portata: 0.2, press: 0.3,
     prof: { primavera: '2 – 5 m', estate: '3 – 8 m di giorno, sale al crepuscolo', autunno: '2 – 6 m, caccia attiva', inverno: '4 – 10 m sul fondo' },
@@ -409,7 +424,7 @@ const SPECIE = {
     icona: 'fish-pike', autoctona: false, alloctona: true,
     misuraMin: null, limiteGiorno: null,
     divieto: [], divietoTesto: 'specie alloctona: nessun divieto regionale',
-    tOpt: [14, 24], tLive: [7, 28],
+    tOpt: [14, 25], tLive: [6, 31],
     mesi: [.2, .25, .5, .8, .9, .9, .9, .9, .95, .8, .4, .25],
     luce: 'giorno', torbida: -0.2, portata: 0.3, press: 0.2,
     prof: { primavera: '0,5 – 2 m in superficie', estate: '0,3 – 2 m, caccia in superficie sui banchi di alborelle', autunno: '1 – 3 m', inverno: '3 – 6 m' },
@@ -423,7 +438,7 @@ const SPECIE = {
     icona: 'fish-catfish', autoctona: false, alloctona: true,
     misuraMin: null, limiteGiorno: null,
     divieto: [], divietoTesto: 'specie alloctona: nessun divieto regionale. Ne è vietata l\'immissione e la reimmissione in acqua',
-    tOpt: [20, 27], tLive: [12, 31],
+    tOpt: [20, 28], tLive: [8, 34],
     mesi: [.1, .1, .2, .4, .7, .9, 1, 1, .9, .6, .25, .1],
     luce: 'notte', torbida: 0.6, portata: 0.3, press: 0.2,
     prof: { primavera: '2 – 5 m nelle buche', estate: '1,5 – 5 m, di notte sale sui bassi fondali', autunno: '3 – 6 m', inverno: '4 – 10 m, quasi fermo' },
@@ -437,7 +452,7 @@ const SPECIE = {
     icona: 'fish-catfish', autoctona: false, alloctona: true,
     misuraMin: null, limiteGiorno: null,
     divieto: [], divietoTesto: 'specie alloctona: nessun divieto regionale',
-    tOpt: [19, 28], tLive: [10, 32],
+    tOpt: [19, 29], tLive: [10, 36],
     mesi: [.1, .15, .3, .5, .8, .9, 1, 1, .9, .6, .3, .15],
     luce: 'notte', torbida: 0.6, portata: -0.3, press: 0.1,
     prof: { primavera: '1 – 3 m', estate: '0,8 – 3 m, di notte sottoriva', autunno: '1,5 – 3,5 m', inverno: '3 – 5 m' },
@@ -449,16 +464,20 @@ const SPECIE = {
   anguilla: {
     nome: 'Anguilla', sci: 'Anguilla anguilla', gruppo: 'migratori',
     icona: 'fish-eel', autoctona: true,
-    misuraMin: 40, limiteGiorno: 2,
-    divieto: [[1, 1, 3, 31]], divietoTesto: '1 gennaio – 31 marzo (Decreto ministeriale in attuazione del Regolamento UE)',
-    tOpt: [16, 25], tLive: [8, 29],
+    /* Dal 2026 non si pesca: il D.M. n. 107712 del 4 marzo 2026 (art. 5) vieta
+       la pesca sportiva dell'anguilla in tutta Italia per l'intero anno, e il
+       calendario regionale 2026/2027 ne vieta sempre la detenzione. Il decreto
+       è annuale: va riletto a gennaio. Prima qui c'erano 40 cm, 2 capi e un
+       divieto di tre mesi, e in 45 schede l'anguilla era un pesce da tenere. */
+    misuraMin: null, limiteGiorno: 0,
+    divieto: [[1, 1, 12, 31]], divietoTesto: 'tutto l\'anno: pesca sportiva vietata in tutta Italia per il 2026 (D.M. 4 marzo 2026) e detenzione sempre vietata dal calendario regionale 2026/2027',
+    tOpt: [16, 26], tLive: [8, 31],
     mesi: [0, 0, 0, .5, .8, .9, .95, 1, .95, .7, .3, 0],
     luce: 'notte', torbida: 0.6, portata: 0.3, press: 0.2,
     prof: { primavera: '1 – 3 m sul fondo', estate: '1 – 4 m, esce di notte', autunno: '2 – 5 m, migra verso il mare', inverno: 'fuori stagione (divieto)' },
-    taglia: 'minimo 40 cm, massimo 2 capi al giorno',
-    esche: ['lombrico', 'trancio di pesce'],
-    tecniche: ['pesca a fondo notturna'],
-    dritte: 'Specie in crisi in tutta Europa: pesca con moderazione. Vietato usare l\'anguilla come esca, viva, morta o porzionata. Notte, acqua calda e cielo coperto sono le condizioni migliori.'
+    taglia: '40–80 cm',
+    esche: [], tecniche: [],
+    dritte: 'Specie in crisi in tutta Europa: per il 2026 la pesca sportiva è vietata in tutta Italia e non si può trattenere. Se abbocca pescando ad altro, di notte e a fondo, slamala in acqua e rilasciala subito. Vietato usarla come esca, viva, morta o porzionata.'
   },
   cheppia: {
     nome: 'Cheppia (alosa)', sci: 'Alosa fallax', gruppo: 'migratori',
@@ -479,7 +498,7 @@ const SPECIE = {
     icona: 'fish-generic', autoctona: true,
     misuraMin: 20, limiteGiorno: null,
     divieto: [], divietoTesto: 'nessun periodo di divieto',
-    tOpt: [16, 26], tLive: [9, 30],
+    tOpt: [16, 27], tLive: [7, 33],
     mesi: [.2, .2, .5, .9, .95, .85, .8, .8, .9, .8, .45, .25],
     luce: 'giorno', torbida: 0.2, portata: 0.2, press: 0,
     prof: { primavera: '0,3 – 2 m, in risalita nei rami del Po', estate: '0,3 – 2 m nei portocanali', autunno: '0,5 – 3 m', inverno: '1 – 3 m' },
@@ -507,7 +526,7 @@ const SPECIE = {
     icona: 'fish-seabass', autoctona: true,
     misuraMin: 25, limiteGiorno: 2,
     divieto: [], divietoTesto: 'nessun periodo di divieto',
-    tOpt: [11, 20], tLive: [6, 25],
+    tOpt: [12, 25], tLive: [6, 31],
     mesi: [.6, .6, .7, .8, .7, .5, .4, .4, .7, .95, 1, .8],
     luce: 'notte', torbida: 0.5, portata: 0.4, press: 0.5,
     prof: { primavera: '0,5 – 3 m alle foci', estate: '1 – 4 m, notte', autunno: '0,5 – 3 m, mare mosso', inverno: '1 – 5 m sulle dighe' },
@@ -521,7 +540,7 @@ const SPECIE = {
     icona: 'fish-seabream', autoctona: true,
     misuraMin: 20, limiteGiorno: null,
     divieto: [], divietoTesto: 'nessun periodo di divieto',
-    tOpt: [17, 26], tLive: [11, 29],
+    tOpt: [18, 27], tLive: [12, 32],
     mesi: [.2, .2, .3, .5, .8, .9, .95, 1, 1, .85, .5, .25],
     luce: 'giorno', torbida: 0.2, portata: 0, press: 0.2,
     prof: { primavera: '1 – 4 m', estate: '1 – 5 m sui fondi sabbiosi e le buche', autunno: '2 – 6 m', inverno: '3 – 8 m' },
@@ -535,7 +554,7 @@ const SPECIE = {
     icona: 'fish-seabream', autoctona: true,
     misuraMin: null, limiteGiorno: null,
     divieto: [], divietoTesto: 'nessun divieto regionale specifico',
-    tOpt: [18, 26], tLive: [12, 29],
+    tOpt: [18, 27], tLive: [12, 32],
     mesi: [.15, .15, .25, .45, .7, .9, 1, 1, .9, .7, .35, .2],
     luce: 'giorno', torbida: 0.3, portata: 0, press: 0.1,
     prof: { primavera: '1 – 3 m', estate: '0,8 – 3 m sui fondi sabbiosi', autunno: '1 – 4 m', inverno: '2 – 6 m' },
@@ -549,7 +568,7 @@ const SPECIE = {
     icona: 'fish-generic', autoctona: true,
     misuraMin: null, limiteGiorno: null,
     divieto: [], divietoTesto: 'nessun divieto regionale specifico',
-    tOpt: [16, 25], tLive: [11, 28],
+    tOpt: [16, 26], tLive: [11, 31],
     mesi: [.2, .2, .3, .6, .9, .95, .9, .95, 1, .8, .4, .25],
     luce: 'giorno', torbida: -0.3, portata: 0, press: 0.1,
     prof: { primavera: '0 – 5 m in superficie', estate: '0 – 8 m', autunno: '0 – 10 m', inverno: 'al largo' },
@@ -563,7 +582,7 @@ const SPECIE = {
     icona: 'fish-generic', autoctona: true,
     misuraMin: 7, limiteGiorno: null,
     divieto: [[4, 1, 5, 31]], divietoTesto: '1 aprile – 31 maggio',
-    tOpt: [12, 24], tLive: [7, 28],
+    tOpt: [10, 24], tLive: [3, 31],
     mesi: [.7, .7, .7, .2, .2, .8, .85, .85, .9, .95, .85, .75],
     luce: 'giorno', torbida: 0.3, portata: 0, press: 0,
     prof: { primavera: '0,5 – 3 m tra le scogliere', estate: '0,5 – 4 m', autunno: '0,5 – 4 m', inverno: '1 – 5 m' },
@@ -590,7 +609,7 @@ const SPECIE = {
     misuraMin: null, limiteGiorno: null,
     divieto: [], divietoTesto: 'nessun periodo di divieto',
     norme: 'In mare valgono le norme nazionali sulla pesca sportiva (DPR 1639/1968): nessuna misura minima per calamari e seppie, al massimo 5 kg di pescato al giorno in tutto, salvo un singolo esemplare più pesante, e divieto di usare fonti luminose. Per pescare in mare serve anche la comunicazione annuale al Ministero dell\'agricoltura sul portale SIAN (DM 6 dicembre 2010).',
-    tOpt: [11, 18], tLive: [8, 26],
+    tOpt: [11, 19], tLive: [6, 26],
     mesi: [.85, .75, .6, .35, .2, .1, .1, .15, .35, .7, 1, .95],
     luce: 'notte', torbida: -0.5, portata: -0.4, press: 0,
     prof: { primavera: 'a mezz\'acqua, 2 – 6 m', estate: 'al largo, raro sotto costa', autunno: 'a mezz\'acqua, 2 – 6 m; di notte sale verso la superficie', inverno: 'a mezz\'acqua, 2 – 8 m; di notte sale verso la superficie' },
@@ -605,7 +624,7 @@ const SPECIE = {
     misuraMin: null, limiteGiorno: null,
     divieto: [], divietoTesto: 'nessun periodo di divieto',
     norme: 'In mare valgono le norme nazionali sulla pesca sportiva (DPR 1639/1968): nessuna misura minima per calamari e seppie, al massimo 5 kg di pescato al giorno in tutto, salvo un singolo esemplare più pesante, e divieto di usare fonti luminose. Per pescare in mare serve anche la comunicazione annuale al Ministero dell\'agricoltura sul portale SIAN (DM 6 dicembre 2010).',
-    tOpt: [13, 20], tLive: [9, 26],
+    tOpt: [13, 20], tLive: [9, 29],
     mesi: [.15, .2, .55, 1, 1, .65, .3, .25, .4, .6, .45, .2],
     luce: 'crepuscolo', torbida: -0.2, portata: -0.3, press: -0.3,
     prof: { primavera: 'sul fondo, 1 – 5 m, sabbia e fango vicino a riva', estate: 'sul fondo, più al largo', autunno: 'sul fondo, 2 – 6 m, soprattutto seppie giovani', inverno: 'al largo, rara da riva' },

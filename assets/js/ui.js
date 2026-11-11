@@ -235,7 +235,7 @@ const APP = (() => {
       <b style="font-size:clamp(1.15rem,2.2vw,1.5rem)">${esc(pesce.nome)}</b>
       <em>il più attivo oggi</em></div>`);
     fatti.push(`<div class="fatto"><span class="occhio">acqua</span>
-      <b>${n1(a.temp)}<span class="u">°C</span></b><em>${esc(etAcqua(a.temp))}, stimata</em></div>`);
+      <b>${n1(a.temp)}<span class="u">°C</span></b><em>${esc(etAcqua(a.temp))}, ${a.misurata ? 'in superficie' : 'stimata'}</em></div>`);
     if (a.flowRatio !== null)
       fatti.push(`<div class="fatto"><span class="occhio">portata</span>
         <b>${a.flowRatio >= 1 ? '+' : ''}${n0((a.flowRatio - 1) * 100)}<span class="u">%</span></b>
@@ -466,6 +466,9 @@ const APP = (() => {
   }
 
   function regole(f) {
+    /* dove il calendario della provincia vieta di trattenerla, misura e capi
+       al giorno non dicono niente: resta la regola, che lo spiega */
+    if (f.nonTrattenibile) return esc(f.divietoTesto);
     const p = [];
     /* `norme`: specie solo di mare, fuori dall'Allegato 2 (data-species.js) */
     p.push(f.misuraMin ? `misura minima ${f.misuraMin} cm`

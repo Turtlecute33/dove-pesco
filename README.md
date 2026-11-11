@@ -311,7 +311,7 @@ assets/js/
   tavole.js                    18 disegni a linea (16 pesci, calamaro e seppia) + simboli
   data-species.js              42 specie: biologia, profondità, esche, regole
   data-spots-*.js              225 spot in quattro elenchi
-  data-index.js                unione, province, categorie, mappa delle rarità
+  data-index.js                unione, province, categorie, rarità, celle di portata
   data-rules.js                licenze, attrezzi, limiti, zone, avvisi, fonti
   geo-regione.js               geometria della mappa regionale (101 KB, mare compreso)
   geo-locale.js                225 mappe locali (2,1 MB, caricata a richiesta)
@@ -322,7 +322,9 @@ assets/js/
   ui.js                        interfaccia
   condividi.js                 il tasto «Condividi», unico script delle pagine statiche
 tools/
-  aggiorna-dati.py             scarica meteo e portata e scrive previsioni.json
+  aggiorna-dati.py             scarica meteo, portata e mare e scrive previsioni.json
+  elenchi.py                   legge gli spot da assets/js con node, per gli altri script
+  celle-portata.py             sceglie da quale cella di GloFAS leggere ogni spot
   genera-pagine.py             prepara _sito/: applicazione + 367 pagine + sitemap
   avvisa-motori.py             dopo un push avvisa Bing e gli altri motori IndexNow
   indexnow.txt                 la chiave IndexNow, pubblica per costruzione
@@ -373,32 +375,132 @@ DGR 514/2024.
 
 Sei fattori moltiplicati fra loro, specie per specie:
 
-1. **Stagione**: curva di attività mensile per ogni specie.
+1. **Stagione**: curva di attività mensile per ogni specie, sfumata da un mese
+   all'altro. Uno zero (divieto, pesce assente) resta un gradino.
 2. **Temperatura dell'acqua**, stimata con un modello a inerzia termica: l'acqua segue
    la media dell'aria degli ultimi N giorni, smorzata verso la temperatura media annua
    alla quota dello spot. N e smorzamento cambiano per ambiente (3 giorni per un
-   torrente sorgivo, 14 per un bacino profondo), con un tetto per tipo. È una stima
-   dichiarata, non una misura.
+   torrente e per un canale, 14 per un lago o un bacino); su fiumi e torrenti decide la
+   quota. È una stima dichiarata, non una misura, ed è tarata sulle misure di ARPAE:
+   vedi «Il modello davanti alle misure». Sul mare non si stima: si usa la temperatura
+   di superficie di Open-Meteo.
 3. **Portata**: dato reale dal modello idrologico GloFAS, confrontato con la mediana
-   delle settimane precedenti nello stesso punto. Non usata su laghi, cave, mare e
-   canali di bonifica.
+   delle settimane precedenti. Non usata su laghi, cave, mare e canali di bonifica.
+   Per 72 spot su 149 si legge la cella accanto a quella dello spot: vedi «La cella
+   giusta di GloFAS».
 4. **Pioggia e torbidità**: 72 ore precedenti + previsione + scarto di portata,
    confrontate con la preferenza di ogni specie.
 5. **Pressione, luce, luna**: variazione barometrica sul giorno prima, copertura
    nuvolosa, fase lunare calcolata in locale.
-6. **Divieti e presenza reale**: una specie in divieto o protetta pesa il 34%; dove la
-   guida regionale scrive «rari», pesa il 42%.
+6. **Divieti e presenza reale**: una specie in divieto o protetta pesa il 34%, e così
+   una che il calendario ittico della provincia vieta di trattenere; dove la guida
+   regionale scrive «rari», pesa il 42%. Le acque di categoria D, chiuse a ogni specie
+   dalla prima domenica di ottobre all'ultima di marzo, in quei mesi hanno indice zero.
 
 Indice = 62% della specie migliore + 38% della media delle prime tre, poi modificatori
 d'ambiente (piena, magra, temporali, vento, mare mosso, acqua fresca in giornata
 torrida, stagione consigliata) e compressione esponenziale su 100. **Il 100 non è
-raggiungibile**: nessun giorno è perfetto.
+raggiungibile**: nessun giorno è perfetto. Il mare mosso si legge dall'altezza
+dell'onda, non più dal vento a terra.
+
+## Il modello davanti alle misure
+
+A novembre 2026 ogni numero del motore è stato rimesso davanti a un dato misurato o a una
+norma letta sulla fonte. Sono usciti errori di tre specie: nei dati in ingresso, nelle
+regole e nelle costanti del modello.
+
+### La cella giusta di GloFAS
+
+GloFAS lavora su celle di 5 km e in ogni cella scorre al più un fiume, quello che ci ha
+messo il modello. Open-Meteo restituisce la cella più vicina alla coordinata, e se il
+fiume del modello sta nella cella accanto lo spot legge il deflusso di un pezzo di
+campagna. **72 spot su 149** leggevano una cella almeno cinque volte più povera di una
+delle otto intorno; a Pontelagoscuro il Po risultava a 0,06 m³/s, con 1049 nella cella
+vicina, e sette spot su diciassette del Po stavano sotto i 0,2 m³/s. Su numeri così lo
+scarto sulla mediana è rumore: l'11 novembre il Po ferrarese era dato «in piena» a +225%
+per la pioggia caduta sul campo, con il fiume vero a +13%.
+
+`tools/celle-portata.py` chiede le nove celle intorno a ogni spot e sceglie: resta sulla
+propria se regge il confronto, altrimenti passa alla più ricca, senza mai dare il Po a un
+affluente. La tabella sta in `assets/js/data-index.js` e la leggono `aggiorna-dati.py` e
+`api.js`. Meteo e quota restano sulla coordinata dello spot.
+
+| in 47 giorni d'autunno, su 75 spot di fiume | prima | dopo |
+|---|---|---|
+| giorni-spot senza uno scarto di portata | 27% | **7%** |
+
+Dove lo scarto ora c'è, c'è anche la piena vera: i torrenti romagnoli, che prima non
+avevano portata, nei giorni di pioggia adesso scendono.
+
+### La temperatura dell'acqua
+
+Messa davanti alle misure di ARPAE (575 campioni del 2024-2025 su 50 stazioni di fiume e
+torrente da 1 a 1043 m, 128 su dieci canali, 126 in superficie su cinque invasi) e a due
+anni di temperatura di superficie del mare in tre punti della costa:
+
+| errore medio, °C | prima | dopo |
+|---|---|---|
+| torrenti (di cui in estate) | 3,4 (4,6 in meno) | **1,9** (0,3 in meno) |
+| fiumi | 2,3 (2,1 in meno) | **1,8** (0,3 in meno) |
+| canali | 2,6 (1,9 in meno) | **1,7** (pari) |
+| invasi | 3,9 (4,3 in meno) | **2,7** (0,5 in meno) |
+| mare, stimato dall'aria | 3,8 (5,8 in meno) | **1,1**, ma ora si usa la misura |
+
+L'errore stava quasi tutto d'estate e in basso. Un torrente di pianura prendeva i numeri
+di un torrente di sorgente, e a luglio usciva a 19 °C con l'acqua vera a 26: «torrente» è
+un nome, non una quota. Ora per le acque correnti decide la quota. I dati di ARPAE hanno
+una trappola: nel campo `data`, quando il giorno è 12 o meno, giorno e mese sono
+scambiati. Corretti, l'inverno ha media 6,9 °C e l'estate 23,9; lasciati com'erano, 10,1 e
+20,2.
+
+Con un'acqua più vera sono stati rivisti anche gli intervalli di temperatura delle
+specie, che al limite alto erano tarati sull'acqua sbagliata: con 27 °C misurati in
+pianura, il cavedano e la carpa mangiano.
+
+### Le regole
+
+Lette sulla fonte l'11 novembre 2026: l'Allegato 2, il calendario ittico regionale
+2026/2027, i nove provinciali e il decreto ministeriale sull'anguilla.
+
+- **Acque D d'inverno.** L'art. 23 del regolamento chiude le acque di categoria D a ogni
+  specie dalle 19 della prima domenica di ottobre alle 5 dell'ultima di marzo. Il motore
+  fermava solo la trota: 68 spot davano un indice e un «pesce del giorno» per sei mesi in
+  acque chiuse. Ora l'indice è zero e la scheda dice quando si riapre. Tre laghi del
+  parmense aprono la prima domenica di maggio. L'invaso del Molato resta fuori dalla
+  chiusura: la scheda lo dà in categoria D, ma il calendario di Piacenza lo mette fra le
+  zone di carp fishing, e la categoria va verificata sulla carta regionale.
+- **La stagione della trota** aveva date fisse, 5 ottobre e 25 marzo. Sono domeniche, e
+  cambiano: nel 2026 la trota risultava aperta dal 26 al 28 marzo, con l'apertura vera
+  domenica 29.
+- **Anguilla.** Pesca sportiva vietata in tutta Italia per tutto il 2026 (D.M. 4 marzo
+  2026, art. 5), detenzione sempre vietata dal calendario regionale. Il sito dava 40 cm e
+  2 capi al giorno su 45 schede. Il decreto è annuale: va riletto a gennaio.
+- **Le province.** Tinca e luccio non si trattengono a PC, RE, MO, BO, FE e RA; la lasca
+  a PR, RE, MO, FC e RN; il vairone a FC e RN. La carpa è in divieto dal 15 aprile in
+  cinque province, e a Rimini i ciprinidi autoctoni si rilasciano dal 15 aprile al 30
+  giugno. Stanno in `REGOLE.province` (`data-rules.js`) e il motore le applica dalla
+  provincia della scheda: il luccio di Varignana non è più un pesce da portare a casa.
+
+### Il resto
+
+- I laghi S. Anna erano usciti dal file delle previsioni: `aggiorna-dati.py` cercava gli
+  spot con una regex, e il campo `titolo` l'aveva rotta. Ora li legge con node
+  (`tools/elenchi.py`) e dice quali spot sono rimasti senza meteo.
+- Il modello dell'acqua guarda 14 giorni indietro per laghi e bacini, ma il file ne
+  portava 10: la finestra veniva tagliata senza dirlo. Ora ne porta 14.
+- Sul mare l'onda si legge dal servizio marino. Nei giorni in cui il vento a terra o
+  l'onda davano «mare mosso», le due misure erano d'accordo quattro volte su dieci.
+
+Quello che il confronto **non** dice: se l'indice indovina le catture. Non esiste un
+registro di catture contro cui provarlo. Sono più giusti i dati che entrano e le regole
+che si applicano; i pesi con cui i fattori si combinano restano una scelta.
 
 ## Le previsioni: un file, non una chiamata a testa
 
 Open-Meteo è gratuito, senza chiave e con i limiti contati **per indirizzo IP**: 600
-chiamate al minuto, 10.000 al giorno. Un caricamento completo del sito ne pesa circa 350
-(225 punti × 11 variabili × 17 giorni, più la portata su 149 corsi d'acqua). Se ogni
+chiamate al minuto, 10.000 al giorno. Un caricamento completo del sito ne pesa circa 400
+(225 punti × 11 variabili × 21 giorni, più la portata su 149 corsi d'acqua e il mare su 22
+spot). Se ogni
 visitatore chiamasse dal proprio browser funzionerebbe: mille utenti sono mille quote
 diverse. Ma chi ricarica spesso, o sta dietro a un IP condiviso (ufficio, scuola, rete
 mobile), si prenderebbe un 429.
@@ -406,12 +508,13 @@ mobile), si prenderebbe un 429.
 Perciò le previsioni le scarica una volta sola GitHub Actions:
 
 ```
-ogni 4 ore   tools/aggiorna-dati.py  →  assets/dati/previsioni.json  (280 KB, 39 KB compressi)
+ogni 4 ore   tools/aggiorna-dati.py  →  assets/dati/previsioni.json  (330 KB, 80 KB compressi)
              il workflow ripubblica il sito con dentro il file fresco
 ```
 
-Due richieste in tutto, una per servizio: Open-Meteo accetta tutte le coordinate insieme,
-e un giro dura cinque secondi. Prima erano dieci richieste a lotti di 40 spot, e ogni
+Tre richieste in tutto, una per servizio (meteo, portata, mare): Open-Meteo accetta tutte
+le coordinate insieme, e un giro dura una quindicina di secondi. Se quella del mare non
+arriva il file esce lo stesso, e su quegli spot l'acqua torna stimata dall'aria. Prima erano dieci richieste a lotti di 40 spot, e ogni
 lotto dopo il primo si incagliava al primo tentativo per poi riuscire al secondo: con un
 tetto di attesa di 180 secondi un giro arrivava a venti minuti, tenendo occupata la coda
 di pubblicazione. Non era un rifiuto di Open-Meteo (non arriva mai un 429), ma una
@@ -498,6 +601,7 @@ python3 tools/accessi.py             # dove fermarsi: assets/js/geo-accessi.js
 python3 tools/verifica-accessi.py    # prima/dopo, esce 1 se un punto e' in acqua
 python3 tools/ricalibra.py --correggi # aggancia gli spot al corso d'acqua dichiarato
 python3 tools/inline-font.py         # rigenera caratteri.css dai woff2
+python3 tools/celle-portata.py       # dopo uno spot nuovo di fiume: la sua cella di portata
 python3 tools/aggiorna-dati.py       # previsioni pronte in assets/dati/previsioni.json
 python3 tools/genera-pagine.py       # la cartella da pubblicare, in _sito/
 python3 tools/og-immagine.py         # ridisegna assets/og.png (serve cairosvg)
