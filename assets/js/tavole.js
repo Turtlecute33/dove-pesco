@@ -318,6 +318,34 @@ const TAVOLE = (() => {
     ${macchie([[62, 44], [80, 41], [98, 44], [116, 42], [72, 54], [92, 55], [110, 51]], 1.7)}
   `);
 
+  /* I due cefalopodi guardano a sinistra come i pesci: testa e braccia
+     davanti, il mantello dietro. Il calamaro è un fuso con le pinne a rombo
+     in fondo; la seppia un ovale largo con la pinna a frangia tutto intorno. */
+  F.calamaro = p(`
+    <path d="M60 32C96 28 146 32 182 44"/>
+    <path d="M60 56C96 60 146 56 182 44"/>
+    <path d="M128 32.6Q160 16 182 44Q160 72 128 55.4" stroke-width="1.1"/>
+    <path d="M60 32C52 32.4 45 35 40 39.2M60 56C52 55.6 45 53 40 48.8"/>
+    ${occhio(50, 42.6, 4)}
+    <path d="M40 40C31 37.6 23 35.2 12 34.4M40 42.4C30 41.2 21 40.4 9 40.6M40 45.6C30 46.6 21 47.6 9 48.6M40 48C31 50.4 23 52.8 12 54.8"
+      stroke-width="1.4"/>
+    <path d="M40 43.4C27 41.6 15 36 4 29.6q-2.8-1.4-1.6 1.6M40 44.6C27 46.6 15 52 5 58.6q-2.6 1.8.4 2.2"
+      stroke-width="1.1"/>
+    ${macchie([[76, 38.6], [92, 43.4], [106, 37.8], [120, 44.4], [86, 50], [102, 50.4], [138, 43.6]], 1.3)}
+  `);
+
+  F.seppia = p(`
+    <path d="M58 28C86 15 138 15 162 31C172 38 172 50 162 57C138 73 86 73 58 60"/>
+    <path d="M64 23.6C92 10 140 10.6 167 27.6C180 36.6 180 51.4 167 60.4C140 77.4 92 78 64 64.4"
+      stroke-width=".8" opacity=".7"/>
+    <path d="M58 28C49 30.4 43 35 38 39.6M58 60C49 57.6 43 53 38 48.4"/>
+    ${occhio(48, 41.4, 4.2)}
+    <path d="M38 40C30 38.6 23 37.4 15 37M38 42.6C29 42 21 42 12 42.8M38 45.4C29 46.2 21 47.2 13 48.6M38 48C30 49.6 23 51.4 16 53.2"
+      stroke-width="1.4"/>
+    <path d="M80 23.4q3.6 6.4 0 12.4M96 20.6q3.6 6.4 0 12.4M112 20q3.6 6.4 0 12.4M128 21q3.6 6.4 0 12.4M144 24.6q3.2 5.8 0 11"
+      stroke-width=".8" opacity=".5"/>
+  `);
+
   /* ------------------------------------------------- da specie a tavola   */
   const RUBRICA = {
     trotaFario: 'trota', trotaIridea: 'trota', trotaLacustre: 'trota', salmerino: 'trota',
@@ -333,7 +361,8 @@ const TAVOLE = (() => {
     anguilla: 'anguilla',
     cheppia: 'cheppia', cefalo: 'cefalo', storione: 'siluro',
     spigola: 'spigola', orata: 'orata', mormora: 'orata',
-    pescePelagico: 'pelagico', paganello: 'ghiozzo'
+    pescePelagico: 'pelagico', paganello: 'ghiozzo',
+    calamaro: 'calamaro', seppia: 'seppia'
   };
 
   const pesce = (idSpecie) => F[RUBRICA[idSpecie] || 'cavedano'] || F.cavedano;
@@ -371,6 +400,7 @@ const TAVOLE = (() => {
   S.puntina = g(`<path d="M12 21.4c4.2-4.6 6.4-8 6.4-10.6a6.4 6.4 0 1 0-12.8 0c0 2.6 2.2 6 6.4 10.6Z"/><circle cx="12" cy="10.6" r="2.4"/>`);
   S.navigatore = g(`<path d="M20.8 3.2 3.6 10.4l7.2 2.8 2.8 7.2Z"/>`);
   S.indietro = g(`<path d="M19.5 12h-14M11.2 6.2 5.4 12l5.8 5.8"/>`);
+  S.condividi = g(`<path d="M12 14.6V3.4M7.6 7.6 12 3.2l4.4 4.4"/><path d="M8.4 10.4H6.6a1.6 1.6 0 0 0-1.6 1.6v7.2a1.6 1.6 0 0 0 1.6 1.6h10.8a1.6 1.6 0 0 0 1.6-1.6V12a1.6 1.6 0 0 0-1.6-1.6h-1.8"/>`);
 
   /* --- cielo, in stile inciso --- */
   const C = {};

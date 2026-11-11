@@ -255,8 +255,23 @@ const APP = (() => {
       <p class="perche">${esc(v.spiegazione.slice(0, 2).join(' '))}</p>
       <div class="azioni">
         <button class="btn" data-apri="${esc(s.id)}">Come ci si arriva ${seg('freccia')}</button>
+        ${condividiHTML(v)}
         <button class="link" data-giu>Vedi gli altri buoni di oggi</button>
       </div>`;
+  }
+
+  /* Il tasto «Condividi» (assets/js/condividi.js): nasce hidden e lo accende
+     lo script solo dove il browser sa condividere o copiare. Porta la scheda
+     nell'applicazione e, nel testo, l'indice con la sua data: chi lo riceve
+     magari lo legge il giorno dopo, e un «oggi» senza data direbbe il falso. */
+  function condividiHTML(v) {
+    const s = v.spot, d = new Date(dataSel + 'T12:00:00');
+    const et = ENGINE.etichetta(v.punteggio, v.chiuso).t.toLowerCase();
+    const testo = `${s.nome}: indice ${v.punteggio}/100, ${et} ` +
+      `(${d.getDate()} ${MESI[d.getMonth()]} ${d.getFullYear()}).`;
+    return `<button type="button" class="btn vuoto" data-condividi hidden
+      data-titolo="${esc(s.nome)}" data-testo="${esc(testo)}" data-url="#spot/${esc(s.id)}"
+      >${seg('condividi')}<span>Condividi</span></button>`;
   }
 
   /* Quanto è largo il riquadro della carta locale, e cosa ci trovi dentro. Il
@@ -329,6 +344,7 @@ const APP = (() => {
       <span class="occhio acc">indice ${v.punteggio}/100 · ${esc(ENGINE.etichetta(v.punteggio, v.chiuso).t.toLowerCase())}</span>
       <h2 class="titolone">${esc(s.nome)}</h2>
       <div class="luogo">${esc(s.comune)}, ${esc(PROVINCE[s.prov])} · ${esc(s.acqua)}</div>
+      <div class="azioni" data-condividi-riga hidden>${condividiHTML(v)}</div>
 
       ${avvisiHTML(v)}
 
@@ -451,7 +467,10 @@ const APP = (() => {
 
   function regole(f) {
     const p = [];
-    p.push(f.misuraMin ? `misura minima ${f.misuraMin} cm` : 'nessuna misura minima regionale');
+    /* `norme`: specie solo di mare, fuori dall'Allegato 2 (data-species.js) */
+    p.push(f.misuraMin ? `misura minima ${f.misuraMin} cm`
+      : f.norme ? 'nessuna misura minima' : 'nessuna misura minima regionale');
+    if (f.norme) p.push('vietate le fonti luminose');
     if (f.limiteGiorno === 0) p.push('pesca vietata');
     else if (f.limiteGiorno) p.push(`max ${f.limiteGiorno} ${f.limiteGiorno === 1 ? 'capo' : 'capi'} al giorno`);
     if (f.registrazione) p.push('obbligo di registrazione');
@@ -547,6 +566,7 @@ const APP = (() => {
     };
     const g = $('[data-giu]', r);
     if (g) g.onclick = () => $('#altri').scrollIntoView({ behavior: 'smooth', block: 'start' });
+    if (typeof CONDIVIDI !== 'undefined') CONDIVIDI.collega(r);
     caricaMappaLocale();
   }
 

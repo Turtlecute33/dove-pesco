@@ -80,10 +80,12 @@ PESCE_ARTICOLO = {
     'pesceGatto': 'il pesce gatto', 'anguilla': "l'anguilla", 'cheppia': 'la cheppia',
     'cefalo': 'il cefalo', 'storione': 'lo storione', 'spigola': 'la spigola',
     'orata': "l'orata", 'mormora': 'la mormora', 'pescePelagico': 'lo sgombro',
-    'paganello': 'il paganello',
+    'paganello': 'il paganello', 'calamaro': 'il calamaro', 'seppia': 'la seppia',
 }
 # Le schede che raccolgono piu' pesci: «Storioni: che pesce è» non torna.
 SPECIE_PLURALI = {'storione', 'pescePelagico', 'paganello'}
+# Calamaro e seppia sono molluschi: «che pesce è» sarebbe sbagliato.
+NON_PESCI = {'calamaro', 'seppia'}
 MESI = ['gennaio', 'febbraio', 'marzo', 'aprile', 'maggio', 'giugno', 'luglio',
         'agosto', 'settembre', 'ottobre', 'novembre', 'dicembre']
 ORE = {'alba': 'prime luci', 'crepuscolo': 'alba e tramonto', 'notte': 'notte',
@@ -450,13 +452,16 @@ LOGO = ('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width
         ' 6.1-4.4 0-8.2-2.2-11.4-4.2Z"/><path d="m2.6 12 2.9-2.4M2.6 12l2.9 2.4"/>'
         '<circle cx="17.2" cy="10.6" r=".9" fill="currentColor" stroke="none"/></svg>')
 
-# gli stessi due segni di assets/js/tavole.js, qui a mano: le pagine statiche
-# non caricano JavaScript
+# gli stessi segni di assets/js/tavole.js, qui a mano: le pagine statiche
+# non caricano tavole.js
 SEGNO = ('<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4"'
          ' stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">%s</svg>')
 PUNTINA = SEGNO % ('<path d="M12 21.4c4.2-4.6 6.4-8 6.4-10.6a6.4 6.4 0 1 0-12.8 0c0 2.6 2.2 6'
                    ' 6.4 10.6Z"/><circle cx="12" cy="10.6" r="2.4"/>')
 NAVIGATORE = SEGNO % '<path d="M20.8 3.2 3.6 10.4l7.2 2.8 2.8 7.2Z"/>'
+CONDIVIDI = SEGNO % ('<path d="M12 14.6V3.4M7.6 7.6 12 3.2l4.4 4.4"/><path d="M8.4 10.4H6.6a1.6'
+                     ' 1.6 0 0 0-1.6 1.6v7.2a1.6 1.6 0 0 0 1.6 1.6h10.8a1.6 1.6 0 0 0 1.6-1.6V12a1.6'
+                     ' 1.6 0 0 0-1.6-1.6h-1.8"/>')
 
 MENU = [('/', 'Oggi'), ('/spot/', 'Spot'), ('/specie/', 'Specie'),
         ('/regole/', 'Regole'), ('/metodo/', 'Metodo')]
@@ -530,6 +535,30 @@ def fuori_html(s, accessi=None):
      >{NAVIGATORE} Naviga</a>
   <span class="micro tenue num coord">{la}, {lo}</span>
 </div>"""
+
+
+def condividi_html(base, url, nome, v=None, giorno=None):
+    """Il tasto «Condividi» della scheda, con l'indice del giorno nel testo.
+
+    Le pagine statiche non caricano l'applicazione; questo e' l'unico script
+    loro, piccolo e dello stesso dominio (assets/js/condividi.js). Il tasto e
+    la sua riga nascono hidden: li accende lo script solo dove il browser sa
+    condividere o copiare, cosi' senza JavaScript non resta un tasto morto.
+    La data va nel testo perche' chi lo riceve lo legge magari il giorno dopo,
+    e un «oggi» senza data direbbe il falso.
+    """
+    if v:
+        testo = '%s: indice %d/100%s (%s).' % (
+            nome, v['punteggio'],
+            ', ' + v['etichetta'].lower() if v.get('etichetta') else '',
+            data_lunga(giorno))
+    else:
+        testo = '%s: accessi, specie, esche e indice del giorno.' % nome
+    return (f'<div class="fuori condividi" data-condividi-riga hidden>'
+            f'<button type="button" class="btn vuoto piccolo" data-condividi hidden'
+            f' data-titolo="{e(nome)}" data-testo="{e(testo)}" data-url="{e(base + url)}">'
+            f'{CONDIVIDI}<span>Condividi</span></button></div>\n'
+            '<script defer src="/assets/js/condividi.js"></script>')
 
 
 def pagina(base, url, tit, desc, corpo, ld=None, briciole=None, indicizza=True,
@@ -1084,6 +1113,7 @@ def pagina_spot(d, s, base, accessi=None, oggi=None, hub=None):
 <div class="intro">{' '.join(apre)}</div>
 {avvisi_html(divieti)}
 {oggi_html or cta('/#spot/' + s['id'], "Vedi l'indice di oggi per questo spot")}
+{condividi_html(base, '/spot/%s/' % s['slug'], s['nome'], v_oggi, oggi.get('giorno'))}
 <h2>Il posto</h2>
 <div class="voci">{posto_html}</div>
 {sp_html}
@@ -1145,6 +1175,7 @@ def pagina_specie(d, sp, base, hub=None):
     # «dove si pesca».
     vietata = sp.get('protetta') or sp.get('limiteGiorno') == 0
     che = ('che pesci sono e dove si trovano' if sp['id'] in SPECIE_PLURALI
+           else 'come si riconosce e dove si pesca' if sp['id'] in NON_PESCI
            else 'che pesce è e dove si trova' if vietata
            else 'che pesce è e dove si pesca')
     nome_t = sp['nome'] + (' (%s)' % sp['detto'] if sp.get('detto') else '')
@@ -1194,7 +1225,7 @@ def pagina_specie(d, sp, base, hub=None):
 
     dati = [
         ('Misura minima', (str(sp['misuraMin']) + ' cm') if sp.get('misuraMin')
-         else 'nessuna misura regionale'),
+         else 'nessuna misura minima' if sp.get('norme') else 'nessuna misura regionale'),
         ('Capi al giorno', 'pesca vietata' if sp.get('limiteGiorno') == 0
          else (str(sp['limiteGiorno']) if sp.get('limiteGiorno') else 'nessun limite per specie')),
         ('Periodo di divieto', sp['divietoTesto']),
@@ -1260,9 +1291,10 @@ def pagina_specie(d, sp, base, hub=None):
                         for k, v in sorted(per_tipo.items(), key=lambda x: -len(x[1]))])
         acque_html = (
             '<h2>In quali acque si trova</h2>'
-            '<p class="mini tenue" style="margin-top:8px;max-width:66ch">%s dichiarano questa '
+            '<p class="mini tenue" style="margin-top:8px;max-width:66ch">%s questa '
             'specie: %s.</p><p class="mini" style="margin-top:12px;max-width:72ch">%s</p>'
-            % ('%d corsi d\'acqua' % len(ordinate) if len(ordinate) > 1 else 'Un corso d\'acqua',
+            % ('%d corsi d\'acqua dichiarano' % len(ordinate) if len(ordinate) > 1
+               else 'Un corso d\'acqua dichiara',
                conte,
                ' · '.join(
                    ('<a href="/acqua/%s/">%s</a> <span class="tenue">(%d)</span>'
@@ -1314,6 +1346,10 @@ def pagina_specie(d, sp, base, hub=None):
         ('%s: qual è la misura minima in Emilia-Romagna?' % nome,
          ('%d cm, dall\'Allegato 2 del Regolamento regionale 1/2018.' % sp['misuraMin'])
          if sp.get('misuraMin')
+         # le specie solo di mare (`norme` in data-species.js) non stanno
+         # nell'Allegato 2, e i calendari provinciali non valgono in mare
+         else 'Nessuna: le norme europee e nazionali sulla pesca in mare non fissano una '
+              'misura minima per %s.' % PESCE_ARTICOLO[sp['id']] if sp.get('norme')
          else 'Il regolamento regionale non fissa una misura minima per questa specie. I '
               'calendari ittici provinciali possono aggiungerne una.'),
         ('%s: quando è vietata la pesca?' % nome, quando),
@@ -1380,9 +1416,12 @@ def pagina_specie(d, sp, base, hub=None):
 {dove_html}
 {faq_html(faq)}
 {sim_html}
-<p class="mini tenue" style="margin-top:26px;max-width:72ch">Misure minime, limiti e periodi di
-  divieto dall'Allegato 2 del <a href="/regole/">Regolamento regionale 1/2018</a>, come modificato
-  dal 1/2020. I calendari ittici provinciali possono essere più restrittivi.</p>"""
+<p class="mini tenue" style="margin-top:26px;max-width:72ch">{
+  e(sp['norme']) + ' Il resto è nel <a href="/regole/">quadro delle regole</a>.'
+  if sp.get('norme') else
+  'Misure minime, limiti e periodi di divieto dall\'Allegato 2 del '
+  '<a href="/regole/">Regolamento regionale 1/2018</a>, come modificato dal 1/2020. '
+  'I calendari ittici provinciali possono essere più restrittivi.'}</p>"""
 
     ld = [briciola_ld(base, briciole), {
         '@context': 'https://schema.org', '@type': 'Article',

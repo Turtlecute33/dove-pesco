@@ -158,6 +158,9 @@ hr{ border:0; height:1px; background:var(--linea); margin:0 }
 .fuori .btn:hover{ background:var(--panna-2); border-color:transparent }
 .fuori .btn svg{ color:var(--acc) }
 .fuori .coord{ margin-left:2px }
+/* il tasto «Condividi» e la sua riga nascono hidden e li accende condividi.js;
+   .btn, .fuori e .azioni dichiarano un display, che batterebbe [hidden] */
+[data-condividi][hidden],[data-condividi-riga][hidden]{ display:none }
 /* l'indirizzo geo: lo capisce solo un telefono: dove c'è un mouse, il tasto
    «Naviga» non compare invece di non fare nulla */
 @media (hover:hover) and (pointer:fine){ .solo-telefono{ display:none } }

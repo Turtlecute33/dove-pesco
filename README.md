@@ -46,7 +46,7 @@ Per questo `tools/genera-pagine.py` scrive **367 pagine statiche** a ogni pubbli
 
 ```
 /spot/<nome>/          225 schede: come arrivare, accessi, fondale, specie, esche, note
-/specie/<nome>/         40 schede: misura minima, divieto, mese per mese, dove si trova
+/specie/<nome>/         42 schede: misura minima, divieto, mese per mese, dove si trova
 /acqua/<nome>/          37 corsi d'acqua con più di uno spot: tutti i tratti insieme
 /comune/<nome>/         47 comuni con più di uno spot
 /provincia/<nome>/       9 elenchi per corso d'acqua, con le specie più diffuse
@@ -308,8 +308,8 @@ assets/css/
   caratteri.css                Fraunces e Archivo, incorporati come data URI
 assets/fonts/                  i woff2 originali (per rigenerare caratteri.css)
 assets/js/
-  tavole.js                    16 disegni di pesci a linea + simboli, costruiti in codice
-  data-species.js              40 specie: biologia, profondità, esche, regole
+  tavole.js                    18 disegni a linea (16 pesci, calamaro e seppia) + simboli
+  data-species.js              42 specie: biologia, profondità, esche, regole
   data-spots-*.js              225 spot in quattro elenchi
   data-index.js                unione, province, categorie, mappa delle rarità
   data-rules.js                licenze, attrezzi, limiti, zone, avvisi, fonti
@@ -320,6 +320,7 @@ assets/js/
   engine.js                    modello dell'indice
   mappa.js                     disegno delle due mappe
   ui.js                        interfaccia
+  condividi.js                 il tasto «Condividi», unico script delle pagine statiche
 tools/
   aggiorna-dati.py             scarica meteo e portata e scrive previsioni.json
   genera-pagine.py             prepara _sito/: applicazione + 367 pagine + sitemap

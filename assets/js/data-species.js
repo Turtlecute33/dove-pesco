@@ -571,6 +571,48 @@ const SPECIE = {
     esche: ['tremolina', 'gamberetto', 'trancio di sarda'],
     tecniche: ['pesca a fondo tra gli scogli', 'bolognese corta'],
     dritte: 'Pesca semplice e sempre produttiva dai moli e dalle scogliere frangiflutti. Ideale d\'inverno quando il resto non morde.'
+  },
+
+  /* ---------- CEFALOPODI ----------
+     Specie solo di mare: il Regolamento regionale non li nomina, e valgono le
+     norme nazionali. Nessuna misura minima: l'Allegato IX del Reg. UE 2019/1241
+     e gli articoli 87-89 del DPR 1639/1968 non elencano cefalopodi. Il limite
+     di 5 kg al giorno e il divieto di fonti luminose sono gli articoli 142 e
+     140 f) dello stesso DPR; la comunicazione annuale e' il DM 6 dicembre 2010.
+     `norme` sostituisce, nelle pagine, il rimando all'Allegato 2.
+     Stagioni: calamaro da ottobre a marzo (guida della Lega Navale di Trieste;
+     FAO AdriaMed, riproduzione in inverno e primavera); seppia da marzo a
+     giugno sotto costa, giovani in autunno (FAO AdriaMed; scheda delle
+     province di FE, RA, FC e RN). Taglie: lunghezza del mantello, AdriaMed. */
+  calamaro: {
+    nome: 'Calamaro', sci: 'Loligo vulgaris', gruppo: 'mare',
+    icona: 'cephalopod', autoctona: true,
+    misuraMin: null, limiteGiorno: null,
+    divieto: [], divietoTesto: 'nessun periodo di divieto',
+    norme: 'In mare valgono le norme nazionali sulla pesca sportiva (DPR 1639/1968): nessuna misura minima per calamari e seppie, al massimo 5 kg di pescato al giorno in tutto, salvo un singolo esemplare più pesante, e divieto di usare fonti luminose. Per pescare in mare serve anche la comunicazione annuale al Ministero dell\'agricoltura sul portale SIAN (DM 6 dicembre 2010).',
+    tOpt: [11, 18], tLive: [8, 26],
+    mesi: [.85, .75, .6, .35, .2, .1, .1, .15, .35, .7, 1, .95],
+    luce: 'notte', torbida: -0.5, portata: -0.4, press: 0,
+    prof: { primavera: 'a mezz\'acqua, 2 – 6 m', estate: 'al largo, raro sotto costa', autunno: 'a mezz\'acqua, 2 – 6 m; di notte sale verso la superficie', inverno: 'a mezz\'acqua, 2 – 8 m; di notte sale verso la superficie' },
+    taglia: 'mantello di 15–25 cm',
+    esche: ['egi 2.5–3.5', 'totanara', 'tataki con pesciolino'],
+    tecniche: ['eging dai moli', 'totanara a mano o con la canna', 'tataki'],
+    dritte: 'Si pesca da ottobre a marzo, di notte, dai moli e dalle dighe dei porti. Acqua limpida e mare calmo sono le condizioni migliori: con l\'acqua chiara egi dai colori naturali, con l\'acqua torbida rosa o arancio. Teme l\'acqua dolce, quindi dopo una piena dei fiumi cercalo lontano dalle foci. Niente lampade: in mare la legge vieta di pescare con fonti luminose.'
+  },
+  seppia: {
+    nome: 'Seppia', sci: 'Sepia officinalis', gruppo: 'mare',
+    icona: 'cephalopod', autoctona: true,
+    misuraMin: null, limiteGiorno: null,
+    divieto: [], divietoTesto: 'nessun periodo di divieto',
+    norme: 'In mare valgono le norme nazionali sulla pesca sportiva (DPR 1639/1968): nessuna misura minima per calamari e seppie, al massimo 5 kg di pescato al giorno in tutto, salvo un singolo esemplare più pesante, e divieto di usare fonti luminose. Per pescare in mare serve anche la comunicazione annuale al Ministero dell\'agricoltura sul portale SIAN (DM 6 dicembre 2010).',
+    tOpt: [13, 20], tLive: [9, 26],
+    mesi: [.15, .2, .55, 1, 1, .65, .3, .25, .4, .6, .45, .2],
+    luce: 'crepuscolo', torbida: -0.2, portata: -0.3, press: -0.3,
+    prof: { primavera: 'sul fondo, 1 – 5 m, sabbia e fango vicino a riva', estate: 'sul fondo, più al largo', autunno: 'sul fondo, 2 – 6 m, soprattutto seppie giovani', inverno: 'al largo, rara da riva' },
+    taglia: 'mantello di 15–20 cm, fino a 35 cm',
+    esche: ['egi 2.0–3.5', 'tataki con pesciolino'],
+    tecniche: ['eging lento sul fondo', 'tataki'],
+    dritte: 'La stagione è la primavera, da marzo a giugno, quando le adulte si avvicinano ai fondali sabbiosi e fangosi della costa per deporre le uova; in autunno si prendono soprattutto seppie giovani. Di giorno sta spesso insabbiata: lavora l\'egi lento, a contatto con il fondo. Alba, tramonto e cielo coperto sono i momenti buoni, con acqua chiara e alta pressione. Niente lampade: in mare la legge vieta di pescare con fonti luminose.'
   }
 };
 
@@ -665,6 +707,10 @@ const RICONOSCERE = {
   pescePelagico: {
     riconoscere: 'Lo sgombro ha il dorso verde azzurro con strisce ondulate scure; la palamita strisce scure oblique sul dorso e denti robusti; l\'aguglia un corpo lunghissimo e sottile, con un becco di denti aghiformi e le lische verdi.' },
   paganello: {
-    riconoscere: 'Ghiozzo di scogliera di 8-18 cm, con la testa grossa, gli occhi in alto e le pinne ventrali unite a ventosa. Il paganello ha una banda chiara, gialla o arancio, sul bordo della prima pinna dorsale.' }
+    riconoscere: 'Ghiozzo di scogliera di 8-18 cm, con la testa grossa, gli occhi in alto e le pinne ventrali unite a ventosa. Il paganello ha una banda chiara, gialla o arancio, sul bordo della prima pinna dorsale.' },
+  calamaro: { simili: ['seppia'],
+    riconoscere: 'Corpo a fuso, lungo e stretto, con due pinne a rombo che occupano circa due terzi del mantello e ne formano la punta. Otto braccia e due tentacoli più lunghi, con la clava a ventose in fondo. La pelle è quasi trasparente, punteggiata di rosso e viola. Il totano, simile, ha le pinne corte, a freccia, solo in fondo al corpo.' },
+  seppia: { simili: ['calamaro'],
+    riconoscere: 'Corpo ovale, largo e appiattito, con una pinna sottile che corre lungo tutto il bordo del mantello. Dentro ha l\'osso di seppia, una conchiglia calcarea. Pupilla a forma di W, otto braccia corte e due tentacoli che rientrano in due tasche sotto gli occhi. Sul dorso i maschi hanno spesso strisce a zebra.' }
 };
 Object.keys(RICONOSCERE).forEach(k => Object.assign(SPECIE[k], RICONOSCERE[k]));

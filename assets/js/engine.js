@@ -252,6 +252,7 @@ const ENGINE = (() => {
         vietata, soloRilascio, protetta: !!sp.protetta,
         misuraMin: sp.misuraMin, limiteGiorno: sp.limiteGiorno,
         divietoTesto: sp.divietoTesto, registrazione: !!sp.registrazione,
+        norme: !!sp.norme,
         prof: sp.prof[stag], taglia: sp.taglia,
         esche: sp.esche, tecniche: sp.tecniche, dritte: sp.dritte,
         tOpt: sp.tOpt, luce: sp.luce,
